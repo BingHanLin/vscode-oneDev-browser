@@ -15,42 +15,73 @@ export function activate(context: vscode.ExtensionContext) {
                 }
             );
 
-            const config = vscode.workspace.getConfiguration("onedev-browser");
-            const url = config.get("url", "");
-            const email = config.get("email", "");
-            const token = config.get("token", "");
-
-            panel.webview.html = getWebviewContent(url, email, token);
-
-            panel.webview.onDidReceiveMessage(
-                async (message) => {
-                    switch (message.command) {
-                        case "saveCredentials":
-                            await config.update(
-                                "url",
-                                message.url,
-                                vscode.ConfigurationTarget.Global
-                            );
-                            await config.update(
-                                "email",
-                                message.email,
-                                vscode.ConfigurationTarget.Global
-                            );
-                            await config.update(
-                                "token",
-                                message.token,
-                                vscode.ConfigurationTarget.Global
-                            );
-                            vscode.window.showInformationMessage(
-                                "oneDev credentials saved successfully!"
-                            );
-                            panel.dispose();
-                            return;
-                    }
-                },
-                undefined,
-                context.subscriptions
+            const scriptSrc = panel.webview.asWebviewUri(
+                vscode.Uri.joinPath(
+                    context.extensionUri,
+                    "web",
+                    "dist",
+                    "index.js"
+                )
             );
+
+            const cssSrc = panel.webview.asWebviewUri(
+                vscode.Uri.joinPath(
+                    context.extensionUri,
+                    "web",
+                    "dist",
+                    "index.css"
+                )
+            );
+
+            panel.webview.html = `<!DOCTYPE html>
+            <html lang="en">
+              <head>
+                <link rel="stylesheet" href="${cssSrc}" />
+              </head>
+              <body>
+                <noscript>You need to enable JavaScript to run this app.</noscript>
+                <div id="root"></div>
+                <script src="${scriptSrc}"></script>
+              </body>
+            </html>
+            `;
+
+            // const config = vscode.workspace.getConfiguration("onedev-browser");
+            // const url = config.get("url", "");
+            // const email = config.get("email", "");
+            // const token = config.get("token", "");
+
+            // panel.webview.html = getWebviewContent(url, email, token);
+
+            // panel.webview.onDidReceiveMessage(
+            //     async (message) => {
+            //         switch (message.command) {
+            //             case "saveCredentials":
+            //                 await config.update(
+            //                     "url",
+            //                     message.url,
+            //                     vscode.ConfigurationTarget.Global
+            //                 );
+            //                 await config.update(
+            //                     "email",
+            //                     message.email,
+            //                     vscode.ConfigurationTarget.Global
+            //                 );
+            //                 await config.update(
+            //                     "token",
+            //                     message.token,
+            //                     vscode.ConfigurationTarget.Global
+            //                 );
+            //                 vscode.window.showInformationMessage(
+            //                     "oneDev credentials saved successfully!"
+            //                 );
+            //                 panel.dispose();
+            //                 return;
+            //         }
+            //     },
+            //     undefined,
+            //     context.subscriptions
+            // );
         }
     );
 
