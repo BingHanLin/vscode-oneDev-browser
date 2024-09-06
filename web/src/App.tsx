@@ -67,7 +67,9 @@ function App() {
                     <VSCodeTextField
                         id="url"
                         value={url}
-                        onChange={(e) => setUrl(e.target.value)}
+                        onChange={(e) =>
+                            setUrl((e.target as HTMLInputElement).value)
+                        }
                         placeholder="https://your-onedev-instance.com"
                         className="w-3/4"
                     />
@@ -79,7 +81,9 @@ function App() {
                     <VSCodeTextField
                         id="email"
                         value={email}
-                        onChange={(e) => setEmail(e.target.value)}
+                        onChange={(e) =>
+                            setEmail((e.target as HTMLInputElement).value)
+                        }
                         placeholder="user@example.com"
                         className="w-3/4"
                     />
@@ -92,7 +96,9 @@ function App() {
                         id="token"
                         type="password"
                         value={token}
-                        onChange={(e) => setToken(e.target.value)}
+                        onChange={(e) =>
+                            setToken((e.target as HTMLInputElement).value)
+                        }
                         placeholder="Your API token"
                         className="w-3/4"
                     />

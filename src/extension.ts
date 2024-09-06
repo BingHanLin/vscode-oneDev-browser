@@ -46,92 +46,49 @@ export function activate(context: vscode.ExtensionContext) {
             </html>
             `;
 
-            // const config = vscode.workspace.getConfiguration("onedev-browser");
-            // const url = config.get("url", "");
-            // const email = config.get("email", "");
-            // const token = config.get("token", "");
+            const config = vscode.workspace.getConfiguration("onedev-browser");
 
-            // panel.webview.html = getWebviewContent(url, email, token);
-
-            // panel.webview.onDidReceiveMessage(
-            //     async (message) => {
-            //         switch (message.command) {
-            //             case "saveCredentials":
-            //                 await config.update(
-            //                     "url",
-            //                     message.url,
-            //                     vscode.ConfigurationTarget.Global
-            //                 );
-            //                 await config.update(
-            //                     "email",
-            //                     message.email,
-            //                     vscode.ConfigurationTarget.Global
-            //                 );
-            //                 await config.update(
-            //                     "token",
-            //                     message.token,
-            //                     vscode.ConfigurationTarget.Global
-            //                 );
-            //                 vscode.window.showInformationMessage(
-            //                     "oneDev credentials saved successfully!"
-            //                 );
-            //                 panel.dispose();
-            //                 return;
-            //         }
-            //     },
-            //     undefined,
-            //     context.subscriptions
-            // );
+            panel.webview.onDidReceiveMessage(
+                async (message) => {
+                    switch (message.command) {
+                        case "getCredentials":
+                            panel.webview.postMessage({
+                                command: "setCredentials",
+                                url: config.get("url", ""),
+                                email: config.get("email", ""),
+                                token: config.get("token", ""),
+                            });
+                            break;
+                        case "saveCredentials":
+                            await config.update(
+                                "url",
+                                message.url,
+                                vscode.ConfigurationTarget.Global
+                            );
+                            await config.update(
+                                "email",
+                                message.email,
+                                vscode.ConfigurationTarget.Global
+                            );
+                            await config.update(
+                                "token",
+                                message.token,
+                                vscode.ConfigurationTarget.Global
+                            );
+                            vscode.window.showInformationMessage(
+                                "oneDev credentials saved successfully!"
+                            );
+                            panel.dispose();
+                            break;
+                    }
+                },
+                undefined,
+                context.subscriptions
+            );
         }
     );
 
     context.subscriptions.push(disposable);
-}
-
-function getWebviewContent(url: string, email: string, token: string) {
-    return `<!DOCTYPE html>
-    <html lang="en">
-    <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>oneDev Credentials</title>
-        <style>
-            body { font-family: Arial, sans-serif; padding: 20px; }
-            input { width: 100%; padding: 5px; margin-bottom: 10px; }
-            button { padding: 10px; }
-        </style>
-    </head>
-    <body>
-        <h1>oneDev Credentials</h1>
-        <form id="credentialsForm">
-            <label for="url">oneDev URL:</label>
-            <input type="text" id="url" value="${url}" required>
-            
-            <label for="email">Email:</label>
-            <input type="email" id="email" value="${email}" required>
-            
-            <label for="token">API Token:</label>
-            <input type="password" id="token" value="${token}" required>
-            
-            <button type="submit">Save Credentials</button>
-        </form>
-        <script>
-            const vscode = acquireVsCodeApi();
-            document.getElementById('credentialsForm').addEventListener('submit', (e) => {
-                e.preventDefault();
-                const url = document.getElementById('url').value;
-                const email = document.getElementById('email').value;
-                const token = document.getElementById('token').value;
-                vscode.postMessage({
-                    command: 'saveCredentials',
-                    url,
-                    email,
-                    token
-                });
-            });
-        </script>
-    </body>
-    </html>`;
 }
 
 export function deactivate() {}
