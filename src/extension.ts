@@ -75,10 +75,11 @@ export function activate(context: vscode.ExtensionContext) {
                                 message.token,
                                 vscode.ConfigurationTarget.Global
                             );
+
                             vscode.window.showInformationMessage(
                                 "oneDev credentials saved successfully!"
                             );
-                            panel.dispose();
+
                             break;
                     }
                 },
