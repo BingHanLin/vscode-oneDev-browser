@@ -21,6 +21,7 @@ function App() {
     const [url, setUrl] = useState("");
     const [email, setEmail] = useState("");
     const [token, setToken] = useState("");
+    const [showToken, setShowToken] = useState(false);
 
     useEffect(() => {
         // Add event listener for messages from the extension
@@ -54,6 +55,10 @@ function App() {
             email,
             token,
         });
+    };
+
+    const toggleTokenVisibility = () => {
+        setShowToken(!showToken);
     };
 
     return (
@@ -92,16 +97,25 @@ function App() {
                     <label htmlFor="token" className="w-1/4">
                         API Token:
                     </label>
-                    <VSCodeTextField
-                        id="token"
-                        type="password"
-                        value={token}
-                        onChange={(e) =>
-                            setToken((e.target as HTMLInputElement).value)
-                        }
-                        placeholder="Your API token"
-                        className="w-3/4"
-                    />
+                    <div className="w-3/4 flex">
+                        <VSCodeTextField
+                            id="token"
+                            type={showToken ? "text" : "password"}
+                            value={token}
+                            onChange={(e) =>
+                                setToken((e.target as HTMLInputElement).value)
+                            }
+                            placeholder="Your API token"
+                            className="flex-grow"
+                        />
+                        <VSCodeButton
+                            appearance="secondary"
+                            onClick={toggleTokenVisibility}
+                            className="ml-2"
+                        >
+                            {showToken ? "Hide" : "Show"}
+                        </VSCodeButton>
+                    </div>
                 </div>
                 <VSCodeDivider />
                 <div className="flex justify-end">
