@@ -3,65 +3,104 @@ import * as vscode from "vscode";
 // This method is called when your extension is activated
 // Your extension is activated the very first time the command is executed
 export function activate(context: vscode.ExtensionContext) {
-    // Use the console to output diagnostic information (console.log) and errors (console.error)
-    // This line of code will only be executed once when your extension is activated
-    console.log(
-        'Congratulations, your extension "onedev-browser" is now active!'
-    );
-
-    // The command has been defined in the package.json file
-    // Now provide the implementation of the command with registerCommand
-    // The commandId parameter must match the command field in package.json
     let disposable = vscode.commands.registerCommand(
         "onedev-browser.setCredentials",
-        async () => {
-            const url = await vscode.window.showInputBox({
-                prompt: "Enter your oneDev instance URL",
-                placeHolder: "https://your-onedev-instance.com",
-            });
+        () => {
+            const panel = vscode.window.createWebviewPanel(
+                "onedevCredentials",
+                "oneDev Credentials",
+                vscode.ViewColumn.One,
+                {
+                    enableScripts: true,
+                }
+            );
 
-            const email = await vscode.window.showInputBox({
-                prompt: "Enter your oneDev account email",
-                placeHolder: "user@example.com",
-            });
+            const config = vscode.workspace.getConfiguration("onedev-browser");
+            const url = config.get("url", "");
+            const email = config.get("email", "");
+            const token = config.get("token", "");
 
-            const token = await vscode.window.showInputBox({
-                prompt: "Enter your oneDev API token",
-                password: true,
-            });
+            panel.webview.html = getWebviewContent(url, email, token);
 
-            if (url && email && token) {
-                const config =
-                    vscode.workspace.getConfiguration("onedev-browser");
-                await config.update(
-                    "url",
-                    url,
-                    vscode.ConfigurationTarget.Global
-                );
-                await config.update(
-                    "email",
-                    email,
-                    vscode.ConfigurationTarget.Global
-                );
-                await config.update(
-                    "token",
-                    token,
-                    vscode.ConfigurationTarget.Global
-                );
-
-                vscode.window.showInformationMessage(
-                    "oneDev credentials saved successfully!"
-                );
-            } else {
-                vscode.window.showErrorMessage(
-                    "Failed to save oneDev credentials. Please provide all required information."
-                );
-            }
+            panel.webview.onDidReceiveMessage(
+                async (message) => {
+                    switch (message.command) {
+                        case "saveCredentials":
+                            await config.update(
+                                "url",
+                                message.url,
+                                vscode.ConfigurationTarget.Global
+                            );
+                            await config.update(
+                                "email",
+                                message.email,
+                                vscode.ConfigurationTarget.Global
+                            );
+                            await config.update(
+                                "token",
+                                message.token,
+                                vscode.ConfigurationTarget.Global
+                            );
+                            vscode.window.showInformationMessage(
+                                "oneDev credentials saved successfully!"
+                            );
+                            panel.dispose();
+                            return;
+                    }
+                },
+                undefined,
+                context.subscriptions
+            );
         }
     );
 
     context.subscriptions.push(disposable);
 }
 
-// This method is called when your extension is deactivated
+function getWebviewContent(url: string, email: string, token: string) {
+    return `<!DOCTYPE html>
+    <html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>oneDev Credentials</title>
+        <style>
+            body { font-family: Arial, sans-serif; padding: 20px; }
+            input { width: 100%; padding: 5px; margin-bottom: 10px; }
+            button { padding: 10px; }
+        </style>
+    </head>
+    <body>
+        <h1>oneDev Credentials</h1>
+        <form id="credentialsForm">
+            <label for="url">oneDev URL:</label>
+            <input type="text" id="url" value="${url}" required>
+            
+            <label for="email">Email:</label>
+            <input type="email" id="email" value="${email}" required>
+            
+            <label for="token">API Token:</label>
+            <input type="password" id="token" value="${token}" required>
+            
+            <button type="submit">Save Credentials</button>
+        </form>
+        <script>
+            const vscode = acquireVsCodeApi();
+            document.getElementById('credentialsForm').addEventListener('submit', (e) => {
+                e.preventDefault();
+                const url = document.getElementById('url').value;
+                const email = document.getElementById('email').value;
+                const token = document.getElementById('token').value;
+                vscode.postMessage({
+                    command: 'saveCredentials',
+                    url,
+                    email,
+                    token
+                });
+            });
+        </script>
+    </body>
+    </html>`;
+}
+
 export function deactivate() {}
