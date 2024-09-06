@@ -1,7 +1,7 @@
 {
   "name": "onedev-browser",
-  "displayName": "oneDev-browser",
-  "description": "",
+  "displayName": "oneDev Browser",
+  "description": "Browse issues, PRs, and builds on oneDev repositories",
   "version": "0.0.1",
   "engines": {
     "vscode": "^1.93.0"
@@ -14,10 +14,30 @@
   "contributes": {
     "commands": [
       {
-        "command": "onedev-browser.helloWorld",
-        "title": "Hello World"
+        "command": "onedev-browser.setCredentials",
+        "title": "oneDev: Set Credentials"
       }
-    ]
+    ],
+    "configuration": {
+      "title": "oneDev Browser",
+      "properties": {
+        "onedev-browser.url": {
+          "type": "string",
+          "default": "",
+          "description": "URL of your oneDev instance"
+        },
+        "onedev-browser.email": {
+          "type": "string",
+          "default": "",
+          "description": "Your oneDev account email"
+        },
+        "onedev-browser.token": {
+          "type": "string",
+          "default": "",
+          "description": "Your oneDev API token"
+        }
+      }
+    }
   },
   "scripts": {
     "vscode:prepublish": "npm run package",
@@ -43,5 +63,6 @@
     "webpack-cli": "^5.1.4",
     "@vscode/test-cli": "^0.0.9",
     "@vscode/test-electron": "^2.4.0"
-  }
+  },
+  "license": "MIT"
 }
