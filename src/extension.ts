@@ -135,6 +135,53 @@ export function activate(context: vscode.ExtensionContext) {
                                 });
                             }
                             break;
+                        case "fetchPullRequests":
+                            try {
+                                const apiUrl = `${message.url}/~api/pulls`;
+                                const queryParams = new URLSearchParams({
+                                    query: "open and to be reviewed by me",
+                                    offset: "0",
+                                    count: "100",
+                                });
+                                const response = await fetch(
+                                    `${apiUrl}?${queryParams}`,
+                                    {
+                                        method: "GET",
+                                        headers: {
+                                            Authorization:
+                                                "Basic " +
+                                                Buffer.from(
+                                                    `${message.email}:${message.token}`
+                                                ).toString("base64"),
+                                        },
+                                    }
+                                );
+
+                                if (!response.ok) {
+                                    throw new Error(
+                                        `HTTP error! status: ${response.status}`
+                                    );
+                                }
+
+                                const pullRequests = await response.json();
+                                panel.webview.postMessage({
+                                    command: "setPullRequests",
+                                    pullRequests: pullRequests.map(
+                                        (pr: any) => ({
+                                            id: pr.id,
+                                            title: pr.title,
+                                            targetBranch: pr.targetBranch,
+                                            sourceBranch: pr.sourceBranch,
+                                        })
+                                    ),
+                                });
+                            } catch (error) {
+                                panel.webview.postMessage({
+                                    command: "showErrorMessage",
+                                    message: `Error fetching pull requests: ${error.message}`,
+                                });
+                            }
+                            break;
                     }
                 },
                 undefined,

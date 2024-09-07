@@ -17,6 +17,13 @@ declare global {
 // Get the VS Code API
 const vscode = window.acquireVsCodeApi();
 
+interface PullRequest {
+    id: number;
+    title: string;
+    targetBranch: string;
+    sourceBranch: string;
+}
+
 function App() {
     const [activeTab, setActiveTab] = useState("settings");
     const [url, setUrl] = useState("");
@@ -28,6 +35,7 @@ function App() {
     const [message, setMessage] = useState("");
     const [isError, setIsError] = useState(false);
     const [showMessage, setShowMessage] = useState(false);
+    const [pullRequests, setPullRequests] = useState<PullRequest[]>([]);
 
     useEffect(() => {
         window.addEventListener("message", handleMessage);
@@ -38,8 +46,13 @@ function App() {
     }, []);
 
     useEffect(() => {
+        if (activeTab === "pr") {
+            fetchPullRequests();
+        }
+    }, [activeTab]);
+
+    useEffect(() => {
         if (message) {
-            // Short delay for fade-in effect
             setTimeout(() => setShowMessage(true), 10);
             const timer = setTimeout(() => {
                 setShowMessage(false);
@@ -68,6 +81,9 @@ function App() {
                 setMessage(message.message);
                 setIsError(true);
                 break;
+            case "setPullRequests":
+                setPullRequests(message.pullRequests);
+                break;
         }
     };
 
@@ -86,6 +102,15 @@ function App() {
 
     const toggleTokenVisibility = () => {
         setShowToken(!showToken);
+    };
+
+    const fetchPullRequests = () => {
+        vscode.postMessage({
+            command: "fetchPullRequests",
+            url,
+            email,
+            token,
+        });
     };
 
     const renderSettingsTab = () => (
@@ -152,7 +177,7 @@ function App() {
                     onChange={(e) =>
                         setProjectPath((e.target as HTMLInputElement).value)
                     }
-                    placeholder="Your project name"
+                    placeholder="Your project path"
                     className="w-3/4"
                 />
             </div>
@@ -188,7 +213,19 @@ function App() {
     const renderPRTab = () => (
         <div>
             <h2 className="text-xl mb-4">Pull Requests</h2>
-            <p>PR content will be implemented here.</p>
+            {pullRequests.length === 0 ? (
+                <p>No pull requests found.</p>
+            ) : (
+                <ul className="space-y-4">
+                    {pullRequests.map((pr) => (
+                        <li key={pr.id} className="border p-4 rounded">
+                            <h3 className="font-bold">{pr.title}</h3>
+                            <p>Target Branch: {pr.targetBranch}</p>
+                            <p>Source Branch: {pr.sourceBranch}</p>
+                        </li>
+                    ))}
+                </ul>
+            )}
         </div>
     );
 
