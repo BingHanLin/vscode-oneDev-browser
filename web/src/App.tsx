@@ -5,6 +5,7 @@ import {
     VSCodeButton,
     VSCodeTextField,
     VSCodeDivider,
+    VSCodeBadge,
 } from "@vscode/webview-ui-toolkit/react";
 
 // Declare the vscode API
@@ -22,6 +23,14 @@ interface PullRequest {
     title: string;
     targetBranch: string;
     sourceBranch: string;
+    submitterId: number;
+    submitDate: string;
+    lastActivity: {
+        userId: number;
+        date: string;
+        description: string;
+    };
+    commentCount: number;
 }
 
 function App() {
@@ -212,25 +221,59 @@ function App() {
 
     const renderPRTab = () => (
         <div>
-            <h2 className="text-xl mb-4">Pull Requests</h2>
+            <h2 className="text-2xl font-bold mb-4">Pull Requests</h2>
             {pullRequests.length === 0 ? (
                 <p>No pull requests found.</p>
             ) : (
-                <ul className="space-y-4">
+                <ul className="space-y-6">
                     {pullRequests.map((pr) => (
-                        <li key={pr.number} className="border p-4 rounded">
-                            <h3 className="font-bold">
-                                <a
-                                    href={`${url}/${projectPath}/~pulls/${pr.number}`}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="text-blue-600 hover:underline"
-                                >
-                                    {pr.title}
-                                </a>
-                            </h3>
-                            <p>Target Branch: {pr.targetBranch}</p>
-                            <p>Source Branch: {pr.sourceBranch}</p>
+                        <li
+                            key={pr.number}
+                            className="border p-4 rounded shadow-sm hover:shadow-md transition-shadow duration-200"
+                        >
+                            <div className="flex justify-between items-start">
+                                <h3 className="text-xl font-semibold">
+                                    <a
+                                        href={`${url}/${projectPath}/~pulls/${pr.number}`}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="text-blue-600 hover:underline"
+                                    >
+                                        #{pr.number}: {pr.title}
+                                    </a>
+                                </h3>
+                                <VSCodeBadge>
+                                    {pr.commentCount} comments
+                                </VSCodeBadge>
+                            </div>
+                            <div className="mt-2 text-sm text-gray-600">
+                                <p>
+                                    From{" "}
+                                    <span className="font-medium">
+                                        {pr.sourceBranch}
+                                    </span>{" "}
+                                    to{" "}
+                                    <span className="font-medium">
+                                        {pr.targetBranch}
+                                    </span>
+                                </p>
+                                <p>
+                                    Opened on{" "}
+                                    {new Date(
+                                        pr.submitDate
+                                    ).toLocaleDateString()}
+                                </p>
+                            </div>
+                            <div className="mt-3 flex justify-between items-center text-xs text-gray-500">
+                                <span>Submitted by User #{pr.submitterId}</span>
+                                <span>
+                                    Last activity: {pr.lastActivity.description}{" "}
+                                    on{" "}
+                                    {new Date(
+                                        pr.lastActivity.date
+                                    ).toLocaleString()}
+                                </span>
+                            </div>
                         </li>
                     ))}
                 </ul>

@@ -173,6 +173,10 @@ export function activate(context: vscode.ExtensionContext) {
                                             title: pr.title,
                                             targetBranch: pr.targetBranch,
                                             sourceBranch: pr.sourceBranch,
+                                            submitterId: pr.submitterId,
+                                            submitDate: pr.submitDate,
+                                            lastActivity: pr.lastActivity,
+                                            commentCount: pr.commentCount,
                                         })
                                     ),
                                 });
