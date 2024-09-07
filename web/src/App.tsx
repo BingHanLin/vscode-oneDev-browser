@@ -38,7 +38,8 @@ function App() {
 
     useEffect(() => {
         if (message) {
-            setShowMessage(true);
+            // Short delay for fade-in effect
+            setTimeout(() => setShowMessage(true), 10);
             const timer = setTimeout(() => {
                 setShowMessage(false);
             }, 5000);
@@ -89,26 +90,6 @@ function App() {
     return (
         <div className="container mx-auto p-4">
             <h1 className="text-2xl font-bold mb-4">oneDev Credentials</h1>
-            {showMessage && isError && message && (
-                <div
-                    className={
-                        "p-4 mb-4 rounded bg-red-100 text-red-700 transition-opacity duration-500 ease-in-out " +
-                        (showMessage ? "opacity-100" : "opacity-0")
-                    }
-                >
-                    {message}
-                </div>
-            )}
-            {showMessage && !isError && message && projectId !== null && (
-                <div
-                    className={
-                        "p-4 mb-4 rounded bg-green-100 text-green-700 transition-opacity duration-500 ease-in-out " +
-                        (showMessage ? "opacity-100" : "opacity-0")
-                    }
-                >
-                    {message} Project ID: {projectId}
-                </div>
-            )}
             <form onSubmit={handleSubmit} className="space-y-4">
                 <div className="flex items-center">
                     <label htmlFor="url" className="w-1/4">
@@ -177,6 +158,30 @@ function App() {
                     />
                 </div>
                 <VSCodeDivider />
+                <div className="h-16 mb-4">
+                    {" "}
+                    {/* Fixed height container for messages */}
+                    {isError && message && (
+                        <div
+                            className={
+                                "p-4 rounded bg-red-100 text-red-700 transition-opacity duration-500 ease-in-out " +
+                                (showMessage ? "opacity-100" : "opacity-0")
+                            }
+                        >
+                            {message}
+                        </div>
+                    )}
+                    {!isError && message && projectId !== null && (
+                        <div
+                            className={
+                                "p-4 rounded bg-green-100 text-green-700 transition-opacity duration-500 ease-in-out " +
+                                (showMessage ? "opacity-100" : "opacity-0")
+                            }
+                        >
+                            {message} Project ID: {projectId}
+                        </div>
+                    )}
+                </div>
                 <div className="flex justify-end">
                     <VSCodeButton type="submit">Save Credentials</VSCodeButton>
                 </div>
