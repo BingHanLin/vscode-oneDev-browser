@@ -22,7 +22,7 @@ function App() {
     const [url, setUrl] = useState("");
     const [email, setEmail] = useState("");
     const [token, setToken] = useState("");
-    const [projectName, setProjectName] = useState("");
+    const [projectPath, setProjectPath] = useState("");
     const [showToken, setShowToken] = useState(false);
     const [projectId, setProjectId] = useState<number | null>(null);
     const [message, setMessage] = useState("");
@@ -55,7 +55,7 @@ function App() {
                 setUrl(message.url);
                 setEmail(message.email);
                 setToken(message.token);
-                setProjectName(message.projectName);
+                setProjectPath(message.projectPath);
                 break;
             case "setProjectId":
                 setProjectId(message.projectId);
@@ -80,7 +80,7 @@ function App() {
             url,
             email,
             token,
-            projectName,
+            projectPath,
         });
     };
 
@@ -143,14 +143,14 @@ function App() {
                 </div>
             </div>
             <div className="flex items-center">
-                <label htmlFor="projectName" className="w-1/4">
-                    Project Name:
+                <label htmlFor="projectPath" className="w-1/4">
+                    Project Path:
                 </label>
                 <VSCodeTextField
-                    id="projectName"
-                    value={projectName}
+                    id="projectPath"
+                    value={projectPath}
                     onChange={(e) =>
-                        setProjectName((e.target as HTMLInputElement).value)
+                        setProjectPath((e.target as HTMLInputElement).value)
                     }
                     placeholder="Your project name"
                     className="w-3/4"

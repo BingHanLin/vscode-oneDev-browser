@@ -36,10 +36,10 @@
           "default": "",
           "description": "Your oneDev API token"
         },
-        "onedev-browser.projectName": {
+        "onedev-browser.projectPath": {
           "type": "string",
           "default": "",
-          "description": "Your oneDev project name"
+          "description": "Your oneDev project path"
         }
       }
     }

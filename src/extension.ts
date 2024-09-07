@@ -58,7 +58,7 @@ export function activate(context: vscode.ExtensionContext) {
                                 url: config.get("url", ""),
                                 email: config.get("email", ""),
                                 token: config.get("token", ""),
-                                projectName: config.get("projectName", ""),
+                                projectPath: config.get("projectPath", ""),
                             });
                             break;
                         case "saveCredentials":
@@ -78,8 +78,8 @@ export function activate(context: vscode.ExtensionContext) {
                                 vscode.ConfigurationTarget.Global
                             );
                             await config.update(
-                                "projectName",
-                                message.projectName,
+                                "projectPath",
+                                message.projectPath,
                                 vscode.ConfigurationTarget.Global
                             );
 
@@ -87,7 +87,7 @@ export function activate(context: vscode.ExtensionContext) {
                             try {
                                 const apiUrl = `${message.url}/~api/projects`;
                                 const queryParams = new URLSearchParams({
-                                    query: `"Name" is "${message.projectName}"`,
+                                    query: `"Path" is "${message.projectPath}"`,
                                     offset: "0",
                                     count: "100",
                                 });
