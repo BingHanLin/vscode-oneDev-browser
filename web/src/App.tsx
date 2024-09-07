@@ -21,16 +21,15 @@ function App() {
     const [url, setUrl] = useState("");
     const [email, setEmail] = useState("");
     const [token, setToken] = useState("");
+    const [projectName, setProjectName] = useState("");
     const [showToken, setShowToken] = useState(false);
+    const [projectId, setProjectId] = useState<number | null>(null);
+    const [message, setMessage] = useState("");
+    const [isError, setIsError] = useState(false);
 
     useEffect(() => {
-        // Add event listener for messages from the extension
         window.addEventListener("message", handleMessage);
-
-        // Request initial data from the extension
         vscode.postMessage({ command: "getCredentials" });
-
-        // Clean up the event listener
         return () => {
             window.removeEventListener("message", handleMessage);
         };
@@ -43,17 +42,32 @@ function App() {
                 setUrl(message.url);
                 setEmail(message.email);
                 setToken(message.token);
+                setProjectName(message.projectName);
+                break;
+            case "setProjectId":
+                setProjectId(message.projectId);
+                break;
+            case "showSuccessMessage":
+                setMessage(message.message);
+                setIsError(false);
+                break;
+            case "showErrorMessage":
+                setMessage(message.message);
+                setIsError(true);
                 break;
         }
     };
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
+        setMessage("");
+        setProjectId(null);
         vscode.postMessage({
             command: "saveCredentials",
             url,
             email,
             token,
+            projectName,
         });
     };
 
@@ -64,6 +78,22 @@ function App() {
     return (
         <div className="container mx-auto p-4">
             <h1 className="text-2xl font-bold mb-4">oneDev Credentials</h1>
+            {message && (
+                <div
+                    className={`p-4 mb-4 rounded ${
+                        isError
+                            ? "bg-red-100 text-red-700"
+                            : "bg-green-100 text-green-700"
+                    }`}
+                >
+                    {message}
+                </div>
+            )}
+            {projectId !== null && (
+                <div className="p-4 mb-4 bg-blue-100 text-blue-700 rounded">
+                    Project ID: {projectId}
+                </div>
+            )}
             <form onSubmit={handleSubmit} className="space-y-4">
                 <div className="flex items-center">
                     <label htmlFor="url" className="w-1/4">
@@ -116,6 +146,20 @@ function App() {
                             {showToken ? "Hide" : "Show"}
                         </VSCodeButton>
                     </div>
+                </div>
+                <div className="flex items-center">
+                    <label htmlFor="projectName" className="w-1/4">
+                        Project Name:
+                    </label>
+                    <VSCodeTextField
+                        id="projectName"
+                        value={projectName}
+                        onChange={(e) =>
+                            setProjectName((e.target as HTMLInputElement).value)
+                        }
+                        placeholder="Your project name"
+                        className="w-3/4"
+                    />
                 </div>
                 <VSCodeDivider />
                 <div className="flex justify-end">

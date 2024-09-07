@@ -1,4 +1,5 @@
 import * as vscode from "vscode";
+import fetch from "node-fetch";
 
 // This method is called when your extension is activated
 // Your extension is activated the very first time the command is executed
@@ -57,6 +58,7 @@ export function activate(context: vscode.ExtensionContext) {
                                 url: config.get("url", ""),
                                 email: config.get("email", ""),
                                 token: config.get("token", ""),
+                                projectName: config.get("projectName", ""),
                             });
                             break;
                         case "saveCredentials":
@@ -75,11 +77,63 @@ export function activate(context: vscode.ExtensionContext) {
                                 message.token,
                                 vscode.ConfigurationTarget.Global
                             );
-
-                            vscode.window.showInformationMessage(
-                                "oneDev credentials saved successfully!"
+                            await config.update(
+                                "projectName",
+                                message.projectName,
+                                vscode.ConfigurationTarget.Global
                             );
 
+                            // Make API call to get project ID
+                            try {
+                                const apiUrl = `${message.url}/~api/projects`;
+                                const queryParams = new URLSearchParams({
+                                    query: `"Name" is "${message.projectName}"`,
+                                    offset: "0",
+                                    count: "100",
+                                });
+                                const response = await fetch(
+                                    `${apiUrl}?${queryParams}`,
+                                    {
+                                        method: "GET",
+                                        headers: {
+                                            Authorization:
+                                                "Basic " +
+                                                Buffer.from(
+                                                    `${message.email}:${message.token}`
+                                                ).toString("base64"),
+                                        },
+                                    }
+                                );
+
+                                if (!response.ok) {
+                                    throw new Error(
+                                        `HTTP error! status: ${response.status}`
+                                    );
+                                }
+
+                                const projects = await response.json();
+                                if (projects && projects.length > 0) {
+                                    const projectId = projects[0].id;
+                                    panel.webview.postMessage({
+                                        command: "setProjectId",
+                                        projectId: projectId,
+                                    });
+                                    panel.webview.postMessage({
+                                        command: "showSuccessMessage",
+                                        message:
+                                            "oneDev credentials saved successfully!",
+                                    });
+                                } else {
+                                    throw new Error(
+                                        "No projects found with the given name"
+                                    );
+                                }
+                            } catch (error) {
+                                panel.webview.postMessage({
+                                    command: "showErrorMessage",
+                                    message: `Error fetching project ID: ${error.message}`,
+                                });
+                            }
                             break;
                     }
                 },
