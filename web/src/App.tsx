@@ -26,6 +26,7 @@ function App() {
     const [projectId, setProjectId] = useState<number | null>(null);
     const [message, setMessage] = useState("");
     const [isError, setIsError] = useState(false);
+    const [showMessage, setShowMessage] = useState(false);
 
     useEffect(() => {
         window.addEventListener("message", handleMessage);
@@ -34,6 +35,16 @@ function App() {
             window.removeEventListener("message", handleMessage);
         };
     }, []);
+
+    useEffect(() => {
+        if (message) {
+            setShowMessage(true);
+            const timer = setTimeout(() => {
+                setShowMessage(false);
+            }, 5000);
+            return () => clearTimeout(timer);
+        }
+    }, [message]);
 
     const handleMessage = (event: MessageEvent) => {
         const message = event.data;
@@ -78,13 +89,23 @@ function App() {
     return (
         <div className="container mx-auto p-4">
             <h1 className="text-2xl font-bold mb-4">oneDev Credentials</h1>
-            {isError && message && (
-                <div className={"p-4 mb-4 rounded bg-red-100 text-red-700"}>
+            {showMessage && isError && message && (
+                <div
+                    className={
+                        "p-4 mb-4 rounded bg-red-100 text-red-700 transition-opacity duration-500 ease-in-out " +
+                        (showMessage ? "opacity-100" : "opacity-0")
+                    }
+                >
                     {message}
                 </div>
             )}
-            {!isError && message && projectId !== null && (
-                <div className="p-4 mb-4 rounded bg-green-100 text-green-700">
+            {showMessage && !isError && message && projectId !== null && (
+                <div
+                    className={
+                        "p-4 mb-4 rounded bg-green-100 text-green-700 transition-opacity duration-500 ease-in-out " +
+                        (showMessage ? "opacity-100" : "opacity-0")
+                    }
+                >
                     {message} Project ID: {projectId}
                 </div>
             )}
