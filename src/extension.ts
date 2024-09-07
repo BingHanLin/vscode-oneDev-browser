@@ -140,6 +140,7 @@ export function activate(context: vscode.ExtensionContext) {
                                 const apiUrl = `${message.url}/~api/pulls`;
                                 const queryParams = new URLSearchParams({
                                     query: "open and to be reviewed by me",
+                                    // query: `"Source Project" is "${message.projectPath}" and open and to be reviewed by me`,
                                     offset: "0",
                                     count: "100",
                                 });
@@ -168,7 +169,7 @@ export function activate(context: vscode.ExtensionContext) {
                                     command: "setPullRequests",
                                     pullRequests: pullRequests.map(
                                         (pr: any) => ({
-                                            id: pr.id,
+                                            number: pr.number,
                                             title: pr.title,
                                             targetBranch: pr.targetBranch,
                                             sourceBranch: pr.sourceBranch,

@@ -18,7 +18,7 @@ declare global {
 const vscode = window.acquireVsCodeApi();
 
 interface PullRequest {
-    id: number;
+    number: number;
     title: string;
     targetBranch: string;
     sourceBranch: string;
@@ -218,8 +218,17 @@ function App() {
             ) : (
                 <ul className="space-y-4">
                     {pullRequests.map((pr) => (
-                        <li key={pr.id} className="border p-4 rounded">
-                            <h3 className="font-bold">{pr.title}</h3>
+                        <li key={pr.number} className="border p-4 rounded">
+                            <h3 className="font-bold">
+                                <a
+                                    href={`${url}/${projectPath}/~pulls/${pr.number}`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-blue-600 hover:underline"
+                                >
+                                    {pr.title}
+                                </a>
+                            </h3>
                             <p>Target Branch: {pr.targetBranch}</p>
                             <p>Source Branch: {pr.sourceBranch}</p>
                         </li>
