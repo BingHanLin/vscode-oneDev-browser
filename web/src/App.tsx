@@ -18,6 +18,7 @@ declare global {
 const vscode = window.acquireVsCodeApi();
 
 function App() {
+    const [activeTab, setActiveTab] = useState("settings");
     const [url, setUrl] = useState("");
     const [email, setEmail] = useState("");
     const [token, setToken] = useState("");
@@ -87,105 +88,135 @@ function App() {
         setShowToken(!showToken);
     };
 
+    const renderSettingsTab = () => (
+        <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="flex items-center">
+                <label htmlFor="url" className="w-1/4">
+                    oneDev URL:
+                </label>
+                <VSCodeTextField
+                    id="url"
+                    value={url}
+                    onChange={(e) =>
+                        setUrl((e.target as HTMLInputElement).value)
+                    }
+                    placeholder="https://your-onedev-instance.com"
+                    className="w-3/4"
+                />
+            </div>
+            <div className="flex items-center">
+                <label htmlFor="email" className="w-1/4">
+                    Email:
+                </label>
+                <VSCodeTextField
+                    id="email"
+                    value={email}
+                    onChange={(e) =>
+                        setEmail((e.target as HTMLInputElement).value)
+                    }
+                    placeholder="user@example.com"
+                    className="w-3/4"
+                />
+            </div>
+            <div className="flex items-center">
+                <label htmlFor="token" className="w-1/4">
+                    API Token:
+                </label>
+                <div className="w-3/4 flex">
+                    <VSCodeTextField
+                        id="token"
+                        type={showToken ? "text" : "password"}
+                        value={token}
+                        onChange={(e) =>
+                            setToken((e.target as HTMLInputElement).value)
+                        }
+                        placeholder="Your API token"
+                        className="flex-grow"
+                    />
+                    <VSCodeButton
+                        appearance="secondary"
+                        onClick={toggleTokenVisibility}
+                        className="ml-2"
+                    >
+                        {showToken ? "Hide" : "Show"}
+                    </VSCodeButton>
+                </div>
+            </div>
+            <div className="flex items-center">
+                <label htmlFor="projectName" className="w-1/4">
+                    Project Name:
+                </label>
+                <VSCodeTextField
+                    id="projectName"
+                    value={projectName}
+                    onChange={(e) =>
+                        setProjectName((e.target as HTMLInputElement).value)
+                    }
+                    placeholder="Your project name"
+                    className="w-3/4"
+                />
+            </div>
+            <VSCodeDivider />
+            <div className="h-16 mb-4">
+                {isError && message && (
+                    <div
+                        className={
+                            "p-4 rounded bg-red-100 text-red-700 transition-opacity duration-500 ease-in-out " +
+                            (showMessage ? "opacity-100" : "opacity-0")
+                        }
+                    >
+                        {message}
+                    </div>
+                )}
+                {!isError && message && projectId !== null && (
+                    <div
+                        className={
+                            "p-4 rounded bg-green-100 text-green-700 transition-opacity duration-500 ease-in-out " +
+                            (showMessage ? "opacity-100" : "opacity-0")
+                        }
+                    >
+                        {message} Project ID: {projectId}
+                    </div>
+                )}
+            </div>
+            <div className="flex justify-end">
+                <VSCodeButton type="submit">Save Credentials</VSCodeButton>
+            </div>
+        </form>
+    );
+
+    const renderPRTab = () => (
+        <div>
+            <h2 className="text-xl mb-4">Pull Requests</h2>
+            <p>PR content will be implemented here.</p>
+        </div>
+    );
+
     return (
         <div className="container mx-auto p-4">
-            <h1 className="text-2xl font-bold mb-4">oneDev Credentials</h1>
-            <form onSubmit={handleSubmit} className="space-y-4">
-                <div className="flex items-center">
-                    <label htmlFor="url" className="w-1/4">
-                        oneDev URL:
-                    </label>
-                    <VSCodeTextField
-                        id="url"
-                        value={url}
-                        onChange={(e) =>
-                            setUrl((e.target as HTMLInputElement).value)
-                        }
-                        placeholder="https://your-onedev-instance.com"
-                        className="w-3/4"
-                    />
-                </div>
-                <div className="flex items-center">
-                    <label htmlFor="email" className="w-1/4">
-                        Email:
-                    </label>
-                    <VSCodeTextField
-                        id="email"
-                        value={email}
-                        onChange={(e) =>
-                            setEmail((e.target as HTMLInputElement).value)
-                        }
-                        placeholder="user@example.com"
-                        className="w-3/4"
-                    />
-                </div>
-                <div className="flex items-center">
-                    <label htmlFor="token" className="w-1/4">
-                        API Token:
-                    </label>
-                    <div className="w-3/4 flex">
-                        <VSCodeTextField
-                            id="token"
-                            type={showToken ? "text" : "password"}
-                            value={token}
-                            onChange={(e) =>
-                                setToken((e.target as HTMLInputElement).value)
-                            }
-                            placeholder="Your API token"
-                            className="flex-grow"
-                        />
-                        <VSCodeButton
-                            appearance="secondary"
-                            onClick={toggleTokenVisibility}
-                            className="ml-2"
-                        >
-                            {showToken ? "Hide" : "Show"}
-                        </VSCodeButton>
-                    </div>
-                </div>
-                <div className="flex items-center">
-                    <label htmlFor="projectName" className="w-1/4">
-                        Project Name:
-                    </label>
-                    <VSCodeTextField
-                        id="projectName"
-                        value={projectName}
-                        onChange={(e) =>
-                            setProjectName((e.target as HTMLInputElement).value)
-                        }
-                        placeholder="Your project name"
-                        className="w-3/4"
-                    />
-                </div>
-                <VSCodeDivider />
-                <div className="h-16 mb-4">
-                    {" "}
-                    {/* Fixed height container for messages */}
-                    {isError && message && (
-                        <div
-                            className={
-                                "p-4 rounded bg-red-100 text-red-700 transition-opacity duration-500 ease-in-out " +
-                                (showMessage ? "opacity-100" : "opacity-0")
-                            }
-                        >
-                            {message}
-                        </div>
-                    )}
-                    {!isError && message && projectId !== null && (
-                        <div
-                            className={
-                                "p-4 rounded bg-green-100 text-green-700 transition-opacity duration-500 ease-in-out " +
-                                (showMessage ? "opacity-100" : "opacity-0")
-                            }
-                        >
-                            {message} Project ID: {projectId}
-                        </div>
-                    )}
-                </div>
-                <div className="flex justify-end">
-                    <VSCodeButton type="submit">Save Credentials</VSCodeButton>
-                </div>
-            </form>
+            <h1 className="text-2xl font-bold mb-4">oneDev Browser</h1>
+            <div className="tab-container">
+                <button
+                    className={`tab-button ${
+                        activeTab === "pr" ? "active" : ""
+                    }`}
+                    onClick={() => setActiveTab("pr")}
+                >
+                    PR
+                </button>
+                <button
+                    className={`tab-button ${
+                        activeTab === "settings" ? "active" : ""
+                    }`}
+                    onClick={() => setActiveTab("settings")}
+                >
+                    Settings
+                </button>
+            </div>
+            <div className="tab-content">
+                {activeTab === "pr" && renderPRTab()}
+                {activeTab === "settings" && renderSettingsTab()}
+            </div>
         </div>
     );
 }
