@@ -125,7 +125,7 @@ export function activate(context: vscode.ExtensionContext) {
                                     });
                                 } else {
                                     throw new Error(
-                                        "No projects found with the given name"
+                                        "No projects found with the given name."
                                     );
                                 }
                             } catch (error) {

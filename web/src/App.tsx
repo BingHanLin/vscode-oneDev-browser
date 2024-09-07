@@ -78,20 +78,14 @@ function App() {
     return (
         <div className="container mx-auto p-4">
             <h1 className="text-2xl font-bold mb-4">oneDev Credentials</h1>
-            {message && (
-                <div
-                    className={`p-4 mb-4 rounded ${
-                        isError
-                            ? "bg-red-100 text-red-700"
-                            : "bg-green-100 text-green-700"
-                    }`}
-                >
+            {isError && message && (
+                <div className={"p-4 mb-4 rounded bg-red-100 text-red-700"}>
                     {message}
                 </div>
             )}
-            {projectId !== null && (
-                <div className="p-4 mb-4 bg-blue-100 text-blue-700 rounded">
-                    Project ID: {projectId}
+            {!isError && message && projectId !== null && (
+                <div className="p-4 mb-4 rounded bg-green-100 text-green-700">
+                    {message} Project ID: {projectId}
                 </div>
             )}
             <form onSubmit={handleSubmit} className="space-y-4">
