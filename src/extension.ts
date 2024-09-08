@@ -187,6 +187,54 @@ export function activate(context: vscode.ExtensionContext) {
                                 });
                             }
                             break;
+                        case "fetchIssues":
+                            try {
+                                const apiUrl = `${message.url}/~api/issues`;
+                                const queryParams = new URLSearchParams({
+                                    query: `"State" is "Open"`,
+                                    offset: "0",
+                                    count: "100",
+                                });
+                                const response = await fetch(
+                                    `${apiUrl}?${queryParams}`,
+                                    {
+                                        method: "GET",
+                                        headers: {
+                                            Authorization:
+                                                "Basic " +
+                                                Buffer.from(
+                                                    `${message.email}:${message.token}`
+                                                ).toString("base64"),
+                                        },
+                                    }
+                                );
+
+                                if (!response.ok) {
+                                    throw new Error(
+                                        `HTTP error! status: ${response.status}`
+                                    );
+                                }
+
+                                const issues = await response.json();
+                                panel.webview.postMessage({
+                                    command: "setIssues",
+                                    issues: issues.map((issue: any) => ({
+                                        number: issue.number,
+                                        title: issue.title,
+                                        state: issue.state,
+                                        submitterId: issue.submitterId,
+                                        submitDate: issue.submitDate,
+                                        lastActivity: issue.lastActivity,
+                                        commentCount: issue.commentCount,
+                                    })),
+                                });
+                            } catch (error) {
+                                panel.webview.postMessage({
+                                    command: "showErrorMessage",
+                                    message: `Error fetching issues: ${error.message}`,
+                                });
+                            }
+                            break;
                     }
                 },
                 undefined,

@@ -33,6 +33,21 @@ interface PullRequest {
     commentCount: number;
 }
 
+// Add this interface for Issues
+interface Issue {
+    number: number;
+    title: string;
+    state: string;
+    submitterId: number;
+    submitDate: string;
+    lastActivity: {
+        userId: number;
+        date: string;
+        description: string;
+    };
+    commentCount: number;
+}
+
 function App() {
     const [activeTab, setActiveTab] = useState("settings");
     const [url, setUrl] = useState("");
@@ -45,6 +60,7 @@ function App() {
     const [isError, setIsError] = useState(false);
     const [showMessage, setShowMessage] = useState(false);
     const [pullRequests, setPullRequests] = useState<PullRequest[]>([]);
+    const [issues, setIssues] = useState<Issue[]>([]);
 
     useEffect(() => {
         window.addEventListener("message", handleMessage);
@@ -57,6 +73,12 @@ function App() {
     useEffect(() => {
         if (activeTab === "pr") {
             fetchPullRequests();
+        }
+    }, [activeTab]);
+
+    useEffect(() => {
+        if (activeTab === "issues") {
+            fetchIssues();
         }
     }, [activeTab]);
 
@@ -93,6 +115,9 @@ function App() {
             case "setPullRequests":
                 setPullRequests(message.pullRequests);
                 break;
+            case "setIssues":
+                setIssues(message.issues);
+                break;
         }
     };
 
@@ -116,6 +141,15 @@ function App() {
     const fetchPullRequests = () => {
         vscode.postMessage({
             command: "fetchPullRequests",
+            url,
+            email,
+            token,
+        });
+    };
+
+    const fetchIssues = () => {
+        vscode.postMessage({
+            command: "fetchIssues",
             url,
             email,
             token,
@@ -281,6 +315,61 @@ function App() {
         </div>
     );
 
+    const renderIssuesTab = () => (
+        <div>
+            <h2 className="text-2xl font-bold mb-4">Issues</h2>
+            {issues.length === 0 ? (
+                <p>No issues found.</p>
+            ) : (
+                <ul className="space-y-6">
+                    {issues.map((issue) => (
+                        <li
+                            key={issue.number}
+                            className="border p-4 rounded shadow-sm hover:shadow-md transition-shadow duration-200"
+                        >
+                            <div className="flex justify-between items-start">
+                                <h3 className="text-xl font-semibold">
+                                    <a
+                                        href={`${url}/${projectPath}/~issues/${issue.number}`}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="text-blue-600 hover:underline"
+                                    >
+                                        #{issue.number}: {issue.title}
+                                    </a>
+                                </h3>
+                                <VSCodeBadge>
+                                    {issue.commentCount} comments
+                                </VSCodeBadge>
+                            </div>
+                            <div className="mt-2 text-sm text-gray-600">
+                                <p>State: {issue.state}</p>
+                                <p>
+                                    Opened on{" "}
+                                    {new Date(
+                                        issue.submitDate
+                                    ).toLocaleDateString()}
+                                </p>
+                            </div>
+                            <div className="mt-3 flex justify-between items-center text-xs text-gray-500">
+                                <span>
+                                    Submitted by User #{issue.submitterId}
+                                </span>
+                                <span>
+                                    Last activity:{" "}
+                                    {issue.lastActivity.description} on{" "}
+                                    {new Date(
+                                        issue.lastActivity.date
+                                    ).toLocaleString()}
+                                </span>
+                            </div>
+                        </li>
+                    ))}
+                </ul>
+            )}
+        </div>
+    );
+
     return (
         <div className="container mx-auto p-4">
             <h1 className="text-2xl font-bold mb-4">oneDev Browser</h1>
@@ -295,6 +384,14 @@ function App() {
                 </button>
                 <button
                     className={`tab-button ${
+                        activeTab === "issues" ? "active" : ""
+                    }`}
+                    onClick={() => setActiveTab("issues")}
+                >
+                    Issues
+                </button>
+                <button
+                    className={`tab-button ${
                         activeTab === "settings" ? "active" : ""
                     }`}
                     onClick={() => setActiveTab("settings")}
@@ -304,6 +401,7 @@ function App() {
             </div>
             <div className="tab-content">
                 {activeTab === "pr" && renderPRTab()}
+                {activeTab === "issues" && renderIssuesTab()}
                 {activeTab === "settings" && renderSettingsTab()}
             </div>
         </div>
