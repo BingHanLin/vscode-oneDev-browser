@@ -232,6 +232,14 @@ function App() {
         }
     };
 
+    const handleReload = () => {
+        if (activeTab === "pr") {
+            fetchPullRequests();
+        } else if (activeTab === "issues") {
+            fetchIssues();
+        }
+    };
+
     const renderSettingsTab = () => (
         <form onSubmit={handleSubmit} className="space-y-4">
             <div className="flex items-center">
@@ -331,7 +339,10 @@ function App() {
 
     const renderPRTab = () => (
         <div>
-            <h2 className="text-2xl font-bold mb-4">Pull Requests</h2>
+            <div className="flex justify-between items-center mb-4">
+                <h2 className="text-2xl font-bold">Pull Requests</h2>
+                <VSCodeButton onClick={handleReload}>Reload</VSCodeButton>
+            </div>
             <div className="flex justify-between mb-4">
                 <VSCodeDropdown
                     value={prFilter}
@@ -421,7 +432,10 @@ function App() {
 
     const renderIssuesTab = () => (
         <div>
-            <h2 className="text-2xl font-bold mb-4">Issues</h2>
+            <div className="flex justify-between items-center mb-4">
+                <h2 className="text-2xl font-bold">Issues</h2>
+                <VSCodeButton onClick={handleReload}>Reload</VSCodeButton>
+            </div>
             <div className="flex justify-between mb-4">
                 <VSCodeDropdown
                     value={issueFilter}
