@@ -5,7 +5,8 @@ import {
     VSCodeButton,
     VSCodeTextField,
     VSCodeDivider,
-    VSCodeBadge,
+    VSCodeDropdown,
+    VSCodeOption,
 } from "@vscode/webview-ui-toolkit/react";
 
 // Declare the vscode API
@@ -31,6 +32,7 @@ interface PullRequest {
         description: string;
     };
     commentCount: number;
+    state: string;
 }
 
 // Add this interface for Issues
@@ -61,6 +63,10 @@ function App() {
     const [showMessage, setShowMessage] = useState(false);
     const [pullRequests, setPullRequests] = useState<PullRequest[]>([]);
     const [issues, setIssues] = useState<Issue[]>([]);
+    const [prFilter, setPrFilter] = useState("all");
+    const [prSort, setPrSort] = useState("newest");
+    const [issueFilter, setIssueFilter] = useState("all");
+    const [issueSort, setIssueSort] = useState("newest");
 
     useEffect(() => {
         window.addEventListener("message", handleMessage);
@@ -156,6 +162,74 @@ function App() {
             token,
             projectPath,
         });
+    };
+
+    const filterPullRequests = (prs: PullRequest[]) => {
+        switch (prFilter) {
+            case "open":
+                return prs.filter((pr) => pr.state === "Open");
+            case "closed":
+                return prs.filter((pr) => pr.state === "Closed");
+            default:
+                return prs;
+        }
+    };
+
+    const sortPullRequests = (prs: PullRequest[]) => {
+        switch (prSort) {
+            case "oldest":
+                return [...prs].sort(
+                    (a, b) =>
+                        new Date(a.submitDate).getTime() -
+                        new Date(b.submitDate).getTime()
+                );
+            case "most-comments":
+                return [...prs].sort((a, b) => b.commentCount - a.commentCount);
+            case "least-comments":
+                return [...prs].sort((a, b) => a.commentCount - b.commentCount);
+            default: // newest
+                return [...prs].sort(
+                    (a, b) =>
+                        new Date(b.submitDate).getTime() -
+                        new Date(a.submitDate).getTime()
+                );
+        }
+    };
+
+    const filterIssues = (issues: Issue[]) => {
+        switch (issueFilter) {
+            case "open":
+                return issues.filter((issue) => issue.state === "Open");
+            case "closed":
+                return issues.filter((issue) => issue.state === "Closed");
+            default:
+                return issues;
+        }
+    };
+
+    const sortIssues = (issues: Issue[]) => {
+        switch (issueSort) {
+            case "oldest":
+                return [...issues].sort(
+                    (a, b) =>
+                        new Date(a.submitDate).getTime() -
+                        new Date(b.submitDate).getTime()
+                );
+            case "most-comments":
+                return [...issues].sort(
+                    (a, b) => b.commentCount - a.commentCount
+                );
+            case "least-comments":
+                return [...issues].sort(
+                    (a, b) => a.commentCount - b.commentCount
+                );
+            default: // newest
+                return [...issues].sort(
+                    (a, b) =>
+                        new Date(b.submitDate).getTime() -
+                        new Date(a.submitDate).getTime()
+                );
+        }
     };
 
     const renderSettingsTab = () => (
@@ -258,60 +332,88 @@ function App() {
     const renderPRTab = () => (
         <div>
             <h2 className="text-2xl font-bold mb-4">Pull Requests</h2>
+            <div className="flex justify-between mb-4">
+                <VSCodeDropdown
+                    value={prFilter}
+                    onChange={(e) =>
+                        setPrFilter((e.target as HTMLSelectElement).value)
+                    }
+                >
+                    <VSCodeOption value="all">All PRs</VSCodeOption>
+                    <VSCodeOption value="open">Open PRs</VSCodeOption>
+                    <VSCodeOption value="closed">Closed PRs</VSCodeOption>
+                </VSCodeDropdown>
+                <VSCodeDropdown
+                    value={prSort}
+                    onChange={(e) =>
+                        setPrSort((e.target as HTMLSelectElement).value)
+                    }
+                >
+                    <VSCodeOption value="newest">Newest First</VSCodeOption>
+                    <VSCodeOption value="oldest">Oldest First</VSCodeOption>
+                    <VSCodeOption value="most-comments">
+                        Most Comments
+                    </VSCodeOption>
+                    <VSCodeOption value="least-comments">
+                        Least Comments
+                    </VSCodeOption>
+                </VSCodeDropdown>
+            </div>
             {pullRequests.length === 0 ? (
                 <p>No pull requests found.</p>
             ) : (
                 <ul className="space-y-6">
-                    {pullRequests.map((pr) => (
-                        <li
-                            key={pr.number}
-                            className="border p-4 rounded shadow-sm hover:shadow-md transition-shadow duration-200"
-                        >
-                            <div className="flex justify-between items-start">
-                                <h3 className="text-xl font-semibold">
-                                    <a
-                                        href={`${url}/${projectPath}/~pulls/${pr.number}`}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className="text-blue-600 hover:underline"
-                                    >
-                                        #{pr.number}: {pr.title}
-                                    </a>
-                                </h3>
-                                <VSCodeBadge>
-                                    {pr.commentCount} comments
-                                </VSCodeBadge>
-                            </div>
-                            <div className="mt-2 text-sm text-gray-600">
-                                <p>
-                                    From{" "}
-                                    <span className="font-medium">
-                                        {pr.sourceBranch}
-                                    </span>{" "}
-                                    to{" "}
-                                    <span className="font-medium">
-                                        {pr.targetBranch}
+                    {sortPullRequests(filterPullRequests(pullRequests)).map(
+                        (pr) => (
+                            <li
+                                key={pr.number}
+                                className="border p-4 rounded shadow-sm hover:shadow-md transition-shadow duration-200"
+                            >
+                                <div className="flex flex-col sm:flex-row justify-between items-start mb-2">
+                                    <h3 className="text-xl font-semibold mb-2 sm:mb-0 sm:mr-4 break-words">
+                                        <a
+                                            href={`${url}/${projectPath}/~pulls/${pr.number}`}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="text-blue-600 hover:underline"
+                                        >
+                                            #{pr.number}: {pr.title}
+                                        </a>
+                                    </h3>
+                                </div>
+                                <div className="mt-2 text-sm text-gray-600">
+                                    <p>
+                                        From{" "}
+                                        <span className="font-medium">
+                                            {pr.sourceBranch}
+                                        </span>{" "}
+                                        to{" "}
+                                        <span className="font-medium">
+                                            {pr.targetBranch}
+                                        </span>
+                                    </p>
+                                    <p>
+                                        Opened on{" "}
+                                        {new Date(
+                                            pr.submitDate
+                                        ).toLocaleDateString()}
+                                    </p>
+                                </div>
+                                <div className="mt-3 flex flex-col sm:flex-row justify-between items-start sm:items-center text-xs text-gray-500">
+                                    <span>
+                                        Submitted by User #{pr.submitterId}
                                     </span>
-                                </p>
-                                <p>
-                                    Opened on{" "}
-                                    {new Date(
-                                        pr.submitDate
-                                    ).toLocaleDateString()}
-                                </p>
-                            </div>
-                            <div className="mt-3 flex justify-between items-center text-xs text-gray-500">
-                                <span>Submitted by User #{pr.submitterId}</span>
-                                <span>
-                                    Last activity: {pr.lastActivity.description}{" "}
-                                    on{" "}
-                                    {new Date(
-                                        pr.lastActivity.date
-                                    ).toLocaleString()}
-                                </span>
-                            </div>
-                        </li>
-                    ))}
+                                    <span className="mt-1 sm:mt-0">
+                                        Last activity:{" "}
+                                        {pr.lastActivity.description} on{" "}
+                                        {new Date(
+                                            pr.lastActivity.date
+                                        ).toLocaleString()}
+                                    </span>
+                                </div>
+                            </li>
+                        )
+                    )}
                 </ul>
             )}
         </div>
@@ -320,17 +422,44 @@ function App() {
     const renderIssuesTab = () => (
         <div>
             <h2 className="text-2xl font-bold mb-4">Issues</h2>
+            <div className="flex justify-between mb-4">
+                <VSCodeDropdown
+                    value={issueFilter}
+                    onChange={(e) =>
+                        setIssueFilter((e.target as HTMLSelectElement).value)
+                    }
+                >
+                    <VSCodeOption value="all">All Issues</VSCodeOption>
+                    <VSCodeOption value="open">Open Issues</VSCodeOption>
+                    <VSCodeOption value="closed">Closed Issues</VSCodeOption>
+                </VSCodeDropdown>
+                <VSCodeDropdown
+                    value={issueSort}
+                    onChange={(e) =>
+                        setIssueSort((e.target as HTMLSelectElement).value)
+                    }
+                >
+                    <VSCodeOption value="newest">Newest First</VSCodeOption>
+                    <VSCodeOption value="oldest">Oldest First</VSCodeOption>
+                    <VSCodeOption value="most-comments">
+                        Most Comments
+                    </VSCodeOption>
+                    <VSCodeOption value="least-comments">
+                        Least Comments
+                    </VSCodeOption>
+                </VSCodeDropdown>
+            </div>
             {issues.length === 0 ? (
                 <p>No issues found.</p>
             ) : (
                 <ul className="space-y-6">
-                    {issues.map((issue) => (
+                    {sortIssues(filterIssues(issues)).map((issue) => (
                         <li
                             key={issue.number}
                             className="border p-4 rounded shadow-sm hover:shadow-md transition-shadow duration-200"
                         >
-                            <div className="flex justify-between items-start">
-                                <h3 className="text-xl font-semibold">
+                            <div className="flex flex-col sm:flex-row justify-between items-start mb-2">
+                                <h3 className="text-xl font-semibold mb-2 sm:mb-0 sm:mr-4 break-words">
                                     <a
                                         href={`${url}/${projectPath}/~issues/${issue.number}`}
                                         target="_blank"
@@ -340,12 +469,8 @@ function App() {
                                         #{issue.number}: {issue.title}
                                     </a>
                                 </h3>
-                                <VSCodeBadge>
-                                    {issue.commentCount} comments
-                                </VSCodeBadge>
                             </div>
                             <div className="mt-2 text-sm text-gray-600">
-                                <p>State: {issue.state}</p>
                                 <p>
                                     Opened on{" "}
                                     {new Date(
@@ -353,11 +478,11 @@ function App() {
                                     ).toLocaleDateString()}
                                 </p>
                             </div>
-                            <div className="mt-3 flex justify-between items-center text-xs text-gray-500">
+                            <div className="mt-3 flex flex-col sm:flex-row justify-between items-start sm:items-center text-xs text-gray-500">
                                 <span>
                                     Submitted by User #{issue.submitterId}
                                 </span>
-                                <span>
+                                <span className="mt-1 sm:mt-0">
                                     Last activity:{" "}
                                     {issue.lastActivity.description} on{" "}
                                     {new Date(
