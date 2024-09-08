@@ -144,6 +144,7 @@ function App() {
             url,
             email,
             token,
+            projectPath,
         });
     };
 
@@ -153,6 +154,7 @@ function App() {
             url,
             email,
             token,
+            projectPath,
         });
     };
 

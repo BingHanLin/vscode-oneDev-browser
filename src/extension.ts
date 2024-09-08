@@ -139,8 +139,9 @@ export function activate(context: vscode.ExtensionContext) {
                             try {
                                 const apiUrl = `${message.url}/~api/pulls`;
                                 const queryParams = new URLSearchParams({
-                                    query: "open and to be reviewed by me",
-                                    // query: `"Source Project" is "${message.projectPath}" and open and to be reviewed by me`,
+                                    // query: "open and to be reviewed by me",
+                                    ////// `"Source Project" is "shoncloud/shonmesh"     and open and to be reviewed by me`
+                                    query: `"Source Project" is "${message.projectPath}" and open and to be reviewed by me`,
                                     offset: "0",
                                     count: "100",
                                 });
@@ -191,7 +192,7 @@ export function activate(context: vscode.ExtensionContext) {
                             try {
                                 const apiUrl = `${message.url}/~api/issues`;
                                 const queryParams = new URLSearchParams({
-                                    query: `"State" is "Open"`,
+                                    query: `"Project" is "${message.projectPath}" and "State" is "Open"`,
                                     offset: "0",
                                     count: "100",
                                 });
