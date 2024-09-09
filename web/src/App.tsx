@@ -7,6 +7,9 @@ import {
     VSCodeDivider,
     VSCodeDropdown,
     VSCodeOption,
+    VSCodeDataGrid,
+    VSCodeDataGridCell,
+    VSCodeDataGridRow,
 } from "@vscode/webview-ui-toolkit/react";
 
 // Declare the vscode API
@@ -373,59 +376,81 @@ function App() {
             {pullRequests.length === 0 ? (
                 <p>No pull requests found.</p>
             ) : (
-                <ul className="space-y-6">
+                <VSCodeDataGrid aria-label="Pull Requests">
+                    <VSCodeDataGridRow row-type="header">
+                        <VSCodeDataGridCell
+                            cell-type="columnheader"
+                            grid-column="1"
+                        >
+                            Number
+                        </VSCodeDataGridCell>
+                        <VSCodeDataGridCell
+                            cell-type="columnheader"
+                            grid-column="2"
+                        >
+                            Title
+                        </VSCodeDataGridCell>
+                        <VSCodeDataGridCell
+                            cell-type="columnheader"
+                            grid-column="3"
+                        >
+                            Source
+                        </VSCodeDataGridCell>
+                        <VSCodeDataGridCell
+                            cell-type="columnheader"
+                            grid-column="4"
+                        >
+                            Target
+                        </VSCodeDataGridCell>
+                        <VSCodeDataGridCell
+                            cell-type="columnheader"
+                            grid-column="5"
+                        >
+                            Submitted
+                        </VSCodeDataGridCell>
+                        <VSCodeDataGridCell
+                            cell-type="columnheader"
+                            grid-column="6"
+                        >
+                            Last Activity
+                        </VSCodeDataGridCell>
+                    </VSCodeDataGridRow>
                     {sortPullRequests(filterPullRequests(pullRequests)).map(
                         (pr) => (
-                            <li
-                                key={pr.number}
-                                className="border p-4 rounded shadow-sm hover:shadow-md transition-shadow duration-200"
-                            >
-                                <div className="flex flex-col sm:flex-row justify-between items-start mb-2">
-                                    <h3 className="text-xl font-semibold mb-2 sm:mb-0 sm:mr-4 break-words">
-                                        <a
-                                            href={`${url}/${projectPath}/~pulls/${pr.number}`}
-                                            target="_blank"
-                                            rel="noopener noreferrer"
-                                            className="text-blue-600 hover:underline"
-                                        >
-                                            #{pr.number}: {pr.title}
-                                        </a>
-                                    </h3>
-                                </div>
-                                <div className="mt-2 text-sm text-gray-600">
-                                    <p>
-                                        From{" "}
-                                        <span className="font-medium">
-                                            {pr.sourceBranch}
-                                        </span>{" "}
-                                        to{" "}
-                                        <span className="font-medium">
-                                            {pr.targetBranch}
-                                        </span>
-                                    </p>
-                                    <p>
-                                        Opened on{" "}
-                                        {new Date(
-                                            pr.submitDate
-                                        ).toLocaleDateString()}
-                                    </p>
-                                </div>
-                                <div className="mt-3 flex flex-col sm:flex-row justify-between items-start sm:items-center text-xs text-gray-500">
-                                    <span>
-                                        Submitted by User #{pr.submitterId}
-                                    </span>
-                                    <span className="mt-1 sm:mt-0">
-                                        Last activity:{" "}
-                                        {pr.lastActivity.description} on{" "}
-                                        {new Date(
-                                            pr.lastActivity.date
-                                        ).toLocaleString()}
-                                    </span>
-                                </div>
-                            </li>
+                            <VSCodeDataGridRow key={pr.number}>
+                                <VSCodeDataGridCell grid-column="1">
+                                    {pr.number}
+                                </VSCodeDataGridCell>
+                                <VSCodeDataGridCell grid-column="2">
+                                    <a
+                                        href={`${url}/${projectPath}/~pulls/${pr.number}`}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="text-blue-600 hover:underline"
+                                    >
+                                        {pr.title}
+                                    </a>
+                                </VSCodeDataGridCell>
+                                <VSCodeDataGridCell grid-column="3">
+                                    {pr.sourceBranch}
+                                </VSCodeDataGridCell>
+                                <VSCodeDataGridCell grid-column="4">
+                                    {pr.targetBranch}
+                                </VSCodeDataGridCell>
+                                <VSCodeDataGridCell grid-column="5">
+                                    {new Date(
+                                        pr.submitDate
+                                    ).toLocaleDateString()}
+                                </VSCodeDataGridCell>
+                                <VSCodeDataGridCell grid-column="6">
+                                    {new Date(
+                                        pr.lastActivity.date
+                                    ).toLocaleString()}
+                                </VSCodeDataGridCell>
+                            </VSCodeDataGridRow>
                         )
                     )}
-                </ul>
+                </VSCodeDataGrid>
             )}
         </div>
     );
@@ -466,47 +491,70 @@ function App() {
             {issues.length === 0 ? (
                 <p>No issues found.</p>
             ) : (
-                <ul className="space-y-6">
-                    {sortIssues(filterIssues(issues)).map((issue) => (
-                        <li
-                            key={issue.number}
-                            className="border p-4 rounded shadow-sm hover:shadow-md transition-shadow duration-200"
+                <VSCodeDataGrid aria-label="Issues">
+                    <VSCodeDataGridRow row-type="header">
+                        <VSCodeDataGridCell
+                            cell-type="columnheader"
+                            grid-column="1"
                         >
-                            <div className="flex flex-col sm:flex-row justify-between items-start mb-2">
-                                <h3 className="text-xl font-semibold mb-2 sm:mb-0 sm:mr-4 break-words">
-                                    <a
-                                        href={`${url}/${projectPath}/~issues/${issue.number}`}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className="text-blue-600 hover:underline"
-                                    >
-                                        #{issue.number}: {issue.title}
-                                    </a>
-                                </h3>
-                            </div>
-                            <div className="mt-2 text-sm text-gray-600">
-                                <p>
-                                    Opened on{" "}
-                                    {new Date(
-                                        issue.submitDate
-                                    ).toLocaleDateString()}
-                                </p>
-                            </div>
-                            <div className="mt-3 flex flex-col sm:flex-row justify-between items-start sm:items-center text-xs text-gray-500">
-                                <span>
-                                    Submitted by User #{issue.submitterId}
-                                </span>
-                                <span className="mt-1 sm:mt-0">
-                                    Last activity:{" "}
-                                    {issue.lastActivity.description} on{" "}
-                                    {new Date(
-                                        issue.lastActivity.date
-                                    ).toLocaleString()}
-                                </span>
-                            </div>
-                        </li>
+                            Number
+                        </VSCodeDataGridCell>
+                        <VSCodeDataGridCell
+                            cell-type="columnheader"
+                            grid-column="2"
+                        >
+                            Title
+                        </VSCodeDataGridCell>
+                        <VSCodeDataGridCell
+                            cell-type="columnheader"
+                            grid-column="3"
+                        >
+                            State
+                        </VSCodeDataGridCell>
+                        <VSCodeDataGridCell
+                            cell-type="columnheader"
+                            grid-column="4"
+                        >
+                            Submitted
+                        </VSCodeDataGridCell>
+                        <VSCodeDataGridCell
+                            cell-type="columnheader"
+                            grid-column="5"
+                        >
+                            Last Activity
+                        </VSCodeDataGridCell>
+                    </VSCodeDataGridRow>
+                    {sortIssues(filterIssues(issues)).map((issue) => (
+                        <VSCodeDataGridRow key={issue.number}>
+                            <VSCodeDataGridCell grid-column="1">
+                                {issue.number}
+                            </VSCodeDataGridCell>
+                            <VSCodeDataGridCell grid-column="2">
+                                <a
+                                    href={`${url}/${projectPath}/~issues/${issue.number}`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-blue-600 hover:underline"
+                                >
+                                    {issue.title}
+                                </a>
+                            </VSCodeDataGridCell>
+                            <VSCodeDataGridCell grid-column="3">
+                                {issue.state}
+                            </VSCodeDataGridCell>
+                            <VSCodeDataGridCell grid-column="4">
+                                {new Date(
+                                    issue.submitDate
+                                ).toLocaleDateString()}
+                            </VSCodeDataGridCell>
+                            <VSCodeDataGridCell grid-column="5">
+                                {new Date(
+                                    issue.lastActivity.date
+                                ).toLocaleString()}
+                            </VSCodeDataGridCell>
+                        </VSCodeDataGridRow>
                     ))}
-                </ul>
+                </VSCodeDataGrid>
             )}
         </div>
     );
