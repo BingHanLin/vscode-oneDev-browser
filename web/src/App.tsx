@@ -66,14 +66,13 @@ function App() {
     const [showMessage, setShowMessage] = useState(false);
     const [pullRequests, setPullRequests] = useState<PullRequest[]>([]);
     const [issues, setIssues] = useState<Issue[]>([]);
-    const [prFilter, setPrFilter] = useState("all");
     const [prSort, setPrSort] = useState("newest");
-    const [issueFilter, setIssueFilter] = useState("all");
     const [issueSort, setIssueSort] = useState("newest");
 
     useEffect(() => {
         window.addEventListener("message", handleMessage);
         vscode.postMessage({ command: "getCredentials" });
+
         return () => {
             window.removeEventListener("message", handleMessage);
         };
@@ -82,11 +81,7 @@ function App() {
     useEffect(() => {
         if (activeTab === "pr") {
             fetchPullRequests();
-        }
-    }, [activeTab]);
-
-    useEffect(() => {
-        if (activeTab === "issues") {
+        } else if (activeTab === "issues") {
             fetchIssues();
         }
     }, [activeTab]);
@@ -167,17 +162,6 @@ function App() {
         });
     };
 
-    const filterPullRequests = (prs: PullRequest[]) => {
-        switch (prFilter) {
-            case "open":
-                return prs.filter((pr) => pr.state === "Open");
-            case "closed":
-                return prs.filter((pr) => pr.state === "Closed");
-            default:
-                return prs;
-        }
-    };
-
     const sortPullRequests = (prs: PullRequest[]) => {
         switch (prSort) {
             case "oldest":
@@ -196,17 +180,6 @@ function App() {
                         new Date(b.submitDate).getTime() -
                         new Date(a.submitDate).getTime()
                 );
-        }
-    };
-
-    const filterIssues = (issues: Issue[]) => {
-        switch (issueFilter) {
-            case "open":
-                return issues.filter((issue) => issue.state === "Open");
-            case "closed":
-                return issues.filter((issue) => issue.state === "Closed");
-            default:
-                return issues;
         }
     };
 
@@ -346,17 +319,7 @@ function App() {
                 <h2 className="text-2xl font-bold">Pull Requests</h2>
                 <VSCodeButton onClick={handleReload}>Reload</VSCodeButton>
             </div>
-            <div className="flex justify-between mb-4">
-                <VSCodeDropdown
-                    value={prFilter}
-                    onChange={(e) =>
-                        setPrFilter((e.target as HTMLSelectElement).value)
-                    }
-                >
-                    <VSCodeOption value="all">All PRs</VSCodeOption>
-                    <VSCodeOption value="open">Open PRs</VSCodeOption>
-                    <VSCodeOption value="closed">Closed PRs</VSCodeOption>
-                </VSCodeDropdown>
+            <div className="flex justify-end mb-4">
                 <VSCodeDropdown
                     value={prSort}
                     onChange={(e) =>
@@ -415,41 +378,37 @@ function App() {
                             Last Activity
                         </VSCodeDataGridCell>
                     </VSCodeDataGridRow>
-                    {sortPullRequests(filterPullRequests(pullRequests)).map(
-                        (pr) => (
-                            <VSCodeDataGridRow key={pr.number}>
-                                <VSCodeDataGridCell grid-column="1">
-                                    {pr.number}
-                                </VSCodeDataGridCell>
-                                <VSCodeDataGridCell grid-column="2">
-                                    <a
-                                        href={`${url}/${projectPath}/~pulls/${pr.number}`}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className="text-blue-600 hover:underline"
-                                    >
-                                        {pr.title}
-                                    </a>
-                                </VSCodeDataGridCell>
-                                <VSCodeDataGridCell grid-column="3">
-                                    {pr.sourceBranch}
-                                </VSCodeDataGridCell>
-                                <VSCodeDataGridCell grid-column="4">
-                                    {pr.targetBranch}
-                                </VSCodeDataGridCell>
-                                <VSCodeDataGridCell grid-column="5">
-                                    {new Date(
-                                        pr.submitDate
-                                    ).toLocaleDateString()}
-                                </VSCodeDataGridCell>
-                                <VSCodeDataGridCell grid-column="6">
-                                    {new Date(
-                                        pr.lastActivity.date
-                                    ).toLocaleString()}
-                                </VSCodeDataGridCell>
-                            </VSCodeDataGridRow>
-                        )
-                    )}
+                    {sortPullRequests(pullRequests).map((pr) => (
+                        <VSCodeDataGridRow key={pr.number}>
+                            <VSCodeDataGridCell grid-column="1">
+                                {pr.number}
+                            </VSCodeDataGridCell>
+                            <VSCodeDataGridCell grid-column="2">
+                                <a
+                                    href={`${url}/${projectPath}/~pulls/${pr.number}`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-blue-600 hover:underline"
+                                >
+                                    {pr.title}
+                                </a>
+                            </VSCodeDataGridCell>
+                            <VSCodeDataGridCell grid-column="3">
+                                {pr.sourceBranch}
+                            </VSCodeDataGridCell>
+                            <VSCodeDataGridCell grid-column="4">
+                                {pr.targetBranch}
+                            </VSCodeDataGridCell>
+                            <VSCodeDataGridCell grid-column="5">
+                                {new Date(pr.submitDate).toLocaleDateString()}
+                            </VSCodeDataGridCell>
+                            <VSCodeDataGridCell grid-column="6">
+                                {new Date(
+                                    pr.lastActivity.date
+                                ).toLocaleString()}
+                            </VSCodeDataGridCell>
+                        </VSCodeDataGridRow>
+                    ))}
                 </VSCodeDataGrid>
             )}
         </div>
@@ -461,17 +420,7 @@ function App() {
                 <h2 className="text-2xl font-bold">Issues</h2>
                 <VSCodeButton onClick={handleReload}>Reload</VSCodeButton>
             </div>
-            <div className="flex justify-between mb-4">
-                <VSCodeDropdown
-                    value={issueFilter}
-                    onChange={(e) =>
-                        setIssueFilter((e.target as HTMLSelectElement).value)
-                    }
-                >
-                    <VSCodeOption value="all">All Issues</VSCodeOption>
-                    <VSCodeOption value="open">Open Issues</VSCodeOption>
-                    <VSCodeOption value="closed">Closed Issues</VSCodeOption>
-                </VSCodeDropdown>
+            <div className="flex justify-end mb-4">
                 <VSCodeDropdown
                     value={issueSort}
                     onChange={(e) =>
@@ -524,7 +473,7 @@ function App() {
                             Last Activity
                         </VSCodeDataGridCell>
                     </VSCodeDataGridRow>
-                    {sortIssues(filterIssues(issues)).map((issue) => (
+                    {sortIssues(issues).map((issue) => (
                         <VSCodeDataGridRow key={issue.number}>
                             <VSCodeDataGridCell grid-column="1">
                                 {issue.number}
