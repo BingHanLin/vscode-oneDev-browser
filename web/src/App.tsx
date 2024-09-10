@@ -54,7 +54,7 @@ interface Issue {
 }
 
 function App() {
-    const [activeTab, setActiveTab] = useState("settings");
+    const [activeTab, setActiveTab] = useState("pr");
     const [url, setUrl] = useState("");
     const [email, setEmail] = useState("");
     const [token, setToken] = useState("");

@@ -12,3 +12,17 @@ vsc-extension-quickstart.md
 **/*.map
 **/*.ts
 **/.vscode-test.*
+
+web/out/**
+web/node_modules/**
+web/src/**
+web/.gitignore
+web/.yarnrc
+web/webpack.config.js
+web/vsc-extension-quickstart.md
+web/**/tsconfig.json
+web/**/.eslintrc.json
+web/**/*.map
+web/**/*.ts
+web/**/.vscode-test.*
+web/.parcel-cache

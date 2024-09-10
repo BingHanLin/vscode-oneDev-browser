@@ -106,9 +106,11 @@ async function saveCredentials(
             message: "oneDev credentials saved successfully!",
         });
     } catch (error) {
-        panel.webview.postMessage({
-            command: "showErrorMessage",
-            message: `Error fetching project ID: ${error.message}`,
-        });
+        if (error instanceof Error) {
+            panel.webview.postMessage({
+                command: "showErrorMessage",
+                message: `Error fetching project ID: ${error.message}`,
+            });
+        }
     }
 }

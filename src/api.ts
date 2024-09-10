@@ -50,10 +50,17 @@ export async function fetchPullRequests(
             })),
         });
     } catch (error) {
-        panel.webview.postMessage({
-            command: "showErrorMessage",
-            message: `Error fetching pull requests: ${error.message}`,
-        });
+        if (error instanceof Error) {
+            panel.webview.postMessage({
+                command: "showErrorMessage",
+                message: `Error fetching pull requests: ${error.message}`,
+            });
+        } else {
+            panel.webview.postMessage({
+                command: "showErrorMessage",
+                message: `Error fetching pull requests: ${error}`,
+            });
+        }
     }
 }
 
@@ -84,10 +91,17 @@ export async function fetchIssues(
             })),
         });
     } catch (error) {
-        panel.webview.postMessage({
-            command: "showErrorMessage",
-            message: `Error fetching issues: ${error.message}`,
-        });
+        if (error instanceof Error) {
+            panel.webview.postMessage({
+                command: "showErrorMessage",
+                message: `Error fetching issues: ${error.message}`,
+            });
+        } else {
+            panel.webview.postMessage({
+                command: "showErrorMessage",
+                message: `Error fetching issues: ${error}`,
+            });
+        }
     }
 }
 

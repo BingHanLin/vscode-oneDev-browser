@@ -2,20 +2,32 @@
   "name": "onedev-browser",
   "displayName": "oneDev Browser",
   "description": "Browse issues, PRs, and builds on oneDev repositories",
-  "version": "0.0.1",
+  "version": "0.0.2",
+  "publisher": "binghanlin",
   "engines": {
     "vscode": "^1.93.0"
   },
   "categories": [
     "Other"
   ],
-  "activationEvents": [],
+  "activationEvents": [
+    "*"
+  ],
   "main": "./dist/extension.js",
   "contributes": {
+    "icons": {
+      "distro-ubuntu": {
+        "description": "Ubuntu icon",
+        "default": {
+          "fontPath": "./distroicons.woff",
+          "fontCharacter": "\\E001"
+        }
+      }
+    },
     "commands": [
       {
-        "command": "onedev-browser.setCredentials",
-        "title": "oneDev: Set Credentials"
+        "command": "onedev-browser.openWebview",
+        "title": "oneDev: Open Browser"
       }
     ],
     "configuration": {
