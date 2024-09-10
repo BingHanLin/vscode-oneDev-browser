@@ -10,6 +10,7 @@ import {
     VSCodeDataGrid,
     VSCodeDataGridCell,
     VSCodeDataGridRow,
+    VSCodeProgressRing,
 } from "@vscode/webview-ui-toolkit/react";
 
 // Declare the vscode API
@@ -68,6 +69,7 @@ function App() {
     const [issues, setIssues] = useState<Issue[]>([]);
     const [prSort, setPrSort] = useState("newest");
     const [issueSort, setIssueSort] = useState("newest");
+    const [isLoading, setIsLoading] = useState(false);
 
     useEffect(() => {
         window.addEventListener("message", handleMessage);
@@ -118,9 +120,11 @@ function App() {
                 break;
             case "setPullRequests":
                 setPullRequests(message.pullRequests);
+                setIsLoading(false);
                 break;
             case "setIssues":
                 setIssues(message.issues);
+                setIsLoading(false);
                 break;
         }
     };
@@ -143,6 +147,7 @@ function App() {
     };
 
     const fetchPullRequests = () => {
+        setIsLoading(true);
         vscode.postMessage({
             command: "fetchPullRequests",
             url,
@@ -153,6 +158,7 @@ function App() {
     };
 
     const fetchIssues = () => {
+        setIsLoading(true);
         vscode.postMessage({
             command: "fetchIssues",
             url,
@@ -336,7 +342,11 @@ function App() {
                     </VSCodeOption>
                 </VSCodeDropdown>
             </div>
-            {pullRequests.length === 0 ? (
+            {isLoading ? (
+                <div className="flex justify-center items-center h-64">
+                    <VSCodeProgressRing />
+                </div>
+            ) : pullRequests.length === 0 ? (
                 <p>No pull requests found.</p>
             ) : (
                 <VSCodeDataGrid aria-label="Pull Requests">
@@ -437,7 +447,11 @@ function App() {
                     </VSCodeOption>
                 </VSCodeDropdown>
             </div>
-            {issues.length === 0 ? (
+            {isLoading ? (
+                <div className="flex justify-center items-center h-64">
+                    <VSCodeProgressRing />
+                </div>
+            ) : issues.length === 0 ? (
                 <p>No issues found.</p>
             ) : (
                 <VSCodeDataGrid aria-label="Issues">
