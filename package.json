@@ -2,7 +2,9 @@
   "name": "onedev-browser",
   "displayName": "oneDev Browser",
   "description": "Browse issues, PRs, and builds on oneDev repositories",
-  "version": "0.0.2",
+  "version": "0.0.3",
+  "repository": "https://github.com/BingHanLin/vscode-oneDev-browser",
+  "icon": "images/icon.png",
   "publisher": "binghanlin",
   "engines": {
     "vscode": "^1.93.0"
