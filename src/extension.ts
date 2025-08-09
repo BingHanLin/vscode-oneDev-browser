@@ -2,7 +2,6 @@ import { PRsWebviewViewProvider } from "./prsWebviewViewProvider";
 
 import * as vscode from "vscode";
 
-// (PRsTreeDataProvider import removed)
 import { IssuesTreeDataProvider } from "./issuesTreeDataProvider"; // Keep import
 import { BuildsTreeDataProvider } from "./buildsTreeDataProvider"; // Keep import
 
