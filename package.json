@@ -27,7 +27,8 @@
       "onedevSidebar": [
         {
           "id": "onedevPRsView",
-          "name": "Pull Requests"
+          "name": "Pull Requests",
+          "type": "webview"
         },
         {
           "id": "onedevIssuesView",
