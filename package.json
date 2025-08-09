@@ -26,8 +26,16 @@
     "views": {
       "onedevSidebar": [
         {
-          "id": "onedevTreeView",
-          "name": "oneDev Browser"
+          "id": "onedevPRsView",
+          "name": "Pull Requests"
+        },
+        {
+          "id": "onedevIssuesView",
+          "name": "Issues"
+        },
+        {
+          "id": "onedevBuildsView",
+          "name": "Builds"
         }
       ]
     },
