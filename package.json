@@ -5,6 +5,7 @@
   "version": "0.0.3",
   "repository": "https://github.com/BingHanLin/vscode-oneDev-browser",
   "icon": "images/icon.png",
+  "main": "./dist/extension.js",
   "publisher": "binghanlin",
   "engines": {
     "vscode": "^1.93.0"
@@ -12,26 +13,24 @@
   "categories": [
     "Other"
   ],
-  "activationEvents": [
-    "*"
-  ],
-  "main": "./dist/extension.js",
   "contributes": {
-    "icons": {
-      "distro-ubuntu": {
-        "description": "Ubuntu icon",
-        "default": {
-          "fontPath": "./distroicons.woff",
-          "fontCharacter": "\\E001"
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "onedevSidebar",
+          "title": "oneDev",
+          "icon": "images/icon.png"
         }
-      }
+      ]
     },
-    "commands": [
-      {
-        "command": "onedev-browser.openWebview",
-        "title": "oneDev: Open Browser"
-      }
-    ],
+    "views": {
+      "onedevSidebar": [
+        {
+          "id": "onedevTreeView",
+          "name": "oneDev Browser"
+        }
+      ]
+    },
     "configuration": {
       "title": "oneDev Browser",
       "properties": {

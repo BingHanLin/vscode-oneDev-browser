@@ -1,25 +1,32 @@
 import * as vscode from "vscode";
-import { createWebviewPanel } from "./webview";
 
-export function activate(context: vscode.ExtensionContext) {
-    let openWebviewDisposable = vscode.commands.registerCommand(
-        "onedev-browser.openWebview",
-        () => {
-            createWebviewPanel(context);
-        }
-    );
-    context.subscriptions.push(openWebviewDisposable);
 
-    let statusBarItem = vscode.window.createStatusBarItem(
-        vscode.StatusBarAlignment.Left,
-        100
-    );
-    statusBarItem.text = "oneDev";
-    statusBarItem.tooltip = "View oneDev Browser";
-    statusBarItem.command = "onedev-browser.openWebview";
-    context.subscriptions.push(statusBarItem);
-
-    statusBarItem.show();
+class OneDevTreeItem extends vscode.TreeItem {
+    constructor(label: string, collapsibleState?: vscode.TreeItemCollapsibleState) {
+        super(label, collapsibleState);
+    }
 }
 
-export function deactivate() {}
+class OneDevTreeDataProvider implements vscode.TreeDataProvider<OneDevTreeItem> {
+    getTreeItem(element: OneDevTreeItem): vscode.TreeItem {
+        return element;
+    }
+    getChildren(element?: OneDevTreeItem): Thenable<OneDevTreeItem[]> {
+        if (!element) {
+            return Promise.resolve([
+                new OneDevTreeItem("Pull Requests", vscode.TreeItemCollapsibleState.None),
+                new OneDevTreeItem("Issues", vscode.TreeItemCollapsibleState.None),
+                new OneDevTreeItem("Builds", vscode.TreeItemCollapsibleState.None)
+            ]);
+        }
+        return Promise.resolve([]);
+    }
+}
+
+export function activate(context: vscode.ExtensionContext) {
+    // Register sidebar TreeView
+    const treeDataProvider = new OneDevTreeDataProvider();
+    vscode.window.createTreeView("onedevTreeView", { treeDataProvider });
+}
+
+export function deactivate() { }
