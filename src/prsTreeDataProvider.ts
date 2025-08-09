@@ -18,7 +18,15 @@ export class PRsTreeDataProvider implements vscode.TreeDataProvider<vscode.TreeI
             return [new vscode.TreeItem("Please set oneDev config in settings.")];
         }
         const prs = await fetchPullRequests(creds);
-        return prs.map((pr: any) => new vscode.TreeItem(`#${pr.number} ${pr.title}`));
+        return prs.map((pr: any) => {
+            const item = new vscode.TreeItem(`#${pr.number} ${pr.title}`);
+            item.description = `${pr.state || ''} | ${pr.submitterId || ''}`;
+            if (pr.submitDate) {
+                const date = new Date(pr.submitDate);
+                item.tooltip = `State: ${pr.state}\nAuthor: ${pr.submitterId}\nCreated: ${date.toLocaleString()}`;
+            }
+            return item;
+        });
     }
     refresh(): void { this._onDidChangeTreeData.fire(); }
 }

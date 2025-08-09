@@ -18,7 +18,15 @@ export class IssuesTreeDataProvider implements vscode.TreeDataProvider<vscode.Tr
             return [new vscode.TreeItem("Please set oneDev config in settings.")];
         }
         const issues = await fetchIssues(creds);
-        return issues.map((issue: any) => new vscode.TreeItem(`#${issue.number} ${issue.title}`));
+        return issues.map((issue: any) => {
+            const item = new vscode.TreeItem(`#${issue.number} ${issue.title}`);
+            item.description = `${issue.state || ''} | ${issue.submitterId || ''}`;
+            if (issue.submitDate) {
+                const date = new Date(issue.submitDate);
+                item.tooltip = `State: ${issue.state}\nAuthor: ${issue.submitterId}\nCreated: ${date.toLocaleString()}`;
+            }
+            return item;
+        });
     }
     refresh(): void { this._onDidChangeTreeData.fire(); }
 }
