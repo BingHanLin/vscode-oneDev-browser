@@ -1,4 +1,4 @@
-import * as vscode from "vscode";
+
 import fetch from "node-fetch";
 import { Credentials } from "./types";
 
@@ -21,88 +21,37 @@ export async function fetchProjectId(
     }
 }
 
-export async function fetchPullRequests(
-    message: Credentials,
-    panel: vscode.WebviewPanel
-) {
-    try {
-        const apiUrl = `${message.url}/~api/pulls`;
-        const queryParams = new URLSearchParams({
-            query: `"Source Project" is "${message.projectPath}" and open and to be reviewed by me`,
-            offset: "0",
-            count: "100",
-        });
-        const response = await makeApiRequest(apiUrl, queryParams, message);
-
-        const pullRequests = await response.json();
-        panel.webview.postMessage({
-            command: "setPullRequests",
-            pullRequests: pullRequests.map((pr: any) => ({
-                number: pr.number,
-                title: pr.title,
-                targetBranch: pr.targetBranch,
-                sourceBranch: pr.sourceBranch,
-                submitterId: pr.submitterId,
-                submitDate: pr.submitDate,
-                lastActivity: pr.lastActivity,
-                commentCount: pr.commentCount,
-                state: pr.state,
-            })),
-        });
-    } catch (error) {
-        if (error instanceof Error) {
-            panel.webview.postMessage({
-                command: "showErrorMessage",
-                message: `Error fetching pull requests: ${error.message}`,
-            });
-        } else {
-            panel.webview.postMessage({
-                command: "showErrorMessage",
-                message: `Error fetching pull requests: ${error}`,
-            });
-        }
-    }
+export async function fetchPullRequests(credentials: Credentials): Promise<any[]> {
+    const apiUrl = `${credentials.url}/~api/pulls`;
+    const queryParams = new URLSearchParams({
+        query: "",
+        offset: "0",
+        count: "20",
+    });
+    const response = await makeApiRequest(apiUrl, queryParams, credentials);
+    return await response.json();
 }
 
-export async function fetchIssues(
-    message: Credentials,
-    panel: vscode.WebviewPanel
-) {
-    try {
-        const apiUrl = `${message.url}/~api/issues`;
-        const queryParams = new URLSearchParams({
-            query: `"Project" is "${message.projectPath}"`,
-            offset: "0",
-            count: "100",
-        });
-        const response = await makeApiRequest(apiUrl, queryParams, message);
+export async function fetchIssues(credentials: Credentials): Promise<any[]> {
+    const apiUrl = `${credentials.url}/~api/issues`;
+    const queryParams = new URLSearchParams({
+        query: `"Project" is "${credentials.projectPath}"`,
+        offset: "0",
+        count: "20",
+    });
+    const response = await makeApiRequest(apiUrl, queryParams, credentials);
+    return await response.json();
+}
 
-        const issues = await response.json();
-        panel.webview.postMessage({
-            command: "setIssues",
-            issues: issues.map((issue: any) => ({
-                number: issue.number,
-                title: issue.title,
-                state: issue.state,
-                submitterId: issue.submitterId,
-                submitDate: issue.submitDate,
-                lastActivity: issue.lastActivity,
-                commentCount: issue.commentCount,
-            })),
-        });
-    } catch (error) {
-        if (error instanceof Error) {
-            panel.webview.postMessage({
-                command: "showErrorMessage",
-                message: `Error fetching issues: ${error.message}`,
-            });
-        } else {
-            panel.webview.postMessage({
-                command: "showErrorMessage",
-                message: `Error fetching issues: ${error}`,
-            });
-        }
-    }
+export async function fetchBuilds(credentials: Credentials): Promise<any[]> {
+    const apiUrl = `${credentials.url}/~api/builds`;
+    const queryParams = new URLSearchParams({
+        query: `"Project" is "${credentials.projectPath}"`,
+        offset: "0",
+        count: "20",
+    });
+    const response = await makeApiRequest(apiUrl, queryParams, credentials);
+    return await response.json();
 }
 
 async function makeApiRequest(
