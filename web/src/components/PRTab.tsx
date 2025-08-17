@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import {
     VSCodeButton,
     VSCodeDropdown,
@@ -19,6 +19,8 @@ interface PRTabProps {
     onReload: () => void;
     onSortChange: (sort: string) => void;
     sortPullRequests: (prs: PullRequest[]) => PullRequest[];
+    loadMorePRs: () => void;
+    hasMorePRs: boolean;
 }
 
 const PRTab: React.FC<PRTabProps> = ({
@@ -30,6 +32,8 @@ const PRTab: React.FC<PRTabProps> = ({
     onReload,
     onSortChange,
     sortPullRequests,
+    loadMorePRs,
+    hasMorePRs,
 }) => {
     // State for keyword search
     const [keyword, setKeyword] = useState("");
@@ -50,6 +54,9 @@ const PRTab: React.FC<PRTabProps> = ({
                 pr.sourceBranch.toLowerCase().includes(keyword.toLowerCase()) ||
                 pr.targetBranch.toLowerCase().includes(keyword.toLowerCase()))
     );
+
+    // The PRs to display (all loaded so far, filtered)
+    const pagedPRs = sortPullRequests(filteredPRs);
 
     // Highlight keyword in a string (case-insensitive)
     function highlightKeyword(text: string, keyword: string) {
@@ -128,77 +135,103 @@ const PRTab: React.FC<PRTabProps> = ({
             ) : filteredPRs.length === 0 ? (
                 <p>No pull requests found.</p>
             ) : (
-                <VSCodeDataGrid aria-label="Pull Requests">
-                    <VSCodeDataGridRow row-type="header">
-                        <VSCodeDataGridCell
-                            cell-type="columnheader"
-                            grid-column="1"
-                        >
-                            Number
-                        </VSCodeDataGridCell>
-                        <VSCodeDataGridCell
-                            cell-type="columnheader"
-                            grid-column="2"
-                        >
-                            Title
-                        </VSCodeDataGridCell>
-                        <VSCodeDataGridCell
-                            cell-type="columnheader"
-                            grid-column="3"
-                        >
-                            Source
-                        </VSCodeDataGridCell>
-                        <VSCodeDataGridCell
-                            cell-type="columnheader"
-                            grid-column="4"
-                        >
-                            Target
-                        </VSCodeDataGridCell>
-                        <VSCodeDataGridCell
-                            cell-type="columnheader"
-                            grid-column="5"
-                        >
-                            Submitted
-                        </VSCodeDataGridCell>
-                        <VSCodeDataGridCell
-                            cell-type="columnheader"
-                            grid-column="6"
-                        >
-                            Last Activity
-                        </VSCodeDataGridCell>
-                    </VSCodeDataGridRow>
-                    {sortPullRequests(filteredPRs).map((pr) => (
-                        <VSCodeDataGridRow key={pr.number}>
-                            <VSCodeDataGridCell grid-column="1">
-                                {pr.number}
+                <>
+                    <VSCodeDataGrid aria-label="Pull Requests">
+                        <VSCodeDataGridRow row-type="header">
+                            <VSCodeDataGridCell
+                                cell-type="columnheader"
+                                grid-column="1"
+                            >
+                                Number
                             </VSCodeDataGridCell>
-                            <VSCodeDataGridCell grid-column="2">
-                                <a
-                                    href={`${url}/${projectPath}/~pulls/${pr.number}`}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="text-blue-600 hover:underline"
-                                >
-                                    {highlightKeyword(pr.title, keyword)}
-                                </a>
+                            <VSCodeDataGridCell
+                                cell-type="columnheader"
+                                grid-column="2"
+                            >
+                                Title
                             </VSCodeDataGridCell>
-                            <VSCodeDataGridCell grid-column="3">
-                                {highlightKeyword(pr.sourceBranch, keyword)}
+                            <VSCodeDataGridCell
+                                cell-type="columnheader"
+                                grid-column="3"
+                            >
+                                Source
                             </VSCodeDataGridCell>
-                            <VSCodeDataGridCell grid-column="4">
-                                {highlightKeyword(pr.targetBranch, keyword)}
+                            <VSCodeDataGridCell
+                                cell-type="columnheader"
+                                grid-column="4"
+                            >
+                                Target
                             </VSCodeDataGridCell>
-                            <VSCodeDataGridCell grid-column="5">
-                                {new Date(pr.submitDate).toLocaleDateString()}
+                            <VSCodeDataGridCell
+                                cell-type="columnheader"
+                                grid-column="5"
+                            >
+                                Submitted
                             </VSCodeDataGridCell>
-                            <VSCodeDataGridCell grid-column="6">
-                                {new Date(
-                                    pr.lastActivity.date
-                                ).toLocaleString()}
+                            <VSCodeDataGridCell
+                                cell-type="columnheader"
+                                grid-column="6"
+                            >
+                                Last Activity
                             </VSCodeDataGridCell>
                         </VSCodeDataGridRow>
-                    ))}
-                </VSCodeDataGrid>
+                        {pagedPRs.map((pr) => (
+                            <VSCodeDataGridRow key={pr.number}>
+                                <VSCodeDataGridCell grid-column="1">
+                                    {pr.number}
+                                </VSCodeDataGridCell>
+                                <VSCodeDataGridCell grid-column="2">
+                                    <a
+                                        href={`${url}/${projectPath}/~pulls/${pr.number}`}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="text-blue-600 hover:underline"
+                                    >
+                                        {highlightKeyword(pr.title, keyword)}
+                                    </a>
+                                </VSCodeDataGridCell>
+                                <VSCodeDataGridCell grid-column="3">
+                                    {highlightKeyword(pr.sourceBranch, keyword)}
+                                </VSCodeDataGridCell>
+                                <VSCodeDataGridCell grid-column="4">
+                                    {highlightKeyword(pr.targetBranch, keyword)}
+                                </VSCodeDataGridCell>
+                                <VSCodeDataGridCell grid-column="5">
+                                    {new Date(
+                                        pr.submitDate
+                                    ).toLocaleDateString()}
+                                </VSCodeDataGridCell>
+                                <VSCodeDataGridCell grid-column="6">
+                                    {new Date(
+                                        pr.lastActivity.date
+                                    ).toLocaleString()}
+                                </VSCodeDataGridCell>
+                            </VSCodeDataGridRow>
+                        ))}
+                    </VSCodeDataGrid>
+                    {hasMorePRs && (
+                        <div className="flex justify-center my-4">
+                            <VSCodeButton
+                                onClick={loadMorePRs}
+                                disabled={isLoading}
+                                style={{
+                                    display: "flex",
+                                    alignItems: "center",
+                                }}
+                            >
+                                <span
+                                    style={{
+                                        display: "inline-block",
+                                        width: 20,
+                                        height: 16,
+                                        marginRight: 8,
+                                    }}
+                                />
+                                Load More
+                            </VSCodeButton>
+                        </div>
+                    )}
+                </>
             )}
         </div>
     );

@@ -103,15 +103,19 @@ function openReactWebview(context: vscode.ExtensionContext) {
       } else if (message.command === 'fetchPullRequests') {
         try {
           const { fetchPullRequests } = require('./api');
+          const offset = typeof message.offset === 'number' ? message.offset : 0;
+          const count = typeof message.count === 'number' ? message.count : 20;
           const pullRequests = await fetchPullRequests({
             url: message.url,
             email: message.email,
             token: message.token,
             projectPath: message.projectPath
-          });
+          }, offset, count);
           panel.webview.postMessage({
             command: 'setPullRequests',
-            pullRequests
+            pullRequests,
+            offset,
+            count
           });
         } catch (err) {
           panel.webview.postMessage({

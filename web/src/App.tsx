@@ -29,6 +29,9 @@ function App() {
     const [isError, setIsError] = useState(false);
     const [showMessage, setShowMessage] = useState(false);
     const [pullRequests, setPullRequests] = useState<PullRequest[]>([]);
+    const [prOffset, setPrOffset] = useState(0);
+    const PR_PAGE_SIZE = 20;
+    const [hasMorePRs, setHasMorePRs] = useState(true);
     const [issues, setIssues] = useState<Issue[]>([]);
     const [issuesOffset, setIssuesOffset] = useState(0);
     const ISSUES_PAGE_SIZE = 20;
@@ -51,9 +54,9 @@ function App() {
     useEffect(() => {
         if (url && email && token && projectPath) {
             if (activeTab === "pr") {
-                fetchPullRequests();
+                setPrOffset(0);
+                fetchPullRequests(0, PR_PAGE_SIZE, true);
             } else if (activeTab === "issues") {
-                // Reset issuesOffset and fetch first page
                 setIssuesOffset(0);
                 fetchIssues(0, ISSUES_PAGE_SIZE, true);
             }
@@ -91,10 +94,26 @@ function App() {
                 setMessage(message.message);
                 setIsError(true);
                 break;
-            case "setPullRequests":
-                setPullRequests(message.pullRequests);
+            case "setPullRequests": {
+                // If offset is 0, replace; else append
+                if (typeof message.offset === "number" && message.offset > 0) {
+                    setPullRequests((prev) => [
+                        ...prev,
+                        ...(message.pullRequests || []),
+                    ]);
+                } else {
+                    setPullRequests(message.pullRequests || []);
+                }
+                setPrOffset(
+                    (message.offset || 0) + (message.count || PR_PAGE_SIZE)
+                );
+                setHasMorePRs(
+                    (message.pullRequests || []).length ===
+                        (message.count || PR_PAGE_SIZE)
+                );
                 setIsLoading(false);
                 break;
+            }
             case "setIssues": {
                 // If offset is 0, replace; else append
                 if (typeof message.offset === "number" && message.offset > 0) {
@@ -134,7 +153,12 @@ function App() {
         setShowToken(!showToken);
     };
 
-    const fetchPullRequests = () => {
+    // Fetch PRs with offset/count, replace: true means reset, false means append
+    const fetchPullRequests = (
+        offset = 0,
+        count = PR_PAGE_SIZE,
+        replace = false
+    ) => {
         setIsLoading(true);
         const payload = {
             command: "fetchPullRequests",
@@ -142,9 +166,19 @@ function App() {
             email,
             token,
             projectPath,
+            offset,
+            count,
         };
         console.log("[Webview] postMessage: fetchPullRequests", payload);
         vscode.postMessage(payload);
+        // If replace, clear PRs immediately for better UX
+        if (replace) setPullRequests([]);
+    };
+    // For PRTab: load more PRs
+    const loadMorePRs = () => {
+        if (!isLoading && hasMorePRs) {
+            fetchPullRequests(prOffset, PR_PAGE_SIZE, false);
+        }
     };
 
     // Fetch issues with offset/count, replace: true means reset, false means append
@@ -270,6 +304,8 @@ function App() {
                         onReload={handleReload}
                         onSortChange={setPrSort}
                         sortPullRequests={sortPullRequests}
+                        loadMorePRs={loadMorePRs}
+                        hasMorePRs={hasMorePRs}
                     />
                 )}
                 {activeTab === "issues" && (

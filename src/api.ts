@@ -21,15 +21,23 @@ export async function fetchProjectId(
     }
 }
 
-export async function fetchPullRequests(credentials: Credentials): Promise<any[]> {
+
+export async function fetchPullRequests(
+    credentials: Credentials,
+    offset: number = 0,
+    count: number = 20
+): Promise<any[]> {
+    console.log('[api] fetchPullRequests called', credentials, { offset, count });
     const apiUrl = `${credentials.url}/~api/pulls`;
     const queryParams = new URLSearchParams({
-        query: "",
-        offset: "0",
-        count: "20",
+        query: `"Target Project" is "${credentials.projectPath}"`,
+        offset: offset.toString(),
+        count: count.toString(),
     });
     const response = await makeApiRequest(apiUrl, queryParams, credentials);
-    return await response.json();
+    const json = await response.json();
+    console.log('[api] fetchPullRequests response', json);
+    return json;
 }
 
 export async function fetchIssues(
