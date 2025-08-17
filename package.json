@@ -67,8 +67,8 @@
     },
     "commands": [
       {
-        "command": "onedev-browser.testit",
-        "title": "React Web View"
+        "command": "onedev-browser.openWebview",
+        "title": "Open oneDev Webview"
       }
     ]
   },
