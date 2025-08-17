@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import {
     VSCodeButton,
     VSCodeDropdown,
@@ -37,6 +37,30 @@ const IssuesTab: React.FC<IssuesTabProps> = ({
 }) => {
     const [keyword, setKeyword] = useState("");
     const [stateFilter, setStateFilter] = useState<string>("all");
+    // Ref for the Load More button wrapper
+    const loadMoreWrapperRef = useRef<HTMLDivElement | null>(null);
+    // Track if we just triggered load more (for scroll restoration)
+    const [pendingScroll, setPendingScroll] = useState(false);
+    // Track if we are currently loading more (not initial load)
+    const [isLoadingMore, setIsLoadingMore] = useState(false);
+    // When pendingScroll is set, scroll the Load More button into view after render
+    useEffect(() => {
+        if (pendingScroll && loadMoreWrapperRef.current) {
+            loadMoreWrapperRef.current.scrollIntoView({
+                behavior: "smooth",
+                block: "center",
+            });
+            setPendingScroll(false);
+        }
+    }, [issues, pendingScroll]);
+    // Detect isLoading changes; if loading more, only show loading on the button
+    useEffect(() => {
+        if (isLoading && issues.length > 0) {
+            setIsLoadingMore(true);
+        } else {
+            setIsLoadingMore(false);
+        }
+    }, [isLoading, issues.length]);
     const allStates = Array.from(
         new Set(issues.map((issue) => issue.state))
     ).sort();
@@ -113,7 +137,7 @@ const IssuesTab: React.FC<IssuesTabProps> = ({
                     </VSCodeOption>
                 </VSCodeDropdown>
             </div>
-            {isLoading ? (
+            {isLoading && issues.length === 0 ? (
                 <div className="flex justify-center items-center h-64">
                     <VSCodeProgressRing />
                 </div>
@@ -186,11 +210,26 @@ const IssuesTab: React.FC<IssuesTabProps> = ({
                         ))}
                     </VSCodeDataGrid>
                     {hasMoreIssues && (
-                        <div className="flex justify-center my-4">
+                        <div
+                            className="flex justify-center my-4"
+                            ref={loadMoreWrapperRef}
+                        >
                             <VSCodeButton
-                                onClick={loadMoreIssues}
-                                disabled={isLoading}
+                                onClick={() => {
+                                    setPendingScroll(true);
+                                    loadMoreIssues();
+                                }}
+                                disabled={isLoadingMore}
                             >
+                                {isLoadingMore ? (
+                                    <VSCodeProgressRing
+                                        style={{
+                                            width: 16,
+                                            height: 16,
+                                            marginRight: 8,
+                                        }}
+                                    />
+                                ) : null}
                                 Load More
                             </VSCodeButton>
                         </div>
