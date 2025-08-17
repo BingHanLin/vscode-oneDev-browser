@@ -34,12 +34,21 @@ const PRTab: React.FC<PRTabProps> = ({
     // State for keyword search
     const [keyword, setKeyword] = useState("");
 
-    // Filter PRs by keyword (title, sourceBranch, targetBranch), case-insensitive
+    // State for PR status filter
+    const [stateFilter, setStateFilter] = useState<string>("all");
+
+    // Get all unique statuses from PRs (e.g., open, closed, merged)
+    const allStates = Array.from(
+        new Set(pullRequests.map((pr) => pr.status))
+    ).sort();
+
+    // Filter PRs by keyword and status
     const filteredPRs = pullRequests.filter(
         (pr) =>
-            pr.title.toLowerCase().includes(keyword.toLowerCase()) ||
-            pr.sourceBranch.toLowerCase().includes(keyword.toLowerCase()) ||
-            pr.targetBranch.toLowerCase().includes(keyword.toLowerCase())
+            (stateFilter === "all" || pr.status === stateFilter) &&
+            (pr.title.toLowerCase().includes(keyword.toLowerCase()) ||
+                pr.sourceBranch.toLowerCase().includes(keyword.toLowerCase()) ||
+                pr.targetBranch.toLowerCase().includes(keyword.toLowerCase()))
     );
 
     // Highlight keyword in a string (case-insensitive)
@@ -81,6 +90,21 @@ const PRTab: React.FC<PRTabProps> = ({
                         border: "1px solid #ccc",
                     }}
                 />
+                {/* Status filter dropdown */}
+                <VSCodeDropdown
+                    value={stateFilter}
+                    onChange={(e) =>
+                        setStateFilter((e.target as HTMLSelectElement).value)
+                    }
+                    style={{ minWidth: 120 }}
+                >
+                    <VSCodeOption value="all">All States</VSCodeOption>
+                    {allStates.map((state) => (
+                        <VSCodeOption key={state} value={state}>
+                            {state}
+                        </VSCodeOption>
+                    ))}
+                </VSCodeDropdown>
                 <VSCodeDropdown
                     value={prSort}
                     onChange={(e) =>

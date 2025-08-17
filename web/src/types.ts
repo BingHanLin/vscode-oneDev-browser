@@ -12,7 +12,7 @@ export interface PullRequest {
         description: string;
     };
     commentCount: number;
-    state: string;
+    status: string;
 }
 
 export interface Issue {
