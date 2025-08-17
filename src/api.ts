@@ -32,13 +32,17 @@ export async function fetchPullRequests(credentials: Credentials): Promise<any[]
     return await response.json();
 }
 
-export async function fetchIssues(credentials: Credentials): Promise<any[]> {
-    console.log('[api] fetchIssues called', credentials);
+export async function fetchIssues(
+    credentials: Credentials,
+    offset: number = 0,
+    count: number = 20
+): Promise<any[]> {
+    console.log('[api] fetchIssues called', credentials, { offset, count });
     const apiUrl = `${credentials.url}/~api/issues`;
     const queryParams = new URLSearchParams({
         query: `"Project" is "${credentials.projectPath}"`,
-        offset: "0",
-        count: "20",
+        offset: offset.toString(),
+        count: count.toString(),
     });
     const response = await makeApiRequest(apiUrl, queryParams, credentials);
     const json = await response.json();

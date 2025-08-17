@@ -30,6 +30,9 @@ function App() {
     const [showMessage, setShowMessage] = useState(false);
     const [pullRequests, setPullRequests] = useState<PullRequest[]>([]);
     const [issues, setIssues] = useState<Issue[]>([]);
+    const [issuesOffset, setIssuesOffset] = useState(0);
+    const ISSUES_PAGE_SIZE = 20;
+    const [hasMoreIssues, setHasMoreIssues] = useState(true);
     const [prSort, setPrSort] = useState("newest");
     const [issueSort, setIssueSort] = useState("newest");
     const [isLoading, setIsLoading] = useState(false);
@@ -50,9 +53,12 @@ function App() {
             if (activeTab === "pr") {
                 fetchPullRequests();
             } else if (activeTab === "issues") {
-                fetchIssues();
+                // Reset issuesOffset and fetch first page
+                setIssuesOffset(0);
+                fetchIssues(0, ISSUES_PAGE_SIZE, true);
             }
         }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [activeTab, url, email, token, projectPath]);
 
     useEffect(() => {
@@ -89,10 +95,23 @@ function App() {
                 setPullRequests(message.pullRequests);
                 setIsLoading(false);
                 break;
-            case "setIssues":
-                setIssues(message.issues);
+            case "setIssues": {
+                // If offset is 0, replace; else append
+                if (typeof message.offset === "number" && message.offset > 0) {
+                    setIssues((prev) => [...prev, ...(message.issues || [])]);
+                } else {
+                    setIssues(message.issues || []);
+                }
+                setIssuesOffset(
+                    (message.offset || 0) + (message.count || ISSUES_PAGE_SIZE)
+                );
+                setHasMoreIssues(
+                    (message.issues || []).length ===
+                        (message.count || ISSUES_PAGE_SIZE)
+                );
                 setIsLoading(false);
                 break;
+            }
         }
     };
 
@@ -128,7 +147,12 @@ function App() {
         vscode.postMessage(payload);
     };
 
-    const fetchIssues = () => {
+    // Fetch issues with offset/count, replace: true means reset, false means append
+    const fetchIssues = (
+        offset = 0,
+        count = ISSUES_PAGE_SIZE,
+        replace = false
+    ) => {
         setIsLoading(true);
         const payload = {
             command: "fetchIssues",
@@ -136,9 +160,20 @@ function App() {
             email,
             token,
             projectPath,
+            offset,
+            count,
         };
         console.log("[Webview] postMessage: fetchIssues", payload);
         vscode.postMessage(payload);
+        // If replace, clear issues immediately for better UX
+        if (replace) setIssues([]);
+    };
+
+    // For IssuesTab: load more issues
+    const loadMoreIssues = () => {
+        if (!isLoading && hasMoreIssues) {
+            fetchIssues(issuesOffset, ISSUES_PAGE_SIZE, false);
+        }
     };
 
     const sortPullRequests = (prs: PullRequest[]) => {
@@ -247,6 +282,8 @@ function App() {
                         onReload={handleReload}
                         onSortChange={setIssueSort}
                         sortIssues={sortIssues}
+                        loadMoreIssues={loadMoreIssues}
+                        hasMoreIssues={hasMoreIssues}
                     />
                 )}
                 {activeTab === "settings" && (

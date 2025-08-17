@@ -19,6 +19,8 @@ interface IssuesTabProps {
     onReload: () => void;
     onSortChange: (sort: string) => void;
     sortIssues: (issues: Issue[]) => Issue[];
+    loadMoreIssues: () => void;
+    hasMoreIssues: boolean;
 }
 
 const IssuesTab: React.FC<IssuesTabProps> = ({
@@ -30,11 +32,11 @@ const IssuesTab: React.FC<IssuesTabProps> = ({
     onReload,
     onSortChange,
     sortIssues,
+    loadMoreIssues,
+    hasMoreIssues,
 }) => {
     const [keyword, setKeyword] = useState("");
-    // State filter
     const [stateFilter, setStateFilter] = useState<string>("all");
-    // Get all unique states from issues
     const allStates = Array.from(
         new Set(issues.map((issue) => issue.state))
     ).sort();
@@ -44,17 +46,11 @@ const IssuesTab: React.FC<IssuesTabProps> = ({
         .filter((issue) =>
             issue.title.toLowerCase().includes(keyword.toLowerCase())
         );
-
-    // Pagination / Load more
-    const PAGE_SIZE = 20;
-    const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
-    const pagedIssues = sortIssues(filteredIssues).slice(0, visibleCount);
-    const hasMore = visibleCount < filteredIssues.length;
     // Highlight keyword in title
     function highlightKeyword(text: string, keyword: string) {
         if (!keyword) return text;
         const regex = new RegExp(
-            `(${keyword.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")})`,
+            `(${keyword.replace(/[.*+?^${}()|[\\]\\]/g, "\\$&")})`,
             "gi"
         );
         const parts = text.split(regex);
@@ -158,7 +154,7 @@ const IssuesTab: React.FC<IssuesTabProps> = ({
                                 Last Activity
                             </VSCodeDataGridCell>
                         </VSCodeDataGridRow>
-                        {pagedIssues.map((issue) => (
+                        {filteredIssues.map((issue) => (
                             <VSCodeDataGridRow key={issue.number}>
                                 <VSCodeDataGridCell grid-column="1">
                                     {issue.number}
@@ -189,12 +185,11 @@ const IssuesTab: React.FC<IssuesTabProps> = ({
                             </VSCodeDataGridRow>
                         ))}
                     </VSCodeDataGrid>
-                    {hasMore && (
+                    {hasMoreIssues && (
                         <div className="flex justify-center my-4">
                             <VSCodeButton
-                                onClick={() =>
-                                    setVisibleCount((c) => c + PAGE_SIZE)
-                                }
+                                onClick={loadMoreIssues}
+                                disabled={isLoading}
                             >
                                 Load More
                             </VSCodeButton>

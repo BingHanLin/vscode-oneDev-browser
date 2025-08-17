@@ -122,15 +122,19 @@ function openReactWebview(context: vscode.ExtensionContext) {
       } else if (message.command === 'fetchIssues') {
         try {
           const { fetchIssues } = require('./api');
+          const offset = typeof message.offset === 'number' ? message.offset : 0;
+          const count = typeof message.count === 'number' ? message.count : 20;
           const issues = await fetchIssues({
             url: message.url,
             email: message.email,
             token: message.token,
             projectPath: message.projectPath
-          });
+          }, offset, count);
           panel.webview.postMessage({
             command: 'setIssues',
-            issues
+            issues,
+            offset,
+            count
           });
         } catch (err) {
           panel.webview.postMessage({
