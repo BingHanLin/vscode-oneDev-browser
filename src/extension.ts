@@ -73,7 +73,7 @@ export function activate(context: vscode.ExtensionContext) {
               command: 'showSuccessMessage',
               message: 'Credentials saved successfully.'
             });
-            // 可選：查詢 projectId
+            // Optional: fetch projectId
             try {
               const { fetchProjectId } = require('./api');
               const projectId = await fetchProjectId({

@@ -81,13 +81,16 @@ function App() {
         };
     }, []);
 
+    // Only fetch data automatically when all credentials are set; also refetch when credentials update
     useEffect(() => {
-        if (activeTab === "pr") {
-            fetchPullRequests();
-        } else if (activeTab === "issues") {
-            fetchIssues();
+        if (url && email && token && projectPath) {
+            if (activeTab === "pr") {
+                fetchPullRequests();
+            } else if (activeTab === "issues") {
+                fetchIssues();
+            }
         }
-    }, [activeTab]);
+    }, [activeTab, url, email, token, projectPath]);
 
     useEffect(() => {
         if (message) {
