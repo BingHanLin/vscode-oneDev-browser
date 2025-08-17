@@ -32,11 +32,25 @@ const IssuesTab: React.FC<IssuesTabProps> = ({
     sortIssues,
 }) => {
     const [keyword, setKeyword] = useState("");
-    // Filter issues by keyword (title)
-    const filteredIssues = issues.filter((issue) =>
-        issue.title.toLowerCase().includes(keyword.toLowerCase())
-    );
-    // 高亮顯示關鍵字
+    // State filter
+    const [stateFilter, setStateFilter] = useState<string>("all");
+    // Get all unique states from issues
+    const allStates = Array.from(
+        new Set(issues.map((issue) => issue.state))
+    ).sort();
+    // Filter issues by state and then by keyword
+    const filteredIssues = issues
+        .filter((issue) => stateFilter === "all" || issue.state === stateFilter)
+        .filter((issue) =>
+            issue.title.toLowerCase().includes(keyword.toLowerCase())
+        );
+
+    // Pagination / Load more
+    const PAGE_SIZE = 20;
+    const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
+    const pagedIssues = sortIssues(filteredIssues).slice(0, visibleCount);
+    const hasMore = visibleCount < filteredIssues.length;
+    // Highlight keyword in title
     function highlightKeyword(text: string, keyword: string) {
         if (!keyword) return text;
         const regex = new RegExp(
@@ -74,6 +88,20 @@ const IssuesTab: React.FC<IssuesTabProps> = ({
                     }}
                 />
                 <VSCodeDropdown
+                    value={stateFilter}
+                    onChange={(e) =>
+                        setStateFilter((e.target as HTMLSelectElement).value)
+                    }
+                    style={{ minWidth: 120 }}
+                >
+                    <VSCodeOption value="all">All States</VSCodeOption>
+                    {allStates.map((state) => (
+                        <VSCodeOption key={state} value={state}>
+                            {state}
+                        </VSCodeOption>
+                    ))}
+                </VSCodeDropdown>
+                <VSCodeDropdown
                     value={issueSort}
                     onChange={(e) =>
                         onSortChange((e.target as HTMLSelectElement).value)
@@ -96,70 +124,83 @@ const IssuesTab: React.FC<IssuesTabProps> = ({
             ) : filteredIssues.length === 0 ? (
                 <p>No issues found.</p>
             ) : (
-                <VSCodeDataGrid aria-label="Issues">
-                    <VSCodeDataGridRow row-type="header">
-                        <VSCodeDataGridCell
-                            cell-type="columnheader"
-                            grid-column="1"
-                        >
-                            Number
-                        </VSCodeDataGridCell>
-                        <VSCodeDataGridCell
-                            cell-type="columnheader"
-                            grid-column="2"
-                        >
-                            Title
-                        </VSCodeDataGridCell>
-                        <VSCodeDataGridCell
-                            cell-type="columnheader"
-                            grid-column="3"
-                        >
-                            State
-                        </VSCodeDataGridCell>
-                        <VSCodeDataGridCell
-                            cell-type="columnheader"
-                            grid-column="4"
-                        >
-                            Submitted
-                        </VSCodeDataGridCell>
-                        <VSCodeDataGridCell
-                            cell-type="columnheader"
-                            grid-column="5"
-                        >
-                            Last Activity
-                        </VSCodeDataGridCell>
-                    </VSCodeDataGridRow>
-                    {sortIssues(filteredIssues).map((issue) => (
-                        <VSCodeDataGridRow key={issue.number}>
-                            <VSCodeDataGridCell grid-column="1">
-                                {issue.number}
+                <>
+                    <VSCodeDataGrid aria-label="Issues">
+                        <VSCodeDataGridRow row-type="header">
+                            <VSCodeDataGridCell
+                                cell-type="columnheader"
+                                grid-column="1"
+                            >
+                                Number
                             </VSCodeDataGridCell>
-                            <VSCodeDataGridCell grid-column="2">
-                                <a
-                                    href={`${url}/${projectPath}/~issues/${issue.number}`}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="text-blue-600 hover:underline"
-                                >
-                                    {highlightKeyword(issue.title, keyword)}
-                                </a>
+                            <VSCodeDataGridCell
+                                cell-type="columnheader"
+                                grid-column="2"
+                            >
+                                Title
                             </VSCodeDataGridCell>
-                            <VSCodeDataGridCell grid-column="3">
-                                {issue.state}
+                            <VSCodeDataGridCell
+                                cell-type="columnheader"
+                                grid-column="3"
+                            >
+                                State
                             </VSCodeDataGridCell>
-                            <VSCodeDataGridCell grid-column="4">
-                                {new Date(
-                                    issue.submitDate
-                                ).toLocaleDateString()}
+                            <VSCodeDataGridCell
+                                cell-type="columnheader"
+                                grid-column="4"
+                            >
+                                Submitted
                             </VSCodeDataGridCell>
-                            <VSCodeDataGridCell grid-column="5">
-                                {new Date(
-                                    issue.lastActivity.date
-                                ).toLocaleString()}
+                            <VSCodeDataGridCell
+                                cell-type="columnheader"
+                                grid-column="5"
+                            >
+                                Last Activity
                             </VSCodeDataGridCell>
                         </VSCodeDataGridRow>
-                    ))}
-                </VSCodeDataGrid>
+                        {pagedIssues.map((issue) => (
+                            <VSCodeDataGridRow key={issue.number}>
+                                <VSCodeDataGridCell grid-column="1">
+                                    {issue.number}
+                                </VSCodeDataGridCell>
+                                <VSCodeDataGridCell grid-column="2">
+                                    <a
+                                        href={`${url}/${projectPath}/~issues/${issue.number}`}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="text-blue-600 hover:underline"
+                                    >
+                                        {highlightKeyword(issue.title, keyword)}
+                                    </a>
+                                </VSCodeDataGridCell>
+                                <VSCodeDataGridCell grid-column="3">
+                                    {issue.state}
+                                </VSCodeDataGridCell>
+                                <VSCodeDataGridCell grid-column="4">
+                                    {new Date(
+                                        issue.submitDate
+                                    ).toLocaleDateString()}
+                                </VSCodeDataGridCell>
+                                <VSCodeDataGridCell grid-column="5">
+                                    {new Date(
+                                        issue.lastActivity.date
+                                    ).toLocaleString()}
+                                </VSCodeDataGridCell>
+                            </VSCodeDataGridRow>
+                        ))}
+                    </VSCodeDataGrid>
+                    {hasMore && (
+                        <div className="flex justify-center my-4">
+                            <VSCodeButton
+                                onClick={() =>
+                                    setVisibleCount((c) => c + PAGE_SIZE)
+                                }
+                            >
+                                Load More
+                            </VSCodeButton>
+                        </div>
+                    )}
+                </>
             )}
         </div>
     );
