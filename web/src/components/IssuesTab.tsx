@@ -88,6 +88,7 @@ const IssuesTab: React.FC<IssuesTabProps> = ({
             )
         );
     }
+
     return (
         <div>
             <div className="flex justify-between items-center mb-4">
@@ -220,16 +221,19 @@ const IssuesTab: React.FC<IssuesTabProps> = ({
                                     loadMoreIssues();
                                 }}
                                 disabled={isLoadingMore}
+                                style={{
+                                    display: "flex",
+                                    alignItems: "center",
+                                }}
                             >
-                                {isLoadingMore ? (
-                                    <VSCodeProgressRing
-                                        style={{
-                                            width: 16,
-                                            height: 16,
-                                            marginRight: 8,
-                                        }}
-                                    />
-                                ) : null}
+                                <span
+                                    style={{
+                                        display: "inline-block",
+                                        width: 20,
+                                        height: 16,
+                                        marginRight: 8,
+                                    }}
+                                />
                                 Load More
                             </VSCodeButton>
                         </div>
