@@ -73,6 +73,7 @@ function App() {
 
     useEffect(() => {
         window.addEventListener("message", handleMessage);
+        console.log("[Webview] postMessage: getCredentials");
         vscode.postMessage({ command: "getCredentials" });
 
         return () => {
@@ -133,13 +134,15 @@ function App() {
         e.preventDefault();
         setMessage("");
         setProjectId(null);
-        vscode.postMessage({
+        const payload = {
             command: "saveCredentials",
             url,
             email,
             token,
             projectPath,
-        });
+        };
+        console.log("[Webview] postMessage: saveCredentials", payload);
+        vscode.postMessage(payload);
     };
 
     const toggleTokenVisibility = () => {
@@ -148,24 +151,28 @@ function App() {
 
     const fetchPullRequests = () => {
         setIsLoading(true);
-        vscode.postMessage({
+        const payload = {
             command: "fetchPullRequests",
             url,
             email,
             token,
             projectPath,
-        });
+        };
+        console.log("[Webview] postMessage: fetchPullRequests", payload);
+        vscode.postMessage(payload);
     };
 
     const fetchIssues = () => {
         setIsLoading(true);
-        vscode.postMessage({
+        const payload = {
             command: "fetchIssues",
             url,
             email,
             token,
             projectPath,
-        });
+        };
+        console.log("[Webview] postMessage: fetchIssues", payload);
+        vscode.postMessage(payload);
     };
 
     const sortPullRequests = (prs: PullRequest[]) => {

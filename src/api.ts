@@ -33,6 +33,7 @@ export async function fetchPullRequests(credentials: Credentials): Promise<any[]
 }
 
 export async function fetchIssues(credentials: Credentials): Promise<any[]> {
+    console.log('[api] fetchIssues called', credentials);
     const apiUrl = `${credentials.url}/~api/issues`;
     const queryParams = new URLSearchParams({
         query: `"Project" is "${credentials.projectPath}"`,
@@ -40,7 +41,9 @@ export async function fetchIssues(credentials: Credentials): Promise<any[]> {
         count: "20",
     });
     const response = await makeApiRequest(apiUrl, queryParams, credentials);
-    return await response.json();
+    const json = await response.json();
+    console.log('[api] fetchIssues response', json);
+    return json;
 }
 
 export async function fetchBuilds(credentials: Credentials): Promise<any[]> {
@@ -59,6 +62,7 @@ async function makeApiRequest(
     queryParams: URLSearchParams,
     credentials: Credentials
 ) {
+    console.log('[api] makeApiRequest', apiUrl, queryParams.toString(), credentials);
     const response = await fetch(`${apiUrl}?${queryParams}`, {
         method: "GET",
         headers: {
@@ -69,10 +73,11 @@ async function makeApiRequest(
                 ).toString("base64"),
         },
     });
-
+    console.log('[api] makeApiRequest response status', response.status);
     if (!response.ok) {
+        const text = await response.text();
+        console.error(`[api] HTTP error! status: ${response.status}, body:`, text);
         throw new Error(`HTTP error! status: ${response.status}`);
     }
-
     return response;
 }
