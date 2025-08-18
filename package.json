@@ -13,6 +13,9 @@
   "categories": [
     "Other"
   ],
+  "activationEvents": [
+    "*"
+  ],
   "contributes": {
     "viewsContainers": {
       "activitybar": [
