@@ -6,7 +6,6 @@ import {
     VSCodeDataGrid,
     VSCodeDataGridCell,
     VSCodeDataGridRow,
-    VSCodeProgressRing,
 } from "@vscode/webview-ui-toolkit/react";
 import { PullRequest } from "../types";
 
@@ -57,6 +56,21 @@ const PRTab: React.FC<PRTabProps> = ({
 
     // The PRs to display (all loaded so far, filtered)
     const pagedPRs = sortPullRequests(filteredPRs);
+
+    // Ref for the Load More button wrapper
+    const loadMoreWrapperRef = useRef<HTMLDivElement | null>(null);
+    // Track if we just triggered load more (for scroll restoration)
+    const [pendingScroll, setPendingScroll] = useState(false);
+    // When pendingScroll is set, scroll the Load More button into view after render
+    useEffect(() => {
+        if (pendingScroll && loadMoreWrapperRef.current) {
+            loadMoreWrapperRef.current.scrollIntoView({
+                behavior: "smooth",
+                block: "center",
+            });
+            setPendingScroll(false);
+        }
+    }, [pullRequests, pendingScroll]);
 
     // Highlight keyword in a string (case-insensitive)
     function highlightKeyword(text: string, keyword: string) {
@@ -128,11 +142,7 @@ const PRTab: React.FC<PRTabProps> = ({
                     </VSCodeOption>
                 </VSCodeDropdown>
             </div>
-            {isLoading ? (
-                <div className="flex justify-center items-center h-64">
-                    <VSCodeProgressRing />
-                </div>
-            ) : filteredPRs.length === 0 ? (
+            {filteredPRs.length === 0 ? (
                 <p>No pull requests found.</p>
             ) : (
                 <>
@@ -210,23 +220,20 @@ const PRTab: React.FC<PRTabProps> = ({
                         ))}
                     </VSCodeDataGrid>
                     {hasMorePRs && (
-                        <div className="flex justify-center my-4">
+                        <div
+                            className="flex justify-center my-4"
+                            ref={loadMoreWrapperRef}
+                        >
                             <VSCodeButton
-                                onClick={loadMorePRs}
-                                disabled={isLoading}
+                                onClick={() => {
+                                    setPendingScroll(true);
+                                    loadMorePRs();
+                                }}
                                 style={{
                                     display: "flex",
                                     alignItems: "center",
                                 }}
                             >
-                                <span
-                                    style={{
-                                        display: "inline-block",
-                                        width: 20,
-                                        height: 16,
-                                        marginRight: 8,
-                                    }}
-                                />
                                 Load More
                             </VSCodeButton>
                         </div>

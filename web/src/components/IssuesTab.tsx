@@ -6,7 +6,6 @@ import {
     VSCodeDataGrid,
     VSCodeDataGridCell,
     VSCodeDataGridRow,
-    VSCodeProgressRing,
 } from "@vscode/webview-ui-toolkit/react";
 import { Issue } from "../types";
 
@@ -41,8 +40,6 @@ const IssuesTab: React.FC<IssuesTabProps> = ({
     const loadMoreWrapperRef = useRef<HTMLDivElement | null>(null);
     // Track if we just triggered load more (for scroll restoration)
     const [pendingScroll, setPendingScroll] = useState(false);
-    // Track if we are currently loading more (not initial load)
-    const [isLoadingMore, setIsLoadingMore] = useState(false);
     // When pendingScroll is set, scroll the Load More button into view after render
     useEffect(() => {
         if (pendingScroll && loadMoreWrapperRef.current) {
@@ -53,14 +50,6 @@ const IssuesTab: React.FC<IssuesTabProps> = ({
             setPendingScroll(false);
         }
     }, [issues, pendingScroll]);
-    // Detect isLoading changes; if loading more, only show loading on the button
-    useEffect(() => {
-        if (isLoading && issues.length > 0) {
-            setIsLoadingMore(true);
-        } else {
-            setIsLoadingMore(false);
-        }
-    }, [isLoading, issues.length]);
     const allStates = Array.from(
         new Set(issues.map((issue) => issue.state))
     ).sort();
@@ -140,7 +129,7 @@ const IssuesTab: React.FC<IssuesTabProps> = ({
             </div>
             {isLoading && issues.length === 0 ? (
                 <div className="flex justify-center items-center h-64">
-                    <VSCodeProgressRing />
+                    Loading...
                 </div>
             ) : filteredIssues.length === 0 ? (
                 <p>No issues found.</p>
@@ -220,7 +209,6 @@ const IssuesTab: React.FC<IssuesTabProps> = ({
                                     setPendingScroll(true);
                                     loadMoreIssues();
                                 }}
-                                disabled={isLoadingMore}
                                 style={{
                                     display: "flex",
                                     alignItems: "center",
