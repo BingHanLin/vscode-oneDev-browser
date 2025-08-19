@@ -65,28 +65,34 @@ function openReactWebview(context: vscode.ExtensionContext) {
   panel.onDidDispose(() => {
     oneDevPanel = undefined;
   });
-  const credentialsKey = 'onedev-browser.credentials';
   panel.webview.onDidReceiveMessage(async (message) => {
     console.log('[Extension] Received message:', message);
     try {
       if (message.command === 'getCredentials') {
-        const credentials = context.globalState.get(credentialsKey, {
-          url: '',
-          email: '',
-          token: '',
-          projectPath: ''
-        });
+        const config = vscode.workspace.getConfiguration('onedev-browser');
+        function getPrefValue(key: string): string {
+          const inspect = config.inspect<string>(key);
+          return (inspect?.globalValue ?? '') || (inspect?.workspaceValue ?? '') || '';
+        }
+        const url = getPrefValue('url');
+        const email = getPrefValue('email');
+        const token = getPrefValue('token');
+        const projectPath = getPrefValue('projectPath');
         panel.webview.postMessage({
           command: 'setCredentials',
-          ...credentials
+          url,
+          email,
+          token,
+          projectPath
         });
       } else if (message.command === 'saveCredentials') {
-        context.globalState.update(credentialsKey, {
-          url: message.url,
-          email: message.email,
-          token: message.token,
-          projectPath: message.projectPath
-        });
+        // scope: 'user' or 'workspace'
+        const config = vscode.workspace.getConfiguration('onedev-browser');
+        const target = message.scope === 'user' ? vscode.ConfigurationTarget.Global : vscode.ConfigurationTarget.Workspace;
+        await config.update('url', message.url, target);
+        await config.update('email', message.email, target);
+        await config.update('token', message.token, target);
+        await config.update('projectPath', message.projectPath, target);
         panel.webview.postMessage({
           command: 'showSuccessMessage',
           message: 'Credentials saved successfully.'

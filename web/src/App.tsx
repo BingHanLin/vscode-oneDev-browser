@@ -2,7 +2,6 @@ import React, { useState, useEffect } from "react";
 import "./App.css";
 import PRTab from "./components/PRTab";
 import IssuesTab from "./components/IssuesTab";
-import SettingsTab from "./components/SettingsTab";
 import { PullRequest, Issue } from "./types";
 
 // Declare the vscode API
@@ -39,12 +38,11 @@ function App() {
     const [prSort, setPrSort] = useState("newest");
     const [issueSort, setIssueSort] = useState("newest");
     const [isLoading, setIsLoading] = useState(false);
+    // SettingsTab removed: user/workspace values and scope state no longer needed
 
     useEffect(() => {
         window.addEventListener("message", handleMessage);
-        console.log("[Webview] postMessage: getCredentials");
         vscode.postMessage({ command: "getCredentials" });
-
         return () => {
             window.removeEventListener("message", handleMessage);
         };
@@ -83,6 +81,7 @@ function App() {
                 setToken(message.token);
                 setProjectPath(message.projectPath);
                 break;
+            // SettingsTab removed: no user/workspace settings
             case "setProjectId":
                 setProjectId(message.projectId);
                 break;
@@ -134,20 +133,7 @@ function App() {
         }
     };
 
-    const handleSubmit = (e: React.FormEvent) => {
-        e.preventDefault();
-        setMessage("");
-        setProjectId(null);
-        const payload = {
-            command: "saveCredentials",
-            url,
-            email,
-            token,
-            projectPath,
-        };
-        console.log("[Webview] postMessage: saveCredentials", payload);
-        vscode.postMessage(payload);
-    };
+    // SettingsTab removed: handleSubmit and handleScopeChange no longer needed
 
     const toggleTokenVisibility = () => {
         setShowToken(!showToken);
@@ -267,6 +253,23 @@ function App() {
     return (
         <div className="container mx-auto p-4">
             <h1 className="text-2xl font-bold mb-4">oneDev Browser</h1>
+            {/* Summary Bar */}
+            <div className="mb-4 p-3 rounded bg-gray-100 border flex flex-wrap items-center text-sm">
+                <div className="mr-6">
+                    <span className="font-semibold">Email:</span>{" "}
+                    {email || <span className="text-gray-400">(not set)</span>}
+                </div>
+                <div className="mr-6">
+                    <span className="font-semibold">oneDev URL:</span>{" "}
+                    {url || <span className="text-gray-400">(not set)</span>}
+                </div>
+                <div>
+                    <span className="font-semibold">Project Path:</span>{" "}
+                    {projectPath || (
+                        <span className="text-gray-400">(not set)</span>
+                    )}
+                </div>
+            </div>
             <div className="tab-container">
                 <button
                     className={`tab-button ${
@@ -284,14 +287,7 @@ function App() {
                 >
                     Issues
                 </button>
-                <button
-                    className={`tab-button ${
-                        activeTab === "settings" ? "active" : ""
-                    }`}
-                    onClick={() => setActiveTab("settings")}
-                >
-                    Settings
-                </button>
+                {/* SettingsTab removed: no settings tab in UI */}
             </div>
             <div className="tab-content">
                 {activeTab === "pr" && (
@@ -323,25 +319,7 @@ function App() {
                         hasMoreIssues={hasMoreIssues}
                     />
                 )}
-                {activeTab === "settings" && (
-                    <SettingsTab
-                        url={url}
-                        email={email}
-                        token={token}
-                        projectPath={projectPath}
-                        showToken={showToken}
-                        projectId={projectId}
-                        message={message}
-                        isError={isError}
-                        showMessage={showMessage}
-                        onUrlChange={setUrl}
-                        onEmailChange={setEmail}
-                        onTokenChange={setToken}
-                        onProjectPathChange={setProjectPath}
-                        onToggleToken={toggleTokenVisibility}
-                        onSubmit={handleSubmit}
-                    />
-                )}
+                {/* SettingsTab removed: no settings tab content */}
             </div>
         </div>
     );
