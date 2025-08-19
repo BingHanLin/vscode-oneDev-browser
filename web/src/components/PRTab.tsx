@@ -20,6 +20,7 @@ interface PRTabProps {
     sortPullRequests: (prs: PullRequest[]) => PullRequest[];
     loadMorePRs: () => void;
     hasMorePRs: boolean;
+    vscode?: { postMessage: (message: any) => void };
 }
 
 const PRTab: React.FC<PRTabProps> = ({
@@ -33,6 +34,7 @@ const PRTab: React.FC<PRTabProps> = ({
     sortPullRequests,
     loadMorePRs,
     hasMorePRs,
+    vscode,
 }) => {
     // State for keyword search
     const [keyword, setKeyword] = useState("");
@@ -71,6 +73,34 @@ const PRTab: React.FC<PRTabProps> = ({
             setPendingScroll(false);
         }
     }, [pullRequests, pendingScroll]);
+
+    // Listen for checkoutBranchSuccess/checkoutBranchError, ask extension to show VS Code notification
+    useEffect(() => {
+        function handleMessage(event: MessageEvent) {
+            const { command, message } = event.data || {};
+            if (
+                (command === "checkoutBranchSuccess" ||
+                    command === "checkoutBranchError") &&
+                vscode
+            ) {
+                vscode.postMessage({
+                    command:
+                        command === "checkoutBranchSuccess"
+                            ? "showInfoMessage"
+                            : "showErrorMessage",
+                    message:
+                        message ||
+                        (command === "checkoutBranchSuccess"
+                            ? "Branch checked out successfully."
+                            : "Failed to checkout branch."),
+                });
+            }
+        }
+        window.addEventListener("message", handleMessage);
+        return () => {
+            window.removeEventListener("message", handleMessage);
+        };
+    }, [vscode]);
 
     // Highlight keyword in a string (case-insensitive)
     function highlightKeyword(text: string, keyword: string) {
@@ -201,7 +231,28 @@ const PRTab: React.FC<PRTabProps> = ({
                                     </a>
                                 </VSCodeDataGridCell>
                                 <VSCodeDataGridCell grid-column="3">
-                                    {highlightKeyword(pr.sourceBranch, keyword)}
+                                    <button
+                                        className="text-blue-600 hover:underline mr-2"
+                                        title="Checkout Source Branch"
+                                        onClick={() => {
+                                            if (vscode) {
+                                                vscode.postMessage({
+                                                    command: "checkoutBranch",
+                                                    branch: pr.sourceBranch,
+                                                });
+                                            } else {
+                                                // If no vscode API, fallback to local alert
+                                                alert(
+                                                    "VS Code API not available."
+                                                );
+                                            }
+                                        }}
+                                    >
+                                        {highlightKeyword(
+                                            pr.sourceBranch,
+                                            keyword
+                                        )}
+                                    </button>
                                 </VSCodeDataGridCell>
                                 <VSCodeDataGridCell grid-column="4">
                                     {highlightKeyword(pr.targetBranch, keyword)}

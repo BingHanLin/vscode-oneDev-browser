@@ -8,12 +8,12 @@ import { PullRequest, Issue } from "./types";
 // Declare the vscode API
 declare global {
     interface Window {
-        acquireVsCodeApi: () => any;
+        acquireVsCodeApi?: () => any;
     }
 }
 
 // Get the VS Code API
-const vscode = window.acquireVsCodeApi();
+const vscode = window.acquireVsCodeApi ? window.acquireVsCodeApi() : undefined;
 
 // ...types moved to types.ts...
 
@@ -306,6 +306,7 @@ function App() {
                         sortPullRequests={sortPullRequests}
                         loadMorePRs={loadMorePRs}
                         hasMorePRs={hasMorePRs}
+                        vscode={vscode}
                     />
                 )}
                 {activeTab === "issues" && (

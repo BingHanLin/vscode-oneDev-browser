@@ -110,6 +110,32 @@ function openReactWebview(context: vscode.ExtensionContext) {
             message: 'Failed to fetch project ID.'
           });
         }
+      } else if (message.command === 'checkoutBranch') {
+        try {
+          const branch = message.branch;
+          const terminal = vscode.window.createTerminal({ name: 'oneDev: git checkout' });
+          terminal.show();
+          // First fetch, then checkout (auto-create local branch if needed)
+          let fetchAndCheckoutCmd = '';
+          if (process.platform === 'win32') {
+            // Windows (cmd/powershell)
+            fetchAndCheckoutCmd = `git fetch origin ${branch}:${branch} ; git checkout ${branch}`;
+          } else {
+            // macOS/Linux (bash/zsh/sh)
+            fetchAndCheckoutCmd = `git fetch origin ${branch}:${branch} || git fetch origin && git checkout ${branch}`;
+          }
+          terminal.sendText(fetchAndCheckoutCmd);
+          vscode.window.showInformationMessage(`Switching to branch ${branch}`);
+          panel.webview.postMessage({
+            command: 'checkoutBranchSuccess',
+            branch
+          });
+        } catch (err) {
+          panel.webview.postMessage({
+            command: 'checkoutBranchError',
+            message: 'Failed to checkout branch.'
+          });
+        }
       } else if (message.command === 'fetchPullRequests') {
         try {
           const { fetchPullRequests } = require('./api');
