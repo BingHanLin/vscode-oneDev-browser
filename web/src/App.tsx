@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import "./App.css";
 import PRTab from "./components/PRTab";
 import IssuesTab from "./components/IssuesTab";
+import { VSCodeTextField } from "@vscode/webview-ui-toolkit/react";
 import { PullRequest, Issue } from "./types";
 
 // Declare the vscode API
@@ -253,22 +254,38 @@ function App() {
     return (
         <div className="container mx-auto p-4">
             <h1 className="text-2xl font-bold mb-4">oneDev Browser</h1>
-            {/* Summary Bar */}
-            <div className="mb-4 p-3 rounded bg-gray-100 border flex flex-wrap items-center text-sm">
-                <div className="mr-6">
-                    <span className="font-semibold">Email:</span>{" "}
-                    {email || <span className="text-gray-400">(not set)</span>}
-                </div>
-                <div className="mr-6">
-                    <span className="font-semibold">oneDev URL:</span>{" "}
-                    {url || <span className="text-gray-400">(not set)</span>}
-                </div>
-                <div>
-                    <span className="font-semibold">Project Path:</span>{" "}
-                    {projectPath || (
-                        <span className="text-gray-400">(not set)</span>
-                    )}
-                </div>
+            {/* Summary Bar - VSCodeTextField style */}
+            <div className="mb-4 flex flex-wrap items-center gap-4">
+                <VSCodeTextField
+                    readOnly
+                    value={email}
+                    placeholder="(not set)"
+                    className="w-72"
+                    style={{ minWidth: 220 }}
+                    aria-label="Email"
+                >
+                    Email
+                </VSCodeTextField>
+                <VSCodeTextField
+                    readOnly
+                    value={url}
+                    placeholder="(not set)"
+                    className="w-96"
+                    style={{ minWidth: 260 }}
+                    aria-label="oneDev URL"
+                >
+                    oneDev URL
+                </VSCodeTextField>
+                <VSCodeTextField
+                    readOnly
+                    value={projectPath}
+                    placeholder="(not set)"
+                    className="w-72"
+                    style={{ minWidth: 220 }}
+                    aria-label="Project Path"
+                >
+                    Project Path
+                </VSCodeTextField>
             </div>
             <div className="tab-container">
                 <button
