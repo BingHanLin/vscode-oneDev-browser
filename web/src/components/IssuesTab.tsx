@@ -127,7 +127,7 @@ const IssuesTab: React.FC<IssuesTabProps> = ({
     );
 
     return (
-        <div style={{ display: "flex", height: "100%" }}>
+        <div style={{ display: "flex", height: "100vh", minHeight: 0 }}>
             {/* Left: Issues list */}
             <div
                 style={{
@@ -273,11 +273,11 @@ const IssuesTab: React.FC<IssuesTabProps> = ({
                     width: 340,
                     minWidth: 240,
                     maxWidth: 400,
-                    overflowY: "auto",
                     display: "flex",
                     flexDirection: "column",
                     gap: 0,
                     padding: "28px 24px 20px 24px",
+                    boxSizing: "border-box",
                 }}
             >
                 {(() => {
@@ -293,7 +293,7 @@ const IssuesTab: React.FC<IssuesTabProps> = ({
                                     textAlign: "center",
                                 }}
                             >
-                                請選擇一個 Issue
+                                Please select an issue
                             </div>
                         );
                     return (
@@ -322,7 +322,7 @@ const IssuesTab: React.FC<IssuesTabProps> = ({
                                         marginRight: 6,
                                     }}
                                 >
-                                    狀態：
+                                    State:
                                 </span>
                                 {issue.state}
                             </div>
@@ -334,7 +334,7 @@ const IssuesTab: React.FC<IssuesTabProps> = ({
                                         marginRight: 6,
                                     }}
                                 >
-                                    作者：
+                                    Author:
                                 </span>
                                 {issue.submitterId}
                             </div>
@@ -346,7 +346,7 @@ const IssuesTab: React.FC<IssuesTabProps> = ({
                                         marginRight: 6,
                                     }}
                                 >
-                                    建立：
+                                    Created:
                                 </span>
                                 {new Date(issue.submitDate).toLocaleString()}
                             </div>
@@ -358,7 +358,7 @@ const IssuesTab: React.FC<IssuesTabProps> = ({
                                         marginRight: 6,
                                     }}
                                 >
-                                    最後活動：
+                                    Last Activity:
                                 </span>
                                 {new Date(
                                     issue.lastActivity.date
@@ -372,7 +372,7 @@ const IssuesTab: React.FC<IssuesTabProps> = ({
                                         marginRight: 6,
                                     }}
                                 >
-                                    留言數：
+                                    Comments:
                                 </span>
                                 {issue.commentCount}
                             </div>
