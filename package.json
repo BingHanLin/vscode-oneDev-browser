@@ -75,7 +75,9 @@
         {
           "command": "onedev-browser.refreshAllViews",
           "when": "view == onedevPRsView || view == onedevIssuesView || view == onedevBuildsView",
-          "group": "navigation@1"
+          "group": "navigation@1",
+          "icon": "$(refresh)",
+          "tooltip": "Refresh"
         }
       ]
     },
