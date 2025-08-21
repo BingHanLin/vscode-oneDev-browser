@@ -276,14 +276,6 @@ const IssuesTab: React.FC<IssuesTabProps> = ({
                                     alignItems: "center",
                                 }}
                             >
-                                <span
-                                    style={{
-                                        display: "inline-block",
-                                        width: 20,
-                                        height: 16,
-                                        marginRight: 8,
-                                    }}
-                                />
                                 Load More
                             </VSCodeButton>
                         </div>
