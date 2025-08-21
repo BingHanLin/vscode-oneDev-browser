@@ -131,6 +131,23 @@ function App() {
                 setIsLoading(false);
                 break;
             }
+            case "navigateToIssue":
+                // Switch to Issues tab and highlight the specific issue
+                setActiveTab("issues");
+                // If we need to fetch issues first, do that
+                if (issues.length === 0) {
+                    fetchIssues(0, ISSUES_PAGE_SIZE, true);
+                }
+                // Focus on the specific issue - we could add scroll or highlight logic here
+                break;
+            case "navigateToBuild":
+                // For builds, we could add a builds tab in the future
+                // For now, we'll just show a message or switch to a relevant tab
+                setMessage(
+                    `Build #${message.buildNumber} selected from tree view`
+                );
+                setIsError(false);
+                break;
         }
     };
 

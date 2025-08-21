@@ -25,6 +25,12 @@ export class BuildsTreeDataProvider implements vscode.TreeDataProvider<vscode.Tr
                 const date = new Date(build.submitDate);
                 item.tooltip = `Job: ${build.jobName || ''}\nStatus: ${build.status || ''}\nAuthor: ${build.submitterId || ''}\nCreated: ${date.toLocaleString()}`;
             }
+            // Add click command to open webview and navigate to this build
+            item.command = {
+                command: 'onedev-browser.openWebviewToBuild',
+                title: 'Open Build in Webview',
+                arguments: [build.number, build]
+            };
             return item;
         });
     }

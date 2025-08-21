@@ -72,6 +72,14 @@
       {
         "command": "onedev-browser.openWebview",
         "title": "Open oneDev Webview"
+      },
+      {
+        "command": "onedev-browser.openWebviewToIssue",
+        "title": "Open Issue in Webview"
+      },
+      {
+        "command": "onedev-browser.openWebviewToBuild",
+        "title": "Open Build in Webview"
       }
     ]
   },

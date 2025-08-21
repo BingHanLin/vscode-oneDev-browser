@@ -31,6 +31,35 @@ export function activate(context: vscode.ExtensionContext) {
       openReactWebview(context);
     })
   );
+
+  // Register commands for tree view navigation to webview
+  context.subscriptions.push(
+    vscode.commands.registerCommand('onedev-browser.openWebviewToIssue', (issueNumber: number, issue: any) => {
+      const panel = openReactWebview(context);
+      // Send message to webview to navigate to specific issue
+      if (oneDevPanel) {
+        oneDevPanel.webview.postMessage({
+          command: 'navigateToIssue',
+          issueNumber,
+          issue
+        });
+      }
+    })
+  );
+
+  context.subscriptions.push(
+    vscode.commands.registerCommand('onedev-browser.openWebviewToBuild', (buildNumber: number, build: any) => {
+      const panel = openReactWebview(context);
+      // Send message to webview to navigate to specific build
+      if (oneDevPanel) {
+        oneDevPanel.webview.postMessage({
+          command: 'navigateToBuild',
+          buildNumber,
+          build
+        });
+      }
+    })
+  );
 }
 
 let oneDevPanel: vscode.WebviewPanel | undefined;
@@ -38,7 +67,7 @@ let oneDevPanel: vscode.WebviewPanel | undefined;
 function openReactWebview(context: vscode.ExtensionContext) {
   if (oneDevPanel) {
     oneDevPanel.reveal(vscode.ViewColumn.One);
-    return;
+    return oneDevPanel;
   }
   let panel = vscode.window.createWebviewPanel("webview", "oneDev Browser", vscode.ViewColumn.One, {
     enableScripts: true
@@ -196,6 +225,8 @@ function openReactWebview(context: vscode.ExtensionContext) {
       });
     }
   });
+
+  return panel;
 }
 
 export function deactivate() { }
