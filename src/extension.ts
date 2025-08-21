@@ -54,15 +54,13 @@ export function activate(context: vscode.ExtensionContext) {
   );
 
   context.subscriptions.push(
-    vscode.commands.registerCommand('onedev-browser.openWebviewToBuild', (buildNumber: number, build: any) => {
-      const panel = openReactWebview(context);
-      // Send message to webview to navigate to specific build
-      if (oneDevPanel) {
-        oneDevPanel.webview.postMessage({
-          command: 'navigateToBuild',
-          buildNumber,
-          build
-        });
+    vscode.commands.registerCommand('onedev-browser.openWebviewToBuild', (buildNumber: number, build: any, url?: string, projectPath?: string) => {
+      // Open the Build in the user's default browser
+      if (url && projectPath && buildNumber) {
+        const buildUrl = `${url}/${projectPath}/~builds/${buildNumber}`;
+        vscode.env.openExternal(vscode.Uri.parse(buildUrl));
+      } else {
+        vscode.window.showErrorMessage('Missing oneDev URL, project path, or build number.');
       }
     })
   );

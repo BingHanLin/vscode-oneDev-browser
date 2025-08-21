@@ -7,12 +7,26 @@ export class BuildsTreeDataProvider implements vscode.TreeDataProvider<vscode.Tr
     readonly onDidChangeTreeData: vscode.Event<vscode.TreeItem | undefined | void> = this._onDidChangeTreeData.event;
     getTreeItem(element: vscode.TreeItem): vscode.TreeItem { return element; }
     async getChildren(): Promise<vscode.TreeItem[]> {
+        // Prefer user scope config, fallback to workspace
         const config = vscode.workspace.getConfiguration("onedev-browser");
+        const getConfigValue = (key: string) => {
+            const inspected = config.inspect<string>(key);
+            if (inspected?.globalValue !== undefined && inspected.globalValue !== "") {
+                return inspected.globalValue;
+            }
+            if (inspected?.workspaceValue !== undefined && inspected.workspaceValue !== "") {
+                return inspected.workspaceValue;
+            }
+            if (inspected?.workspaceFolderValue !== undefined && inspected.workspaceFolderValue !== "") {
+                return inspected.workspaceFolderValue;
+            }
+            return "";
+        };
         const creds: Credentials = {
-            url: config.get("url", ""),
-            email: config.get("email", ""),
-            token: config.get("token", ""),
-            projectPath: config.get("projectPath", "")
+            url: getConfigValue("url"),
+            email: getConfigValue("email"),
+            token: getConfigValue("token"),
+            projectPath: getConfigValue("projectPath")
         };
         if (!creds.url || !creds.token || !creds.projectPath) {
             return [new vscode.TreeItem("Please set oneDev config in settings.")];
@@ -25,11 +39,11 @@ export class BuildsTreeDataProvider implements vscode.TreeDataProvider<vscode.Tr
                 const date = new Date(build.submitDate);
                 item.tooltip = `Job: ${build.jobName || ''}\nStatus: ${build.status || ''}\nAuthor: ${build.submitterId || ''}\nCreated: ${date.toLocaleString()}`;
             }
-            // Add click command to open webview and navigate to this build
+            // Pass url and projectPath to command for reliability
             item.command = {
                 command: 'onedev-browser.openWebviewToBuild',
                 title: 'Open Build in Webview',
-                arguments: [build.number, build]
+                arguments: [build.number, build, creds.url, creds.projectPath]
             };
             return item;
         });
