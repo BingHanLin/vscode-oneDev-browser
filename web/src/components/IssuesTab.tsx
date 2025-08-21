@@ -364,18 +364,19 @@ const IssuesTab: React.FC<IssuesTabProps> = ({
                                     issue.lastActivity.date
                                 ).toLocaleString()}
                             </div>
-                            <div>
-                                <span
+                            {issue.description && (
+                                <div
                                     style={{
-                                        fontWeight: 500,
-                                        color: "#666",
-                                        marginRight: 6,
+                                        color: "var(--vscode-foreground)",
+                                        fontSize: 15,
+                                        marginTop: 16,
+                                        whiteSpace: "pre-wrap",
+                                        wordBreak: "break-word",
                                     }}
                                 >
-                                    Comments:
-                                </span>
-                                {issue.commentCount}
-                            </div>
+                                    {issue.description}
+                                </div>
+                            )}
                         </div>
                     );
                 })()}

@@ -18,6 +18,7 @@ export interface PullRequest {
 export interface Issue {
     number: number;
     title: string;
+    description: string;
     state: string;
     submitterId: number;
     submitDate: string;
