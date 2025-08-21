@@ -21,6 +21,7 @@ interface PRTabProps {
     loadMorePRs: () => void;
     hasMorePRs: boolean;
     vscode?: { postMessage: (message: any) => void };
+    selectedPR?: number | null;
 }
 
 const PRTab: React.FC<PRTabProps> = ({
@@ -35,6 +36,7 @@ const PRTab: React.FC<PRTabProps> = ({
     loadMorePRs,
     hasMorePRs,
     vscode,
+    selectedPR,
 }) => {
     // State for keyword search
     const [keyword, setKeyword] = useState("");
@@ -216,7 +218,23 @@ const PRTab: React.FC<PRTabProps> = ({
                             </VSCodeDataGridCell>
                         </VSCodeDataGridRow>
                         {pagedPRs.map((pr) => (
-                            <VSCodeDataGridRow key={pr.number}>
+                            <VSCodeDataGridRow
+                                key={pr.number}
+                                className={
+                                    selectedPR === pr.number
+                                        ? "vscode-selected-row"
+                                        : ""
+                                }
+                                style={
+                                    selectedPR === pr.number
+                                        ? {
+                                              background:
+                                                  "var(--vscode-list-activeSelectionBackground)",
+                                              color: "var(--vscode-list-activeSelectionForeground)",
+                                          }
+                                        : {}
+                                }
+                            >
                                 <VSCodeDataGridCell grid-column="1">
                                     {pr.number}
                                 </VSCodeDataGridCell>

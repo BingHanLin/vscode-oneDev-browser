@@ -13,15 +13,13 @@ export function activate(context: vscode.ExtensionContext) {
   vscode.window.createTreeView("onedevPRsView", { treeDataProvider: prsProvider });
   // Register command for tree view navigation to PR in webview
   context.subscriptions.push(
-    vscode.commands.registerCommand('onedev-browser.openWebviewToPR', (prNumber: number, pr: any) => {
-      const panel = openReactWebview(context);
-      // Send message to webview to navigate to specific PR
-      if (oneDevPanel) {
-        oneDevPanel.webview.postMessage({
-          command: 'navigateToPR',
-          prNumber,
-          pr
-        });
+    vscode.commands.registerCommand('onedev-browser.openWebviewToPR', (prNumber: number, pr: any, url?: string, projectPath?: string) => {
+      // Open the PR in the user's default browser
+      if (url && projectPath && prNumber) {
+        const prUrl = `${url}/${projectPath}/~pulls/${prNumber}`;
+        vscode.env.openExternal(vscode.Uri.parse(prUrl));
+      } else {
+        vscode.window.showErrorMessage('Missing oneDev URL, project path, or PR number.');
       }
     })
   );
@@ -44,15 +42,13 @@ export function activate(context: vscode.ExtensionContext) {
 
   // Register commands for tree view navigation to webview
   context.subscriptions.push(
-    vscode.commands.registerCommand('onedev-browser.openWebviewToIssue', (issueNumber: number, issue: any) => {
-      const panel = openReactWebview(context);
-      // Send message to webview to navigate to specific issue
-      if (oneDevPanel) {
-        oneDevPanel.webview.postMessage({
-          command: 'navigateToIssue',
-          issueNumber,
-          issue
-        });
+    vscode.commands.registerCommand('onedev-browser.openWebviewToIssue', (issueNumber: number, issue: any, url?: string, projectPath?: string) => {
+      // Open the Issue in the user's default browser
+      if (url && projectPath && issueNumber) {
+        const issueUrl = `${url}/${projectPath}/~issues/${issueNumber}`;
+        vscode.env.openExternal(vscode.Uri.parse(issueUrl));
+      } else {
+        vscode.window.showErrorMessage('Missing oneDev URL, project path, or issue number.');
       }
     })
   );

@@ -20,6 +20,7 @@ interface IssuesTabProps {
     sortIssues: (issues: Issue[]) => Issue[];
     loadMoreIssues: () => void;
     hasMoreIssues: boolean;
+    selectedIssue?: number | null;
 }
 
 const IssuesTab: React.FC<IssuesTabProps> = ({
@@ -33,6 +34,7 @@ const IssuesTab: React.FC<IssuesTabProps> = ({
     sortIssues,
     loadMoreIssues,
     hasMoreIssues,
+    selectedIssue,
 }) => {
     const [keyword, setKeyword] = useState("");
     const [stateFilter, setStateFilter] = useState<string>("all");
@@ -169,7 +171,23 @@ const IssuesTab: React.FC<IssuesTabProps> = ({
                             </VSCodeDataGridCell>
                         </VSCodeDataGridRow>
                         {filteredIssues.map((issue) => (
-                            <VSCodeDataGridRow key={issue.number}>
+                            <VSCodeDataGridRow
+                                key={issue.number}
+                                className={
+                                    selectedIssue === issue.number
+                                        ? "vscode-selected-row"
+                                        : ""
+                                }
+                                style={
+                                    selectedIssue === issue.number
+                                        ? {
+                                              background:
+                                                  "var(--vscode-list-activeSelectionBackground)",
+                                              color: "var(--vscode-list-activeSelectionForeground)",
+                                          }
+                                        : {}
+                                }
+                            >
                                 <VSCodeDataGridCell grid-column="1">
                                     {issue.number}
                                 </VSCodeDataGridCell>

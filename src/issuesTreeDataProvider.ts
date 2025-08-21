@@ -39,11 +39,11 @@ export class IssuesTreeDataProvider implements vscode.TreeDataProvider<vscode.Tr
                 const date = new Date(issue.submitDate);
                 item.tooltip = `State: ${issue.state}\nAuthor: ${issue.submitterId}\nCreated: ${date.toLocaleString()}`;
             }
-            // Add click command to open webview and navigate to this issue
+            // Pass url and projectPath to command for reliability
             item.command = {
                 command: 'onedev-browser.openWebviewToIssue',
                 title: 'Open Issue in Webview',
-                arguments: [issue.number, issue]
+                arguments: [issue.number, issue, creds.url, creds.projectPath]
             };
             return item;
         });

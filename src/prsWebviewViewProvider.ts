@@ -40,11 +40,11 @@ export class PRsTreeDataProvider implements vscode.TreeDataProvider<vscode.TreeI
                 const date = new Date(pr.submitDate);
                 item.tooltip = `State: ${pr.state}\nAuthor: ${pr.submitterId}\nCreated: ${date.toLocaleString()}`;
             }
-            // Add click command to open webview and navigate to this PR
+            // Pass url and projectPath to command for reliability
             item.command = {
                 command: 'onedev-browser.openWebviewToPR',
                 title: 'Open PR in Webview',
-                arguments: [pr.number, pr]
+                arguments: [pr.number, pr, creds.url, creds.projectPath]
             };
             return item;
         });

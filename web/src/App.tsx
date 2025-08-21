@@ -19,6 +19,8 @@ const vscode = window.acquireVsCodeApi ? window.acquireVsCodeApi() : undefined;
 
 function App() {
     const [activeTab, setActiveTab] = useState("pr");
+    const [selectedPR, setSelectedPR] = useState<number | null>(null);
+    const [selectedIssue, setSelectedIssue] = useState<number | null>(null);
     const [url, setUrl] = useState("");
     const [email, setEmail] = useState("");
     const [token, setToken] = useState("");
@@ -132,13 +134,18 @@ function App() {
                 break;
             }
             case "navigateToIssue":
-                // Switch to Issues tab and highlight the specific issue
                 setActiveTab("issues");
-                // If we need to fetch issues first, do that
+                setSelectedIssue(message.issueNumber);
                 if (issues.length === 0) {
                     fetchIssues(0, ISSUES_PAGE_SIZE, true);
                 }
-                // Focus on the specific issue - we could add scroll or highlight logic here
+                break;
+            case "navigateToPR":
+                setActiveTab("pr");
+                setSelectedPR(message.prNumber);
+                if (pullRequests.length === 0) {
+                    fetchPullRequests(0, PR_PAGE_SIZE, true);
+                }
                 break;
             case "navigateToBuild":
                 // For builds, we could add a builds tab in the future
@@ -337,6 +344,7 @@ function App() {
                         loadMorePRs={loadMorePRs}
                         hasMorePRs={hasMorePRs}
                         vscode={vscode}
+                        selectedPR={selectedPR}
                     />
                 )}
                 {activeTab === "issues" && (
@@ -351,6 +359,7 @@ function App() {
                         sortIssues={sortIssues}
                         loadMoreIssues={loadMoreIssues}
                         hasMoreIssues={hasMoreIssues}
+                        selectedIssue={selectedIssue}
                     />
                 )}
                 {/* SettingsTab removed: no settings tab content */}
