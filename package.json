@@ -70,6 +70,15 @@
         }
       }
     },
+    "menus": {
+      "view/title": [
+        {
+          "command": "onedev-browser.refreshAllViews",
+          "when": "view == onedevPRsView || view == onedevIssuesView || view == onedevBuildsView",
+          "group": "navigation@1"
+        }
+      ]
+    },
     "commands": [
       {
         "command": "onedev-browser.openWebview",
@@ -82,6 +91,10 @@
       {
         "command": "onedev-browser.openWebviewToBuild",
         "title": "Open Build in Webview"
+      },
+      {
+        "command": "onedev-browser.refreshAllViews",
+        "title": "Refresh"
       }
     ]
   },

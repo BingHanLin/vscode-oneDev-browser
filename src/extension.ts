@@ -8,9 +8,65 @@ import { registerStatusBarCommand } from "./statusbar";
 
 
 export function activate(context: vscode.ExtensionContext) {
-  // Register PRs tree view
+  // Register PRs/Issues/Builds providers ONCE
   const prsProvider = new PRsTreeDataProvider();
-  vscode.window.createTreeView("onedevPRsView", { treeDataProvider: prsProvider });
+  const issuesProvider = new IssuesTreeDataProvider();
+  const buildsProvider = new BuildsTreeDataProvider();
+  // Create tree views ONCE
+  const prsView = vscode.window.createTreeView("onedevPRsView", { treeDataProvider: prsProvider });
+  const issuesView = vscode.window.createTreeView("onedevIssuesView", { treeDataProvider: issuesProvider });
+  const buildsView = vscode.window.createTreeView("onedevBuildsView", { treeDataProvider: buildsProvider });
+
+  // Register one refresh command for all views
+  context.subscriptions.push(
+    vscode.commands.registerCommand('onedev-browser.refreshAllViews', () => {
+      prsProvider.refresh();
+      issuesProvider.refresh();
+      buildsProvider.refresh();
+    })
+  );
+  // --- Refresh commands for tree views ---
+  context.subscriptions.push(
+    vscode.commands.registerCommand('onedev-browser.refreshPRsView', () => prsProvider.refresh())
+  );
+  context.subscriptions.push(
+    vscode.commands.registerCommand('onedev-browser.refreshIssuesView', () => issuesProvider.refresh())
+  );
+  context.subscriptions.push(
+    vscode.commands.registerCommand('onedev-browser.refreshBuildsView', () => buildsProvider.refresh())
+  );
+
+  // --- Auto-refresh when view is focused ---
+  let prsInterval: NodeJS.Timeout | undefined;
+  let issuesInterval: NodeJS.Timeout | undefined;
+  let buildsInterval: NodeJS.Timeout | undefined;
+  prsView.onDidChangeVisibility(e => {
+    if (e.visible) {
+      prsProvider.refresh();
+      prsInterval = setInterval(() => prsProvider.refresh(), 30000);
+    } else if (prsInterval) {
+      clearInterval(prsInterval);
+      prsInterval = undefined;
+    }
+  });
+  issuesView.onDidChangeVisibility(e => {
+    if (e.visible) {
+      issuesProvider.refresh();
+      issuesInterval = setInterval(() => issuesProvider.refresh(), 30000);
+    } else if (issuesInterval) {
+      clearInterval(issuesInterval);
+      issuesInterval = undefined;
+    }
+  });
+  buildsView.onDidChangeVisibility(e => {
+    if (e.visible) {
+      buildsProvider.refresh();
+      buildsInterval = setInterval(() => buildsProvider.refresh(), 30000);
+    } else if (buildsInterval) {
+      clearInterval(buildsInterval);
+      buildsInterval = undefined;
+    }
+  });
   // Register command for tree view navigation to PR in webview
   context.subscriptions.push(
     vscode.commands.registerCommand('onedev-browser.openWebviewToPR', (prNumber: number, pr: any, url?: string, projectPath?: string) => {
@@ -24,11 +80,6 @@ export function activate(context: vscode.ExtensionContext) {
     })
   );
 
-  // Issues/Builds TreeView
-  const issuesProvider = new IssuesTreeDataProvider();
-  const buildsProvider = new BuildsTreeDataProvider();
-  vscode.window.createTreeView("onedevIssuesView", { treeDataProvider: issuesProvider });
-  vscode.window.createTreeView("onedevBuildsView", { treeDataProvider: buildsProvider });
 
   // Register status bar button
   registerStatusBarCommand(context);
