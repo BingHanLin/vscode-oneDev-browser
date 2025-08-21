@@ -2,6 +2,7 @@
 export interface PullRequest {
     number: number;
     title: string;
+    description: string;
     targetBranch: string;
     sourceBranch: string;
     submitterId: number;

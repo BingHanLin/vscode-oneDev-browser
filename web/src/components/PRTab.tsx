@@ -36,8 +36,16 @@ const PRTab: React.FC<PRTabProps> = ({
     loadMorePRs,
     hasMorePRs,
     vscode,
-    selectedPR,
+    selectedPR: selectedPRProp,
 }) => {
+    // Local state for selected PR (for detail panel)
+    const [selectedPRLocal, setSelectedPRLocal] = useState<number | null>(
+        selectedPRProp ?? null
+    );
+    // Sync with prop if it changes
+    useEffect(() => {
+        setSelectedPRLocal(selectedPRProp ?? null);
+    }, [selectedPRProp]);
     // State for keyword search
     const [keyword, setKeyword] = useState("");
 
@@ -162,242 +170,401 @@ const PRTab: React.FC<PRTabProps> = ({
     );
 
     return (
-        <div>
-            <div className="flex justify-between items-center mb-4">
-                <h2 className="text-2xl font-bold">Pull Requests</h2>
-                <VSCodeButton onClick={onReload}>Reload</VSCodeButton>
-            </div>
-            <div className="flex justify-end mb-4 gap-2">
-                {/* Keyword search input for title/source/target branch */}
-                <input
-                    type="text"
-                    placeholder="Search PRs..."
-                    value={keyword}
-                    onChange={(e) => setKeyword(e.target.value)}
-                    style={{
-                        minWidth: 180,
-                        padding: 4,
-                        borderRadius: 4,
-                        border: "1px solid #ccc",
-                    }}
-                />
-                {/* Status filter dropdown */}
-                <VSCodeDropdown
-                    value={stateFilter}
-                    onChange={(e) =>
-                        setStateFilter((e.target as HTMLSelectElement).value)
-                    }
-                    style={{ minWidth: 120 }}
-                >
-                    <VSCodeOption value="all">All States</VSCodeOption>
-                    {allStates.map((state) => (
-                        <VSCodeOption key={state} value={state}>
-                            {state}
+        <div style={{ display: "flex", height: "100vh", minHeight: 0 }}>
+            {/* Left: PR list */}
+            <div
+                style={{ flex: 1, minHeight: 0, overflow: "auto", padding: 8 }}
+            >
+                <div className="flex justify-between items-center mb-4">
+                    <h2 className="text-2xl font-bold">Pull Requests</h2>
+                    <VSCodeButton onClick={onReload}>Reload</VSCodeButton>
+                </div>
+                <div className="flex justify-end mb-4 gap-2">
+                    {/* Keyword search input for title/source/target branch */}
+                    <input
+                        type="text"
+                        placeholder="Search PRs..."
+                        value={keyword}
+                        onChange={(e) => setKeyword(e.target.value)}
+                        style={{
+                            minWidth: 180,
+                            padding: 4,
+                            borderRadius: 4,
+                            border: "1px solid #ccc",
+                        }}
+                    />
+                    {/* Status filter dropdown */}
+                    <VSCodeDropdown
+                        value={stateFilter}
+                        onChange={(e) =>
+                            setStateFilter(
+                                (e.target as HTMLSelectElement).value
+                            )
+                        }
+                        style={{ minWidth: 120 }}
+                    >
+                        <VSCodeOption value="all">All States</VSCodeOption>
+                        {allStates.map((state) => (
+                            <VSCodeOption key={state} value={state}>
+                                {state}
+                            </VSCodeOption>
+                        ))}
+                    </VSCodeDropdown>
+                    <VSCodeDropdown
+                        value={prSort}
+                        onChange={(e) =>
+                            onSortChange((e.target as HTMLSelectElement).value)
+                        }
+                    >
+                        <VSCodeOption value="newest">Newest First</VSCodeOption>
+                        <VSCodeOption value="oldest">Oldest First</VSCodeOption>
+                        <VSCodeOption value="most-comments">
+                            Most Comments
                         </VSCodeOption>
-                    ))}
-                </VSCodeDropdown>
-                <VSCodeDropdown
-                    value={prSort}
-                    onChange={(e) =>
-                        onSortChange((e.target as HTMLSelectElement).value)
-                    }
-                >
-                    <VSCodeOption value="newest">Newest First</VSCodeOption>
-                    <VSCodeOption value="oldest">Oldest First</VSCodeOption>
-                    <VSCodeOption value="most-comments">
-                        Most Comments
-                    </VSCodeOption>
-                    <VSCodeOption value="least-comments">
-                        Least Comments
-                    </VSCodeOption>
-                </VSCodeDropdown>
-            </div>
-            {filteredPRs.length === 0 ? (
-                <p>No pull requests found.</p>
-            ) : (
-                <>
-                    <VSCodeDataGrid aria-label="Pull Requests">
-                        <VSCodeDataGridRow row-type="header">
-                            <VSCodeDataGridCell
-                                cell-type="columnheader"
-                                grid-column="1"
-                            >
-                                Number
-                            </VSCodeDataGridCell>
-                            <VSCodeDataGridCell
-                                cell-type="columnheader"
-                                grid-column="2"
-                            >
-                                Title
-                            </VSCodeDataGridCell>
-                            <VSCodeDataGridCell
-                                cell-type="columnheader"
-                                grid-column="3"
-                            >
-                                Source
-                            </VSCodeDataGridCell>
-                            <VSCodeDataGridCell
-                                cell-type="columnheader"
-                                grid-column="4"
-                            >
-                                Target
-                            </VSCodeDataGridCell>
-                            <VSCodeDataGridCell
-                                cell-type="columnheader"
-                                grid-column="5"
-                            >
-                                Submitted
-                            </VSCodeDataGridCell>
-                            <VSCodeDataGridCell
-                                cell-type="columnheader"
-                                grid-column="6"
-                            >
-                                Last Activity
-                            </VSCodeDataGridCell>
-                        </VSCodeDataGridRow>
-                        {pagedPRs.map((pr) => (
-                            <VSCodeDataGridRow
-                                key={pr.number}
-                                className={
-                                    selectedPR === pr.number
-                                        ? "vscode-selected-row"
-                                        : ""
-                                }
-                                style={
-                                    selectedPR === pr.number
-                                        ? {
-                                              background:
-                                                  "var(--vscode-list-activeSelectionBackground)",
-                                              color: "var(--vscode-list-activeSelectionForeground)",
-                                          }
-                                        : {}
-                                }
-                            >
-                                <VSCodeDataGridCell grid-column="1">
-                                    {pr.number}
+                        <VSCodeOption value="least-comments">
+                            Least Comments
+                        </VSCodeOption>
+                    </VSCodeDropdown>
+                </div>
+                {isLoading && pullRequests.length === 0 ? (
+                    <div className="flex justify-center items-center h-64">
+                        Loading...
+                    </div>
+                ) : filteredPRs.length === 0 ? (
+                    <p>No pull requests found.</p>
+                ) : (
+                    <>
+                        <VSCodeDataGrid aria-label="Pull Requests">
+                            <VSCodeDataGridRow row-type="header">
+                                <VSCodeDataGridCell
+                                    cell-type="columnheader"
+                                    grid-column="1"
+                                >
+                                    Number
                                 </VSCodeDataGridCell>
-                                <VSCodeDataGridCell grid-column="2">
-                                    <span>
-                                        {highlightKeyword(pr.title, keyword)}
-                                    </span>
-                                    <a
-                                        href={`${url}/${projectPath}/~pulls/${pr.number}`}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        title="Open in oneDev"
-                                        style={{
-                                            color: "#0078d4",
-                                            textDecoration: "none",
-                                        }}
-                                    >
-                                        {linkIcon}
-                                    </a>
+                                <VSCodeDataGridCell
+                                    cell-type="columnheader"
+                                    grid-column="2"
+                                >
+                                    Title
                                 </VSCodeDataGridCell>
-                                <VSCodeDataGridCell grid-column="3">
-                                    <span
-                                        style={{
-                                            display: "inline-flex",
-                                            alignItems: "center",
-                                        }}
-                                    >
+                                <VSCodeDataGridCell
+                                    cell-type="columnheader"
+                                    grid-column="3"
+                                >
+                                    Source
+                                </VSCodeDataGridCell>
+                                <VSCodeDataGridCell
+                                    cell-type="columnheader"
+                                    grid-column="4"
+                                >
+                                    Target
+                                </VSCodeDataGridCell>
+                                <VSCodeDataGridCell
+                                    cell-type="columnheader"
+                                    grid-column="5"
+                                >
+                                    Submitted
+                                </VSCodeDataGridCell>
+                                <VSCodeDataGridCell
+                                    cell-type="columnheader"
+                                    grid-column="6"
+                                >
+                                    Last Activity
+                                </VSCodeDataGridCell>
+                            </VSCodeDataGridRow>
+                            {pagedPRs.map((pr) => (
+                                <VSCodeDataGridRow
+                                    key={pr.number}
+                                    className={
+                                        selectedPRLocal === pr.number
+                                            ? "vscode-selected-row"
+                                            : ""
+                                    }
+                                    style={
+                                        selectedPRLocal === pr.number
+                                            ? {
+                                                  background:
+                                                      "var(--vscode-list-activeSelectionBackground)",
+                                                  color: "var(--vscode-list-activeSelectionForeground)",
+                                              }
+                                            : {}
+                                    }
+                                    onClick={() =>
+                                        setSelectedPRLocal(pr.number)
+                                    }
+                                >
+                                    <VSCodeDataGridCell grid-column="1">
+                                        {pr.number}
+                                    </VSCodeDataGridCell>
+                                    <VSCodeDataGridCell grid-column="2">
                                         <span>
                                             {highlightKeyword(
-                                                pr.sourceBranch,
+                                                pr.title,
                                                 keyword
                                             )}
                                         </span>
-                                        <button
-                                            title="Checkout Source Branch"
-                                            onClick={() => {
-                                                if (vscode) {
-                                                    vscode.postMessage({
-                                                        command:
-                                                            "checkoutBranch",
-                                                        branch: pr.sourceBranch,
-                                                    });
-                                                } else {
-                                                    alert(
-                                                        "VS Code API not available."
-                                                    );
-                                                }
-                                            }}
+                                        <a
+                                            href={`${url}/${projectPath}/~pulls/${pr.number}`}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            title="Open in oneDev"
                                             style={{
-                                                background: "none",
-                                                border: "none",
-                                                padding: 0,
-                                                marginLeft: 6,
                                                 color: "#0078d4",
-                                                cursor: "pointer",
+                                                textDecoration: "none",
+                                            }}
+                                        >
+                                            {linkIcon}
+                                        </a>
+                                    </VSCodeDataGridCell>
+                                    <VSCodeDataGridCell grid-column="3">
+                                        <span
+                                            style={{
                                                 display: "inline-flex",
                                                 alignItems: "center",
                                             }}
                                         >
-                                            {/* Checkout icon (downward arrow on branch) */}
-                                            <svg
-                                                xmlns="http://www.w3.org/2000/svg"
-                                                width="16"
-                                                height="16"
-                                                viewBox="0 0 20 20"
-                                                fill="none"
+                                            <span>
+                                                {highlightKeyword(
+                                                    pr.sourceBranch,
+                                                    keyword
+                                                )}
+                                            </span>
+                                            <button
+                                                title="Checkout Source Branch"
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    if (vscode) {
+                                                        vscode.postMessage({
+                                                            command:
+                                                                "checkoutBranch",
+                                                            branch: pr.sourceBranch,
+                                                        });
+                                                    } else {
+                                                        alert(
+                                                            "VS Code API not available."
+                                                        );
+                                                    }
+                                                }}
                                                 style={{
-                                                    display: "inline",
-                                                    verticalAlign: "middle",
+                                                    background: "none",
+                                                    border: "none",
+                                                    padding: 0,
+                                                    marginLeft: 6,
+                                                    color: "#0078d4",
+                                                    cursor: "pointer",
+                                                    display: "inline-flex",
+                                                    alignItems: "center",
                                                 }}
                                             >
-                                                <path
-                                                    d="M10 2v12"
-                                                    stroke="currentColor"
-                                                    strokeWidth="1.5"
-                                                    strokeLinecap="round"
-                                                />
-                                                <path
-                                                    d="M6 12l4 4 4-4"
-                                                    stroke="currentColor"
-                                                    strokeWidth="1.5"
-                                                    strokeLinecap="round"
-                                                    strokeLinejoin="round"
-                                                />
-                                            </svg>
-                                        </button>
-                                    </span>
-                                </VSCodeDataGridCell>
-                                <VSCodeDataGridCell grid-column="4">
-                                    {highlightKeyword(pr.targetBranch, keyword)}
-                                </VSCodeDataGridCell>
-                                <VSCodeDataGridCell grid-column="5">
-                                    {new Date(
-                                        pr.submitDate
-                                    ).toLocaleDateString()}
-                                </VSCodeDataGridCell>
-                                <VSCodeDataGridCell grid-column="6">
-                                    {new Date(
-                                        pr.lastActivity.date
-                                    ).toLocaleString()}
-                                </VSCodeDataGridCell>
-                            </VSCodeDataGridRow>
-                        ))}
-                    </VSCodeDataGrid>
-                    {hasMorePRs && (
-                        <div
-                            className="flex justify-center my-4"
-                            ref={loadMoreWrapperRef}
-                        >
-                            <VSCodeButton
-                                onClick={() => {
-                                    setPendingScroll(true);
-                                    loadMorePRs();
-                                }}
+                                                {/* Checkout icon (downward arrow on branch) */}
+                                                <svg
+                                                    xmlns="http://www.w3.org/2000/svg"
+                                                    width="16"
+                                                    height="16"
+                                                    viewBox="0 0 20 20"
+                                                    fill="none"
+                                                    style={{
+                                                        display: "inline",
+                                                        verticalAlign: "middle",
+                                                    }}
+                                                >
+                                                    <path
+                                                        d="M10 2v12"
+                                                        stroke="currentColor"
+                                                        strokeWidth="1.5"
+                                                        strokeLinecap="round"
+                                                    />
+                                                    <path
+                                                        d="M6 12l4 4 4-4"
+                                                        stroke="currentColor"
+                                                        strokeWidth="1.5"
+                                                        strokeLinecap="round"
+                                                        strokeLinejoin="round"
+                                                    />
+                                                </svg>
+                                            </button>
+                                        </span>
+                                    </VSCodeDataGridCell>
+                                    <VSCodeDataGridCell grid-column="4">
+                                        {highlightKeyword(
+                                            pr.targetBranch,
+                                            keyword
+                                        )}
+                                    </VSCodeDataGridCell>
+                                    <VSCodeDataGridCell grid-column="5">
+                                        {new Date(
+                                            pr.submitDate
+                                        ).toLocaleDateString()}
+                                    </VSCodeDataGridCell>
+                                    <VSCodeDataGridCell grid-column="6">
+                                        {new Date(
+                                            pr.lastActivity.date
+                                        ).toLocaleString()}
+                                    </VSCodeDataGridCell>
+                                </VSCodeDataGridRow>
+                            ))}
+                        </VSCodeDataGrid>
+                        {hasMorePRs && (
+                            <div
+                                className="flex justify-center my-4"
+                                ref={loadMoreWrapperRef}
+                            >
+                                <VSCodeButton
+                                    onClick={() => {
+                                        setPendingScroll(true);
+                                        loadMorePRs();
+                                    }}
+                                    style={{
+                                        display: "flex",
+                                        alignItems: "center",
+                                    }}
+                                >
+                                    Load More
+                                </VSCodeButton>
+                            </div>
+                        )}
+                    </>
+                )}
+            </div>
+            {/* Right: Detail panel */}
+            <div
+                style={{
+                    width: 340,
+                    minWidth: 240,
+                    maxWidth: 400,
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: 0,
+                    padding: "28px 24px 20px 24px",
+                    boxSizing: "border-box",
+                }}
+            >
+                {(() => {
+                    const pr = pullRequests.find(
+                        (p) => p.number === selectedPRLocal
+                    );
+                    if (!pr)
+                        return (
+                            <div
                                 style={{
-                                    display: "flex",
-                                    alignItems: "center",
+                                    color: "#888",
+                                    marginTop: 32,
+                                    textAlign: "center",
                                 }}
                             >
-                                Load More
-                            </VSCodeButton>
+                                Please select a pull request
+                            </div>
+                        );
+                    return (
+                        <div
+                            style={{
+                                display: "flex",
+                                flexDirection: "column",
+                                gap: 14,
+                            }}
+                        >
+                            <div
+                                style={{
+                                    fontWeight: "bold",
+                                    fontSize: 20,
+                                    marginBottom: 2,
+                                    letterSpacing: 0.5,
+                                }}
+                            >
+                                {pr.title}
+                            </div>
+                            <div>
+                                <span
+                                    style={{
+                                        fontWeight: 500,
+                                        color: "#666",
+                                        marginRight: 6,
+                                    }}
+                                >
+                                    State:
+                                </span>
+                                {pr.status}
+                            </div>
+                            <div>
+                                <span
+                                    style={{
+                                        fontWeight: 500,
+                                        color: "#666",
+                                        marginRight: 6,
+                                    }}
+                                >
+                                    Author:
+                                </span>
+                                {pr.submitterId}
+                            </div>
+                            <div>
+                                <span
+                                    style={{
+                                        fontWeight: 500,
+                                        color: "#666",
+                                        marginRight: 6,
+                                    }}
+                                >
+                                    Source:
+                                </span>
+                                {pr.sourceBranch}
+                            </div>
+                            <div>
+                                <span
+                                    style={{
+                                        fontWeight: 500,
+                                        color: "#666",
+                                        marginRight: 6,
+                                    }}
+                                >
+                                    Target:
+                                </span>
+                                {pr.targetBranch}
+                            </div>
+                            <div>
+                                <span
+                                    style={{
+                                        fontWeight: 500,
+                                        color: "#666",
+                                        marginRight: 6,
+                                    }}
+                                >
+                                    Created:
+                                </span>
+                                {new Date(pr.submitDate).toLocaleString()}
+                            </div>
+                            <div>
+                                <span
+                                    style={{
+                                        fontWeight: 500,
+                                        color: "#666",
+                                        marginRight: 6,
+                                    }}
+                                >
+                                    Last Activity:
+                                </span>
+                                {new Date(
+                                    pr.lastActivity.date
+                                ).toLocaleString()}
+                            </div>
+                            {pr.description && (
+                                <div
+                                    style={{
+                                        color: "var(--vscode-foreground)",
+                                        fontSize: 15,
+                                        marginTop: 16,
+                                        whiteSpace: "pre-wrap",
+                                        wordBreak: "break-word",
+                                    }}
+                                >
+                                    {pr.description}
+                                </div>
+                            )}
                         </div>
-                    )}
-                </>
-            )}
+                    );
+                })()}
+            </div>
         </div>
     );
 };
