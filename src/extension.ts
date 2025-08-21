@@ -1,6 +1,6 @@
 
 import * as vscode from "vscode";
-import { PRsWebviewViewProvider } from "./prsWebviewViewProvider";
+import { PRsTreeDataProvider } from "./prsWebviewViewProvider";
 import { IssuesTreeDataProvider } from "./issuesTreeDataProvider";
 import { BuildsTreeDataProvider } from "./buildsTreeDataProvider";
 import { registerStatusBarCommand } from "./statusbar";
@@ -8,12 +8,22 @@ import { registerStatusBarCommand } from "./statusbar";
 
 
 export function activate(context: vscode.ExtensionContext) {
-  // Register PRs webview view
+  // Register PRs tree view
+  const prsProvider = new PRsTreeDataProvider();
+  vscode.window.createTreeView("onedevPRsView", { treeDataProvider: prsProvider });
+  // Register command for tree view navigation to PR in webview
   context.subscriptions.push(
-    vscode.window.registerWebviewViewProvider(
-      PRsWebviewViewProvider.viewType,
-      new PRsWebviewViewProvider(context)
-    )
+    vscode.commands.registerCommand('onedev-browser.openWebviewToPR', (prNumber: number, pr: any) => {
+      const panel = openReactWebview(context);
+      // Send message to webview to navigate to specific PR
+      if (oneDevPanel) {
+        oneDevPanel.webview.postMessage({
+          command: 'navigateToPR',
+          prNumber,
+          pr
+        });
+      }
+    })
   );
 
   // Issues/Builds TreeView

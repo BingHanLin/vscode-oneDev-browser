@@ -1,66 +1,54 @@
 import * as vscode from "vscode";
 import { fetchPullRequests } from "./api";
 
-export class PRsWebviewViewProvider implements vscode.WebviewViewProvider {
-    public static readonly viewType = "onedevPRsView";
-    private _view?: vscode.WebviewView;
+export class PRsTreeDataProvider implements vscode.TreeDataProvider<vscode.TreeItem> {
+    private _onDidChangeTreeData: vscode.EventEmitter<vscode.TreeItem | undefined | void> = new vscode.EventEmitter();
+    readonly onDidChangeTreeData: vscode.Event<vscode.TreeItem | undefined | void> = this._onDidChangeTreeData.event;
 
-    constructor(private readonly context: vscode.ExtensionContext) { }
+    getTreeItem(element: vscode.TreeItem): vscode.TreeItem { return element; }
 
-    async resolveWebviewView(webviewView: vscode.WebviewView) {
-        this._view = webviewView;
-        webviewView.webview.options = {
-            enableScripts: true
-        };
-        // Fetch PRs
+    async getChildren(): Promise<vscode.TreeItem[]> {
+        // Prefer user scope config, fallback to workspace
         const config = vscode.workspace.getConfiguration("onedev-browser");
-        const creds = {
-            url: config.get("url", ""),
-            email: config.get("email", ""),
-            token: config.get("token", ""),
-            projectPath: config.get("projectPath", "")
+        const getConfigValue = (key: string) => {
+            const inspected = config.inspect<string>(key);
+            if (inspected?.globalValue !== undefined && inspected.globalValue !== "") {
+                return inspected.globalValue;
+            }
+            if (inspected?.workspaceValue !== undefined && inspected.workspaceValue !== "") {
+                return inspected.workspaceValue;
+            }
+            if (inspected?.workspaceFolderValue !== undefined && inspected.workspaceFolderValue !== "") {
+                return inspected.workspaceFolderValue;
+            }
+            return "";
         };
-        let prs: any[] = [];
-        try {
-            prs = await fetchPullRequests(creds);
-        } catch (e) {
-            prs = [];
+        const creds = {
+            url: getConfigValue("url"),
+            email: getConfigValue("email"),
+            token: getConfigValue("token"),
+            projectPath: getConfigValue("projectPath")
+        };
+        if (!creds.url || !creds.token || !creds.projectPath) {
+            return [new vscode.TreeItem("Please set oneDev config in settings.")];
         }
-        webviewView.webview.html = this.getHtml(prs);
+        const prs = await fetchPullRequests(creds);
+        return prs.map((pr: any) => {
+            const item = new vscode.TreeItem(`#${pr.number} ${pr.title}`);
+            item.description = `${pr.state || ''} | ${pr.submitterId || ''}`;
+            if (pr.submitDate) {
+                const date = new Date(pr.submitDate);
+                item.tooltip = `State: ${pr.state}\nAuthor: ${pr.submitterId}\nCreated: ${date.toLocaleString()}`;
+            }
+            // Add click command to open webview and navigate to this PR
+            item.command = {
+                command: 'onedev-browser.openWebviewToPR',
+                title: 'Open PR in Webview',
+                arguments: [pr.number, pr]
+            };
+            return item;
+        });
     }
 
-    getHtml(prs: any[]): string {
-        // 將 PRs 資料序列化給前端
-        const prJson = JSON.stringify(prs);
-        return (
-            '<!DOCTYPE html>' +
-            '<html>' +
-            '<body style="font-family: var(--vscode-font-family);">' +
-            '    <input id="search" type="text" placeholder="Search PRs..." style="width: 98%; margin-bottom: 8px;" />' +
-            '    <ul id="pr-list" style="padding-left: 0;"></ul>' +
-            '    <script>' +
-            '    const allPRs = ' + prJson + ';' +
-            '    function renderList(prs) {' +
-            '      const ul = document.getElementById("pr-list");' +
-            '      ul.innerHTML = prs.map(function(pr) {' +
-            '        return "<li style=\'list-style:none; margin-bottom:4px; border-bottom:1px solid #eee; padding:2px 0;\'><b>#" + pr.number + "</b> " + pr.title + "<br><small>" + (pr.state || "") + " | " + (pr.submitterId || "") + " | " + (pr.submitDate ? new Date(pr.submitDate).toLocaleString() : "") + "</small></li>";' +
-            '      }).join("");' +
-            '    }' +
-            '    renderList(allPRs);' +
-            '    document.getElementById("search").addEventListener("input", function() {' +
-            '      const keyword = this.value.trim().toLowerCase();' +
-            '      const filtered = allPRs.filter(function(pr) {' +
-            '        return (String(pr.number).includes(keyword) ||' +
-            '         (pr.title && pr.title.toLowerCase().includes(keyword)) ||' +
-            '         (pr.state && pr.state.toLowerCase().includes(keyword)) ||' +
-            '         (pr.submitterId && String(pr.submitterId).includes(keyword))' +
-            '        );' +
-            '      });' +
-            '      renderList(filtered);' +
-            '    });' +
-            '    </script>' +
-            '</body>' +
-            '</html>'
-        );
-    }
+    refresh(): void { this._onDidChangeTreeData.fire(); }
 }

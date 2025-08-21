@@ -31,15 +31,17 @@
         {
           "id": "onedevPRsView",
           "name": "Pull Requests",
-          "type": "webview"
+          "icon": "images/icon.png"
         },
         {
           "id": "onedevIssuesView",
-          "name": "Issues"
+          "name": "Issues",
+          "icon": "images/icon.png"
         },
         {
           "id": "onedevBuildsView",
-          "name": "Builds"
+          "name": "Builds",
+          "icon": "images/icon.png"
         }
       ]
     },
