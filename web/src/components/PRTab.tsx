@@ -108,7 +108,7 @@ const PRTab: React.FC<PRTabProps> = ({
     function highlightKeyword(text: string, keyword: string) {
         if (!keyword) return text;
         const regex = new RegExp(
-            `(${keyword.replace(/[.*+?^${}()|[\\\\\]\[]/g, "\\$&")})`,
+            `(${keyword.replace(/[.*+?^${}()|[\\\]\[]/g, "\\$&")})`,
             "gi"
         );
         const parts = text.split(regex);
@@ -122,6 +122,44 @@ const PRTab: React.FC<PRTabProps> = ({
             )
         );
     }
+
+    // SVG external link icon
+    const linkIcon = (
+        <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="14"
+            height="14"
+            viewBox="0 0 20 20"
+            fill="none"
+            style={{
+                marginLeft: 4,
+                verticalAlign: "middle",
+                cursor: "pointer",
+            }}
+        >
+            <path
+                d="M13.5 2H18v4.5"
+                stroke="currentColor"
+                strokeWidth="1.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+            />
+            <path
+                d="M12.5 7.5L18 2"
+                stroke="currentColor"
+                strokeWidth="1.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+            />
+            <path
+                d="M10.5 4.5H7A3.5 3.5 0 0 0 3.5 8v5A3.5 3.5 0 0 0 7 16.5h5A3.5 3.5 0 0 0 15.5 13v-3.5"
+                stroke="currentColor"
+                strokeWidth="1.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+            />
+        </svg>
+    );
 
     return (
         <div>
@@ -239,38 +277,89 @@ const PRTab: React.FC<PRTabProps> = ({
                                     {pr.number}
                                 </VSCodeDataGridCell>
                                 <VSCodeDataGridCell grid-column="2">
+                                    <span>
+                                        {highlightKeyword(pr.title, keyword)}
+                                    </span>
                                     <a
                                         href={`${url}/${projectPath}/~pulls/${pr.number}`}
                                         target="_blank"
                                         rel="noopener noreferrer"
-                                        className="text-blue-600 hover:underline"
+                                        title="Open in oneDev"
+                                        style={{
+                                            color: "#0078d4",
+                                            textDecoration: "none",
+                                        }}
                                     >
-                                        {highlightKeyword(pr.title, keyword)}
+                                        {linkIcon}
                                     </a>
                                 </VSCodeDataGridCell>
                                 <VSCodeDataGridCell grid-column="3">
-                                    <button
-                                        className="text-blue-600 hover:underline mr-2"
-                                        title="Checkout Source Branch"
-                                        onClick={() => {
-                                            if (vscode) {
-                                                vscode.postMessage({
-                                                    command: "checkoutBranch",
-                                                    branch: pr.sourceBranch,
-                                                });
-                                            } else {
-                                                // If no vscode API, fallback to local alert
-                                                alert(
-                                                    "VS Code API not available."
-                                                );
-                                            }
+                                    <span
+                                        style={{
+                                            display: "inline-flex",
+                                            alignItems: "center",
                                         }}
                                     >
-                                        {highlightKeyword(
-                                            pr.sourceBranch,
-                                            keyword
-                                        )}
-                                    </button>
+                                        <span>
+                                            {highlightKeyword(
+                                                pr.sourceBranch,
+                                                keyword
+                                            )}
+                                        </span>
+                                        <button
+                                            title="Checkout Source Branch"
+                                            onClick={() => {
+                                                if (vscode) {
+                                                    vscode.postMessage({
+                                                        command:
+                                                            "checkoutBranch",
+                                                        branch: pr.sourceBranch,
+                                                    });
+                                                } else {
+                                                    alert(
+                                                        "VS Code API not available."
+                                                    );
+                                                }
+                                            }}
+                                            style={{
+                                                background: "none",
+                                                border: "none",
+                                                padding: 0,
+                                                marginLeft: 6,
+                                                color: "#0078d4",
+                                                cursor: "pointer",
+                                                display: "inline-flex",
+                                                alignItems: "center",
+                                            }}
+                                        >
+                                            {/* Checkout icon (downward arrow on branch) */}
+                                            <svg
+                                                xmlns="http://www.w3.org/2000/svg"
+                                                width="16"
+                                                height="16"
+                                                viewBox="0 0 20 20"
+                                                fill="none"
+                                                style={{
+                                                    display: "inline",
+                                                    verticalAlign: "middle",
+                                                }}
+                                            >
+                                                <path
+                                                    d="M10 2v12"
+                                                    stroke="currentColor"
+                                                    strokeWidth="1.5"
+                                                    strokeLinecap="round"
+                                                />
+                                                <path
+                                                    d="M6 12l4 4 4-4"
+                                                    stroke="currentColor"
+                                                    strokeWidth="1.5"
+                                                    strokeLinecap="round"
+                                                    strokeLinejoin="round"
+                                                />
+                                            </svg>
+                                        </button>
+                                    </span>
                                 </VSCodeDataGridCell>
                                 <VSCodeDataGridCell grid-column="4">
                                     {highlightKeyword(pr.targetBranch, keyword)}
