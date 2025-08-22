@@ -22,6 +22,9 @@ interface PRTabProps {
     hasMorePRs: boolean;
     vscode?: { postMessage: (message: any) => void };
     selectedPR?: number | null;
+    currentBuilds: any[] | null;
+    loadingBuilds: boolean;
+    onFetchCurrentBuilds: (prID: number) => void;
 }
 
 const PRTab: React.FC<PRTabProps> = ({
@@ -37,39 +40,28 @@ const PRTab: React.FC<PRTabProps> = ({
     hasMorePRs,
     vscode,
     selectedPR: selectedPRProp,
+    currentBuilds,
+    loadingBuilds,
+    onFetchCurrentBuilds,
 }) => {
     // Local state for selected PR (for detail panel)
     const [selectedPRLocal, setSelectedPRLocal] = useState<number | null>(
         selectedPRProp ?? null
     );
-    // PR builds state
-    const [currentBuilds, setCurrentBuilds] = useState<any[] | null>(null);
-    const [loadingBuilds, setLoadingBuilds] = useState(false);
     // Sync with prop if it changes
     useEffect(() => {
         setSelectedPRLocal(selectedPRProp ?? null);
     }, [selectedPRProp]);
-    // Fetch current builds when selectedPRLocal changes
+
     useEffect(() => {
         if (selectedPRLocal != null) {
-            setLoadingBuilds(true);
-            setCurrentBuilds(null);
-            fetch(`/~api/pulls/${selectedPRLocal}/current-builds`)
-                .then(async (res) => {
-                    if (!res.ok) throw new Error("Failed to fetch builds");
-                    return await res.json();
-                })
-                .then((data) => {
-                    setCurrentBuilds(Array.isArray(data) ? data : []);
-                })
-                .catch((e) => {
-                    setCurrentBuilds([]);
-                })
-                .finally(() => setLoadingBuilds(false));
-        } else {
-            setCurrentBuilds(null);
+            const pr = pullRequests.find((p) => p.number === selectedPRLocal);
+            if (pr && pr.id != null) {
+                onFetchCurrentBuilds(pr.id);
+            }
         }
-    }, [selectedPRLocal]);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [selectedPRLocal, pullRequests]);
     // State for keyword search
     const [keyword, setKeyword] = useState("");
 
@@ -431,6 +423,18 @@ const PRTab: React.FC<PRTabProps> = ({
                                 {new Date(
                                     pr.lastActivity.date
                                 ).toLocaleString()}
+                            </div>
+                            <div>
+                                <span
+                                    style={{
+                                        fontWeight: 500,
+                                        color: "#666",
+                                        marginRight: 6,
+                                    }}
+                                >
+                                    Request ID:
+                                </span>
+                                {pr.id}
                             </div>
                             {/* Current Builds Section */}
                             <div style={{ marginTop: 18 }}>

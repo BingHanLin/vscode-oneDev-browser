@@ -1,3 +1,12 @@
+export async function fetchCurrentBuilds(
+    credentials: Credentials,
+    requestId: number
+): Promise<any[]> {
+    const apiUrl = `${credentials.url}/~api/pulls/${requestId}/current-builds`;
+    const queryParams = new URLSearchParams();
+    const response = await makeApiRequest(apiUrl, queryParams, credentials);
+    return await response.json();
+}
 
 import fetch from "node-fetch";
 import { Credentials } from "./types";

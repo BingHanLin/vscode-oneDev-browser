@@ -106,6 +106,11 @@ function App() {
     const ISSUES_PAGE_SIZE = 20;
     const [hasMoreIssues, setHasMoreIssues] = useState(true);
     const [issueSort, setIssueSort] = useState("newest");
+
+    // PRTab current builds state
+    const [currentBuilds, setCurrentBuilds] = useState<any[] | null>(null);
+    const [loadingBuilds, setLoadingBuilds] = useState(false);
+
     // Build tab state
     const [builds, setBuilds] = useState<Build[]>([]);
     const [buildOffset, setBuildOffset] = useState(0);
@@ -233,6 +238,12 @@ function App() {
                 setMessage(message.message);
                 setIsError(true);
                 break;
+            case "setCurrentBuilds":
+                setCurrentBuilds(
+                    Array.isArray(message.builds) ? message.builds : []
+                );
+                setLoadingBuilds(false);
+                break;
             case "setPullRequests":
                 if (typeof message.offset === "number" && message.offset > 0) {
                     setPullRequests((prev) => [
@@ -284,6 +295,22 @@ function App() {
             default:
                 break;
         }
+    };
+
+    // Handle fetch current builds as a message handler style function
+    const handleFetchCurrentBuilds = (prID: number) => {
+        if (!prID) return;
+        if (!url || !email || !token || !projectPath) return;
+        setLoadingBuilds(true);
+        setCurrentBuilds(null);
+        vscode.postMessage({
+            command: "fetchCurrentBuilds",
+            url,
+            email,
+            token,
+            projectPath,
+            prID,
+        });
     };
 
     useEffect(() => {
@@ -397,6 +424,9 @@ function App() {
                         hasMorePRs={hasMorePRs}
                         vscode={vscode}
                         selectedPR={selectedPR}
+                        currentBuilds={currentBuilds}
+                        loadingBuilds={loadingBuilds}
+                        onFetchCurrentBuilds={handleFetchCurrentBuilds}
                     />
                 )}
                 {activeTab === "issues" && (

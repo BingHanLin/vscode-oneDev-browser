@@ -1,5 +1,6 @@
 // PullRequest and Issue types
 export interface PullRequest {
+    id: number;
     number: number;
     title: string;
     description: string;

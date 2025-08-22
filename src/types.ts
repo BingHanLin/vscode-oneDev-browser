@@ -6,6 +6,7 @@ export interface Credentials {
 }
 
 export interface PullRequest {
+    id: number;
     number: number;
     title: string;
     targetBranch: string;

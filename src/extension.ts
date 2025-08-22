@@ -226,6 +226,30 @@ function openReactWebview(context: vscode.ExtensionContext) {
             message: 'Failed to checkout branch.'
           });
         }
+        // Handle fetchCurrentBuilds command from webview
+      } else if (message.command === 'fetchCurrentBuilds') {
+        try {
+          // Dynamically import fetchCurrentBuilds from api.ts
+          const { fetchCurrentBuilds } = require('./api');
+          // Call fetchCurrentBuilds with credentials and PR number
+          const builds = await fetchCurrentBuilds({
+            url: message.url,
+            email: message.email,
+            token: message.token,
+            projectPath: message.projectPath
+          }, message.prID);
+          // Send builds data back to webview
+          panel.webview.postMessage({
+            command: 'setCurrentBuilds',
+            builds
+          });
+        } catch (err) {
+          // On error, send empty builds array
+          panel.webview.postMessage({
+            command: 'setCurrentBuilds',
+            builds: []
+          });
+        }
       } else if (message.command === 'fetchPullRequests') {
         try {
           const { fetchPullRequests } = require('./api');
