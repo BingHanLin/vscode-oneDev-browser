@@ -3,10 +3,8 @@ import {
     VSCodeButton,
     VSCodeDropdown,
     VSCodeOption,
-    VSCodeDataGrid,
-    VSCodeDataGridCell,
-    VSCodeDataGridRow,
 } from "@vscode/webview-ui-toolkit/react";
+import GenericTable, { TableColumn } from "./GenericTable";
 import { PullRequest } from "../types";
 
 interface PRTabProps {
@@ -131,6 +129,107 @@ const PRTab: React.FC<PRTabProps> = ({
         );
     }
 
+    // Table columns config
+    const columns: TableColumn<PullRequest>[] = [
+        {
+            title: "Number",
+            dataIndex: "number",
+            width: 80,
+        },
+        {
+            title: "Title",
+            dataIndex: "title",
+            render: (value, pr) => (
+                <span>
+                    {highlightKeyword(value, keyword)}
+                    <a
+                        href={`${url}/${projectPath}/~pulls/${pr.number}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        title="Open in oneDev"
+                        style={{ color: "#0078d4", textDecoration: "none" }}
+                    >
+                        {linkIcon}
+                    </a>
+                </span>
+            ),
+        },
+        {
+            title: "Status",
+            dataIndex: "status",
+            width: 90,
+        },
+        {
+            title: "Source",
+            dataIndex: "sourceBranch",
+            render: (value, pr) => (
+                <span style={{ display: "inline-flex", alignItems: "center" }}>
+                    <span>{highlightKeyword(value, keyword)}</span>
+                    <button
+                        title="Checkout Source Branch"
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            if (vscode) {
+                                vscode.postMessage({
+                                    command: "checkoutBranch",
+                                    branch: pr.sourceBranch,
+                                });
+                            } else {
+                                alert("VS Code API not available.");
+                            }
+                        }}
+                        style={{
+                            background: "none",
+                            border: "none",
+                            padding: 0,
+                            marginLeft: 6,
+                            color: "#0078d4",
+                            cursor: "pointer",
+                            display: "inline-flex",
+                            alignItems: "center",
+                        }}
+                    >
+                        <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            width="16"
+                            height="16"
+                            viewBox="0 0 20 20"
+                            fill="none"
+                            style={{
+                                display: "inline",
+                                verticalAlign: "middle",
+                            }}
+                        >
+                            <path
+                                d="M10 2v12"
+                                stroke="currentColor"
+                                strokeWidth="1.5"
+                                strokeLinecap="round"
+                            />
+                            <path
+                                d="M6 12l4 4 4-4"
+                                stroke="currentColor"
+                                strokeWidth="1.5"
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                            />
+                        </svg>
+                    </button>
+                </span>
+            ),
+        },
+        {
+            title: "Target",
+            dataIndex: "targetBranch",
+            render: (value) => highlightKeyword(value, keyword),
+        },
+        {
+            title: "Submitter",
+            dataIndex: "submitterId",
+            width: 100,
+        },
+    ];
+
     // SVG external link icon
     const linkIcon = (
         <svg
@@ -234,173 +333,14 @@ const PRTab: React.FC<PRTabProps> = ({
                     <p>No pull requests found.</p>
                 ) : (
                     <>
-                        <VSCodeDataGrid aria-label="Pull Requests">
-                            <VSCodeDataGridRow row-type="header">
-                                <VSCodeDataGridCell
-                                    cell-type="columnheader"
-                                    grid-column="1"
-                                >
-                                    Number
-                                </VSCodeDataGridCell>
-                                <VSCodeDataGridCell
-                                    cell-type="columnheader"
-                                    grid-column="2"
-                                >
-                                    Title
-                                </VSCodeDataGridCell>
-                                <VSCodeDataGridCell
-                                    cell-type="columnheader"
-                                    grid-column="3"
-                                >
-                                    Status
-                                </VSCodeDataGridCell>
-                                <VSCodeDataGridCell
-                                    cell-type="columnheader"
-                                    grid-column="4"
-                                >
-                                    Source
-                                </VSCodeDataGridCell>
-                                <VSCodeDataGridCell
-                                    cell-type="columnheader"
-                                    grid-column="5"
-                                >
-                                    Target
-                                </VSCodeDataGridCell>
-                                <VSCodeDataGridCell
-                                    cell-type="columnheader"
-                                    grid-column="6"
-                                >
-                                    Submitter
-                                </VSCodeDataGridCell>
-                            </VSCodeDataGridRow>
-                            {pagedPRs.map((pr) => (
-                                <VSCodeDataGridRow
-                                    key={pr.number}
-                                    className={
-                                        selectedPRLocal === pr.number
-                                            ? "vscode-selected-row"
-                                            : ""
-                                    }
-                                    style={
-                                        selectedPRLocal === pr.number
-                                            ? {
-                                                  background:
-                                                      "var(--vscode-list-activeSelectionBackground)",
-                                                  color: "var(--vscode-list-activeSelectionForeground)",
-                                              }
-                                            : {}
-                                    }
-                                    onClick={() =>
-                                        setSelectedPRLocal(pr.number)
-                                    }
-                                >
-                                    <VSCodeDataGridCell grid-column="1">
-                                        {pr.number}
-                                    </VSCodeDataGridCell>
-                                    <VSCodeDataGridCell grid-column="2">
-                                        <span>
-                                            {highlightKeyword(
-                                                pr.title,
-                                                keyword
-                                            )}
-                                        </span>
-                                        <a
-                                            href={`${url}/${projectPath}/~pulls/${pr.number}`}
-                                            target="_blank"
-                                            rel="noopener noreferrer"
-                                            title="Open in oneDev"
-                                            style={{
-                                                color: "#0078d4",
-                                                textDecoration: "none",
-                                            }}
-                                        >
-                                            {linkIcon}
-                                        </a>
-                                    </VSCodeDataGridCell>
-                                    <VSCodeDataGridCell grid-column="3">
-                                        {pr.status}
-                                    </VSCodeDataGridCell>
-                                    <VSCodeDataGridCell grid-column="4">
-                                        <span
-                                            style={{
-                                                display: "inline-flex",
-                                                alignItems: "center",
-                                            }}
-                                        >
-                                            <span>
-                                                {highlightKeyword(
-                                                    pr.sourceBranch,
-                                                    keyword
-                                                )}
-                                            </span>
-                                            <button
-                                                title="Checkout Source Branch"
-                                                onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    if (vscode) {
-                                                        vscode.postMessage({
-                                                            command:
-                                                                "checkoutBranch",
-                                                            branch: pr.sourceBranch,
-                                                        });
-                                                    } else {
-                                                        alert(
-                                                            "VS Code API not available."
-                                                        );
-                                                    }
-                                                }}
-                                                style={{
-                                                    background: "none",
-                                                    border: "none",
-                                                    padding: 0,
-                                                    marginLeft: 6,
-                                                    color: "#0078d4",
-                                                    cursor: "pointer",
-                                                    display: "inline-flex",
-                                                    alignItems: "center",
-                                                }}
-                                            >
-                                                {/* Checkout icon (downward arrow on branch) */}
-                                                <svg
-                                                    xmlns="http://www.w3.org/2000/svg"
-                                                    width="16"
-                                                    height="16"
-                                                    viewBox="0 0 20 20"
-                                                    fill="none"
-                                                    style={{
-                                                        display: "inline",
-                                                        verticalAlign: "middle",
-                                                    }}
-                                                >
-                                                    <path
-                                                        d="M10 2v12"
-                                                        stroke="currentColor"
-                                                        strokeWidth="1.5"
-                                                        strokeLinecap="round"
-                                                    />
-                                                    <path
-                                                        d="M6 12l4 4 4-4"
-                                                        stroke="currentColor"
-                                                        strokeWidth="1.5"
-                                                        strokeLinecap="round"
-                                                        strokeLinejoin="round"
-                                                    />
-                                                </svg>
-                                            </button>
-                                        </span>
-                                    </VSCodeDataGridCell>
-                                    <VSCodeDataGridCell grid-column="5">
-                                        {highlightKeyword(
-                                            pr.targetBranch,
-                                            keyword
-                                        )}
-                                    </VSCodeDataGridCell>
-                                    <VSCodeDataGridCell grid-column="6">
-                                        {pr.submitterId}
-                                    </VSCodeDataGridCell>
-                                </VSCodeDataGridRow>
-                            ))}
-                        </VSCodeDataGrid>
+                        <GenericTable
+                            columns={columns}
+                            data={pagedPRs}
+                            rowKey={(pr) => pr.number}
+                            onRowClick={(pr) => setSelectedPRLocal(pr.number)}
+                            selectedRowKey={selectedPRLocal}
+                            ariaLabel="Pull Requests"
+                        />
                         {hasMorePRs && (
                             <div
                                 className="flex justify-center my-4"

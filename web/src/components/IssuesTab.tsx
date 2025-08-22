@@ -3,10 +3,8 @@ import {
     VSCodeButton,
     VSCodeDropdown,
     VSCodeOption,
-    VSCodeDataGrid,
-    VSCodeDataGridCell,
-    VSCodeDataGridRow,
 } from "@vscode/webview-ui-toolkit/react";
+import GenericTable, { TableColumn } from "./GenericTable";
 import { Issue } from "../types";
 
 interface IssuesTabProps {
@@ -116,6 +114,43 @@ const IssuesTab: React.FC<IssuesTabProps> = ({
         );
     }
 
+    // Table columns config
+    const columns: TableColumn<Issue>[] = [
+        {
+            title: "Number",
+            dataIndex: "number",
+            width: 80,
+        },
+        {
+            title: "Title",
+            dataIndex: "title",
+            render: (value, issue) => (
+                <span>
+                    {highlightKeyword(value, keyword)}
+                    <a
+                        href={`${url}/${projectPath}/~issues/${issue.number}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        title="Open in oneDev"
+                        style={{ color: "#0078d4", textDecoration: "none" }}
+                    >
+                        {linkIcon}
+                    </a>
+                </span>
+            ),
+        },
+        {
+            title: "State",
+            dataIndex: "state",
+            width: 90,
+        },
+        {
+            title: "Submitter",
+            dataIndex: "submitterId",
+            width: 100,
+        },
+    ];
+
     // Filter and sort issues for display
     const filteredIssues = sortIssues(
         issues.filter(
@@ -185,93 +220,16 @@ const IssuesTab: React.FC<IssuesTabProps> = ({
                     <p>No issues found.</p>
                 ) : (
                     <>
-                        <VSCodeDataGrid
-                            aria-label="Issues"
-                            style={{ background: "transparent" }}
-                        >
-                            <VSCodeDataGridRow row-type="header">
-                                <VSCodeDataGridCell
-                                    cell-type="columnheader"
-                                    grid-column="1"
-                                >
-                                    Number
-                                </VSCodeDataGridCell>
-                                <VSCodeDataGridCell
-                                    cell-type="columnheader"
-                                    grid-column="2"
-                                >
-                                    Title
-                                </VSCodeDataGridCell>
-                                <VSCodeDataGridCell
-                                    cell-type="columnheader"
-                                    grid-column="3"
-                                >
-                                    State
-                                </VSCodeDataGridCell>
-                                <VSCodeDataGridCell
-                                    cell-type="columnheader"
-                                    grid-column="4"
-                                >
-                                    Submitter
-                                </VSCodeDataGridCell>
-                            </VSCodeDataGridRow>
-                            {filteredIssues.map((issue) => (
-                                <VSCodeDataGridRow
-                                    key={issue.number}
-                                    className={
-                                        selectedIssueLocal === issue.number
-                                            ? "vscode-selected-row"
-                                            : ""
-                                    }
-                                    style={{
-                                        ...(selectedIssueLocal === issue.number
-                                            ? {
-                                                  background:
-                                                      "var(--vscode-list-activeSelectionBackground)",
-                                                  color: "var(--vscode-list-activeSelectionForeground)",
-                                              }
-                                            : {}),
-                                        borderRadius: 6,
-                                        marginBottom: 4,
-                                        cursor: "pointer",
-                                        transition: "background 0.15s",
-                                    }}
-                                    onClick={() =>
-                                        setSelectedIssueLocal(issue.number)
-                                    }
-                                >
-                                    <VSCodeDataGridCell grid-column="1">
-                                        {issue.number}
-                                    </VSCodeDataGridCell>
-                                    <VSCodeDataGridCell grid-column="2">
-                                        <span>
-                                            {highlightKeyword(
-                                                issue.title,
-                                                keyword
-                                            )}
-                                        </span>
-                                        <a
-                                            href={`${url}/${projectPath}/~issues/${issue.number}`}
-                                            target="_blank"
-                                            rel="noopener noreferrer"
-                                            title="Open in oneDev"
-                                            style={{
-                                                color: "#0078d4",
-                                                textDecoration: "none",
-                                            }}
-                                        >
-                                            {linkIcon}
-                                        </a>
-                                    </VSCodeDataGridCell>
-                                    <VSCodeDataGridCell grid-column="3">
-                                        {issue.state}
-                                    </VSCodeDataGridCell>
-                                    <VSCodeDataGridCell grid-column="4">
-                                        {issue.submitterId}
-                                    </VSCodeDataGridCell>
-                                </VSCodeDataGridRow>
-                            ))}
-                        </VSCodeDataGrid>
+                        <GenericTable
+                            columns={columns}
+                            data={filteredIssues}
+                            rowKey={(issue) => issue.number}
+                            onRowClick={(issue) =>
+                                setSelectedIssueLocal(issue.number)
+                            }
+                            selectedRowKey={selectedIssueLocal}
+                            ariaLabel="Issues"
+                        />
                         {hasMoreIssues && (
                             <div
                                 className="flex justify-center my-4"
