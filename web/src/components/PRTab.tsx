@@ -6,6 +6,8 @@ import {
     VSCodeOption,
 } from "@vscode/webview-ui-toolkit/react";
 import GenericTable, { TableColumn } from "./GenericTable";
+import ExternalLinkIcon from "./ExternalLinkIcon";
+import CheckoutBranchIcon from "./CheckoutBranchIcon";
 import { PullRequest } from "../types";
 
 interface PRTabProps {
@@ -61,6 +63,7 @@ const PRTab: React.FC<PRTabProps> = ({
         (pr) =>
             (stateFilter === "all" || pr.status === stateFilter) &&
             (pr.title.toLowerCase().includes(keyword.toLowerCase()) ||
+                // Use shared ExternalLinkIcon
                 pr.sourceBranch.toLowerCase().includes(keyword.toLowerCase()) ||
                 pr.targetBranch.toLowerCase().includes(keyword.toLowerCase()))
     );
@@ -171,31 +174,7 @@ const PRTab: React.FC<PRTabProps> = ({
                             alignItems: "center",
                         }}
                     >
-                        <svg
-                            xmlns="http://www.w3.org/2000/svg"
-                            width="16"
-                            height="16"
-                            viewBox="0 0 20 20"
-                            fill="none"
-                            style={{
-                                display: "inline",
-                                verticalAlign: "middle",
-                            }}
-                        >
-                            <path
-                                d="M10 2v12"
-                                stroke="currentColor"
-                                strokeWidth="1.5"
-                                strokeLinecap="round"
-                            />
-                            <path
-                                d="M6 12l4 4 4-4"
-                                stroke="currentColor"
-                                strokeWidth="1.5"
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                            />
-                        </svg>
+                        <CheckoutBranchIcon size={16} />
                     </button>
                 </span>
             ),

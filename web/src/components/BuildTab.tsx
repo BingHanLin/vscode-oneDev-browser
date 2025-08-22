@@ -5,6 +5,7 @@ import {
     VSCodeOption,
 } from "@vscode/webview-ui-toolkit/react";
 import GenericTable, { TableColumn } from "./GenericTable";
+import ExternalLinkIcon from "./ExternalLinkIcon";
 // TODO: Replace with actual Build type definition
 import { Build } from "../types";
 import { highlightKeyword } from "../utils/highlightKeyword";
@@ -90,43 +91,7 @@ const BuildTab: React.FC<BuildTabProps> = ({
             window.removeEventListener("message", handleMessage);
         };
     }, [vscode]);
-    // SVG external link icon
-    const linkIcon = (
-        <svg
-            xmlns="http://www.w3.org/2000/svg"
-            width="14"
-            height="14"
-            viewBox="0 0 20 20"
-            fill="none"
-            style={{
-                marginLeft: 4,
-                verticalAlign: "middle",
-                cursor: "pointer",
-            }}
-        >
-            <path
-                d="M13.5 2H18v4.5"
-                stroke="currentColor"
-                strokeWidth="1.5"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-            />
-            <path
-                d="M12.5 7.5L18 2"
-                stroke="currentColor"
-                strokeWidth="1.5"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-            />
-            <path
-                d="M10.5 4.5H7A3.5 3.5 0 0 0 3.5 8v5A3.5 3.5 0 0 0 7 16.5h5A3.5 3.5 0 0 0 15.5 13v-3.5"
-                stroke="currentColor"
-                strokeWidth="1.5"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-            />
-        </svg>
-    );
+    // Use shared ExternalLinkIcon
 
     // Table columns config for GenericTable
     const columns: TableColumn<Build>[] = [
@@ -148,7 +113,7 @@ const BuildTab: React.FC<BuildTabProps> = ({
                         title="Open in oneDev"
                         style={{ color: "#0078d4", textDecoration: "none" }}
                     >
-                        {linkIcon}
+                        <ExternalLinkIcon size={14} />
                     </a>
                 </span>
             ),

@@ -5,6 +5,7 @@ import {
     VSCodeOption,
 } from "@vscode/webview-ui-toolkit/react";
 import GenericTable, { TableColumn } from "./GenericTable";
+import ExternalLinkIcon from "./ExternalLinkIcon";
 import { Issue } from "../types";
 import { highlightKeyword } from "../utils/highlightKeyword";
 
@@ -35,44 +36,7 @@ const IssuesTab: React.FC<IssuesTabProps> = ({
     hasMoreIssues,
     selectedIssue,
 }) => {
-    // SVG external link icon
-    const linkIcon = (
-        <svg
-            width="20"
-            height="20"
-            viewBox="0 0 20 20"
-            fill="none"
-            xmlns="http://www.w3.org/2000/svg"
-            style={{
-                display: "inline",
-                verticalAlign: "middle",
-                marginLeft: 4,
-                color: "#0078d4",
-            }}
-        >
-            <path
-                d="M13.5 2H18v4.5"
-                stroke="currentColor"
-                strokeWidth="1.5"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-            />
-            <path
-                d="M12.5 7.5L18 2"
-                stroke="currentColor"
-                strokeWidth="1.5"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-            />
-            <path
-                d="M10.5 4.5H7A3.5 3.5 0 0 0 3.5 8v5A3.5 3.5 0 0 0 7 16.5h5A3.5 3.5 0 0 0 15.5 13v-3.5"
-                stroke="currentColor"
-                strokeWidth="1.5"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-            />
-        </svg>
-    );
+    // Use shared ExternalLinkIcon
     const [keyword, setKeyword] = useState("");
     // Local state for selected issue (for detail panel)
     const [selectedIssueLocal, setSelectedIssueLocal] = useState<number | null>(
@@ -117,7 +81,7 @@ const IssuesTab: React.FC<IssuesTabProps> = ({
                         title="Open in oneDev"
                         style={{ color: "#0078d4", textDecoration: "none" }}
                     >
-                        {linkIcon}
+                        <ExternalLinkIcon size={14} />
                     </a>
                 </span>
             ),
