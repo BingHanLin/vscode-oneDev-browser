@@ -246,10 +246,39 @@ const BuildTab: React.FC<BuildTabProps> = ({
                                 Please select a build
                             </div>
                         );
-                    // runningDuration: use b.runningDuration if present
+                    // runningDuration: format as 'X hours Y minutes Z seconds', omit zero units, up to hours
+                    console.log(
+                        "BuildTab debug: runningDuration(raw)",
+                        b.runningDuration,
+                        b
+                    );
                     let runningDuration = "-";
                     if (b.runningDuration != null) {
-                        runningDuration = `${b.runningDuration} s`;
+                        if (b.runningDuration < 1000) {
+                            runningDuration = `${b.runningDuration} ms`;
+                        } else {
+                            let seconds = Math.floor(b.runningDuration / 1000);
+                            const hours = Math.floor(seconds / 3600);
+                            seconds = seconds % 3600;
+                            const minutes = Math.floor(seconds / 60);
+                            seconds = seconds % 60;
+                            const parts = [];
+                            if (hours > 0)
+                                parts.push(
+                                    `${hours} hour${hours > 1 ? "s" : ""}`
+                                );
+                            if (minutes > 0)
+                                parts.push(
+                                    `${minutes} minute${minutes > 1 ? "s" : ""}`
+                                );
+                            if (seconds > 0 || parts.length === 0)
+                                parts.push(
+                                    `${seconds} second${
+                                        seconds !== 1 ? "s" : ""
+                                    }`
+                                );
+                            runningDuration = parts.join(" ");
+                        }
                     }
                     // finishDate: use b.finishDate if present
                     let finishDate = "-";
