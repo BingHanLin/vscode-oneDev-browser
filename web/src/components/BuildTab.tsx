@@ -5,7 +5,7 @@ import {
     VSCodeOption,
 } from "@vscode/webview-ui-toolkit/react";
 import GenericTable, { TableColumn } from "./GenericTable";
-import ExternalLinkIcon from "./ExternalLinkIcon";
+import { ExternalLinkIcon } from "./Icons";
 // TODO: Replace with actual Build type definition
 import { Build } from "../types";
 import { highlightKeyword } from "../utils/highlightKeyword";
