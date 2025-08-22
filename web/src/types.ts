@@ -35,10 +35,7 @@ export interface Issue {
 export interface Build {
     number: number;
     jobName: string;
-    branch: string;
-    commitHash?: string;
     status: string;
-    startDate?: string;
-    duration?: number; // seconds
-    log?: string;
+    runningDuration: number;
+    finishDate: string;
 }

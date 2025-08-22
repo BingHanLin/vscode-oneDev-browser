@@ -246,6 +246,19 @@ const BuildTab: React.FC<BuildTabProps> = ({
                                 Please select a build
                             </div>
                         );
+                    // runningDuration: use b.runningDuration if present
+                    let runningDuration = "-";
+                    if (b.runningDuration != null) {
+                        runningDuration = `${b.runningDuration} s`;
+                    }
+                    // finishDate: use b.finishDate if present
+                    let finishDate = "-";
+                    if (b.finishDate) {
+                        const d = new Date(b.finishDate);
+                        if (!isNaN(d.getTime())) {
+                            finishDate = d.toLocaleString();
+                        }
+                    }
                     return (
                         <div
                             style={{
@@ -272,7 +285,7 @@ const BuildTab: React.FC<BuildTabProps> = ({
                                         marginRight: 6,
                                     }}
                                 >
-                                    State:
+                                    Status:
                                 </span>
                                 {b.status}
                             </div>
@@ -284,9 +297,9 @@ const BuildTab: React.FC<BuildTabProps> = ({
                                         marginRight: 6,
                                     }}
                                 >
-                                    Branch:
+                                    Running Duration:
                                 </span>
-                                {b.branch}
+                                {runningDuration}
                             </div>
                             <div>
                                 <span
@@ -296,48 +309,10 @@ const BuildTab: React.FC<BuildTabProps> = ({
                                         marginRight: 6,
                                     }}
                                 >
-                                    Commit:
+                                    Finish Date:
                                 </span>
-                                {b.commitHash}
+                                {finishDate}
                             </div>
-                            <div>
-                                <span
-                                    style={{
-                                        fontWeight: 500,
-                                        color: "#666",
-                                        marginRight: 6,
-                                    }}
-                                >
-                                    Started:
-                                </span>
-                                {b.startDate &&
-                                    new Date(b.startDate).toLocaleString()}
-                            </div>
-                            <div>
-                                <span
-                                    style={{
-                                        fontWeight: 500,
-                                        color: "#666",
-                                        marginRight: 6,
-                                    }}
-                                >
-                                    Duration:
-                                </span>
-                                {b.duration != null ? `${b.duration} s` : "-"}
-                            </div>
-                            {b.log && (
-                                <div
-                                    style={{
-                                        color: "var(--vscode-foreground)",
-                                        fontSize: 15,
-                                        marginTop: 16,
-                                        whiteSpace: "pre-wrap",
-                                        wordBreak: "break-word",
-                                    }}
-                                >
-                                    {b.log}
-                                </div>
-                            )}
                         </div>
                     );
                 })()}
