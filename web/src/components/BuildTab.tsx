@@ -3,10 +3,8 @@ import {
     VSCodeButton,
     VSCodeDropdown,
     VSCodeOption,
-    VSCodeDataGrid,
-    VSCodeDataGridCell,
-    VSCodeDataGridRow,
 } from "@vscode/webview-ui-toolkit/react";
+import GenericTable, { TableColumn } from "./GenericTable";
 // TODO: Replace with actual Build type definition
 import { Build } from "../types";
 import { highlightKeyword } from "../utils/highlightKeyword";
@@ -52,12 +50,7 @@ const BuildTab: React.FC<BuildTabProps> = ({
     const filteredBuilds = builds.filter(
         (b) =>
             (stateFilter === "all" || b.status === stateFilter) &&
-            (b.name?.toLowerCase().includes(keyword.toLowerCase()) ||
-                false ||
-                b.branch?.toLowerCase().includes(keyword.toLowerCase()) ||
-                false ||
-                b.commitHash?.toLowerCase().includes(keyword.toLowerCase()) ||
-                false)
+            b.jobName?.toLowerCase().includes(keyword.toLowerCase())
     );
     const pagedBuilds = sortBuilds(filteredBuilds);
     const loadMoreWrapperRef = useRef<HTMLDivElement | null>(null);
@@ -134,6 +127,38 @@ const BuildTab: React.FC<BuildTabProps> = ({
             />
         </svg>
     );
+
+    // Table columns config for GenericTable
+    const columns: TableColumn<Build>[] = [
+        {
+            title: "Number",
+            dataIndex: "number",
+            width: 80,
+        },
+        {
+            title: "Job Name",
+            dataIndex: "jobName",
+            render: (value, b) => (
+                <span>
+                    {highlightKeyword(value, keyword)}
+                    <a
+                        href={`${url}/${projectPath}/~builds/${b.number}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        title="Open in oneDev"
+                        style={{ color: "#0078d4", textDecoration: "none" }}
+                    >
+                        {linkIcon}
+                    </a>
+                </span>
+            ),
+        },
+        {
+            title: "Status",
+            dataIndex: "status",
+            width: 90,
+        },
+    ];
     return (
         <div style={{ display: "flex", height: "100vh", minHeight: 0 }}>
             {/* Left: Build list */}
@@ -197,77 +222,14 @@ const BuildTab: React.FC<BuildTabProps> = ({
                     <p>No builds found.</p>
                 ) : (
                     <>
-                        <VSCodeDataGrid aria-label="Builds">
-                            <VSCodeDataGridRow row-type="header">
-                                <VSCodeDataGridCell
-                                    cell-type="columnheader"
-                                    grid-column="1"
-                                >
-                                    Number
-                                </VSCodeDataGridCell>
-                                <VSCodeDataGridCell
-                                    cell-type="columnheader"
-                                    grid-column="2"
-                                >
-                                    Job Name
-                                </VSCodeDataGridCell>
-                                <VSCodeDataGridCell
-                                    cell-type="columnheader"
-                                    grid-column="3"
-                                >
-                                    Status
-                                </VSCodeDataGridCell>
-                            </VSCodeDataGridRow>
-                            {pagedBuilds.map((b) => (
-                                <VSCodeDataGridRow
-                                    key={b.number}
-                                    className={
-                                        selectedBuildLocal === b.number
-                                            ? "vscode-selected-row"
-                                            : ""
-                                    }
-                                    style={
-                                        selectedBuildLocal === b.number
-                                            ? {
-                                                  background:
-                                                      "var(--vscode-list-activeSelectionBackground)",
-                                                  color: "var(--vscode-list-activeSelectionForeground)",
-                                              }
-                                            : {}
-                                    }
-                                    onClick={() =>
-                                        setSelectedBuildLocal(b.number)
-                                    }
-                                >
-                                    <VSCodeDataGridCell grid-column="1">
-                                        {b.number}
-                                    </VSCodeDataGridCell>
-                                    <VSCodeDataGridCell grid-column="2">
-                                        <span>
-                                            {highlightKeyword(
-                                                b.jobName,
-                                                keyword
-                                            )}
-                                        </span>
-                                        <a
-                                            href={`${url}/${projectPath}/~builds/${b.number}`}
-                                            target="_blank"
-                                            rel="noopener noreferrer"
-                                            title="Open in oneDev"
-                                            style={{
-                                                color: "#0078d4",
-                                                textDecoration: "none",
-                                            }}
-                                        >
-                                            {linkIcon}
-                                        </a>
-                                    </VSCodeDataGridCell>
-                                    <VSCodeDataGridCell grid-column="3">
-                                        {b.status}
-                                    </VSCodeDataGridCell>
-                                </VSCodeDataGridRow>
-                            ))}
-                        </VSCodeDataGrid>
+                        <GenericTable
+                            columns={columns}
+                            data={pagedBuilds}
+                            rowKey={(b) => b.number}
+                            onRowClick={(b) => setSelectedBuildLocal(b.number)}
+                            selectedRowKey={selectedBuildLocal}
+                            ariaLabel="Builds"
+                        />
                         {hasMoreBuilds && (
                             <div
                                 className="flex justify-center my-4"
@@ -335,7 +297,7 @@ const BuildTab: React.FC<BuildTabProps> = ({
                                     letterSpacing: 0.5,
                                 }}
                             >
-                                {b.name}
+                                {b.jobName}
                             </div>
                             <div>
                                 <span
