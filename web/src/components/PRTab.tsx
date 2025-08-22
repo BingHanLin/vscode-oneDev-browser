@@ -350,6 +350,78 @@ const PRTab: React.FC<PRTabProps> = ({
                             >
                                 {pr.title}
                             </div>
+                            <div>
+                                <span
+                                    style={{
+                                        fontWeight: 500,
+                                        color: "#666",
+                                        marginRight: 6,
+                                    }}
+                                >
+                                    State:
+                                </span>
+                                {pr.status}
+                            </div>
+                            <div>
+                                <span
+                                    style={{
+                                        fontWeight: 500,
+                                        color: "#666",
+                                        marginRight: 6,
+                                    }}
+                                >
+                                    Author:
+                                </span>
+                                {pr.submitterId}
+                            </div>
+                            <div>
+                                <span
+                                    style={{
+                                        fontWeight: 500,
+                                        color: "#666",
+                                        marginRight: 6,
+                                    }}
+                                >
+                                    Source:
+                                </span>
+                                {pr.sourceBranch}
+                            </div>
+                            <div>
+                                <span
+                                    style={{
+                                        fontWeight: 500,
+                                        color: "#666",
+                                        marginRight: 6,
+                                    }}
+                                >
+                                    Target:
+                                </span>
+                                {pr.targetBranch}
+                            </div>
+                            <div>
+                                <span
+                                    style={{
+                                        fontWeight: 500,
+                                        color: "#666",
+                                        marginRight: 6,
+                                    }}
+                                >
+                                    Created:
+                                </span>
+                                {new Date(pr.submitDate).toLocaleString()}
+                            </div>
+                            {/* <div>
+                                <span
+                                    style={{
+                                        fontWeight: 500,
+                                        color: "#666",
+                                        marginRight: 6,
+                                    }}
+                                >
+                                    Request ID:
+                                </span>
+                                {pr.id}
+                            </div> */}
                             {/* Current Builds Section */}
                             <div style={{ marginTop: 18 }}>
                                 <div
@@ -457,92 +529,6 @@ const PRTab: React.FC<PRTabProps> = ({
                                     </div>
                                 </>
                             )}
-                            <div>
-                                <span
-                                    style={{
-                                        fontWeight: 500,
-                                        color: "#666",
-                                        marginRight: 6,
-                                    }}
-                                >
-                                    State:
-                                </span>
-                                {pr.status}
-                            </div>
-                            <div>
-                                <span
-                                    style={{
-                                        fontWeight: 500,
-                                        color: "#666",
-                                        marginRight: 6,
-                                    }}
-                                >
-                                    Author:
-                                </span>
-                                {pr.submitterId}
-                            </div>
-                            <div>
-                                <span
-                                    style={{
-                                        fontWeight: 500,
-                                        color: "#666",
-                                        marginRight: 6,
-                                    }}
-                                >
-                                    Source:
-                                </span>
-                                {pr.sourceBranch}
-                            </div>
-                            <div>
-                                <span
-                                    style={{
-                                        fontWeight: 500,
-                                        color: "#666",
-                                        marginRight: 6,
-                                    }}
-                                >
-                                    Target:
-                                </span>
-                                {pr.targetBranch}
-                            </div>
-                            <div>
-                                <span
-                                    style={{
-                                        fontWeight: 500,
-                                        color: "#666",
-                                        marginRight: 6,
-                                    }}
-                                >
-                                    Created:
-                                </span>
-                                {new Date(pr.submitDate).toLocaleString()}
-                            </div>
-                            <div>
-                                <span
-                                    style={{
-                                        fontWeight: 500,
-                                        color: "#666",
-                                        marginRight: 6,
-                                    }}
-                                >
-                                    Last Activity:
-                                </span>
-                                {new Date(
-                                    pr.lastActivity.date
-                                ).toLocaleString()}
-                            </div>
-                            <div>
-                                <span
-                                    style={{
-                                        fontWeight: 500,
-                                        color: "#666",
-                                        marginRight: 6,
-                                    }}
-                                >
-                                    Request ID:
-                                </span>
-                                {pr.id}
-                            </div>
                         </div>
                     );
                 })()}
