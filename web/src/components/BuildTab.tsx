@@ -6,48 +6,56 @@ import {
 } from "@vscode/webview-ui-toolkit/react";
 import GenericTable, { TableColumn } from "./GenericTable";
 import { ExternalLinkIcon } from "./Icons";
-import { Issue } from "../types";
+// TODO: Replace with actual Build type definition
+import { Build } from "../types";
 import { highlightKeyword } from "../utils/highlightKeyword";
 
-interface IssuesTabProps {
-    issues: Issue[];
-    issueSort: string;
+interface BuildTabProps {
+    builds: Build[];
+    buildSort: string;
     isLoading: boolean;
     url: string;
     projectPath: string;
     onReload: () => void;
     onSortChange: (sort: string) => void;
-    sortIssues: (issues: Issue[]) => Issue[];
-    loadMoreIssues: () => void;
-    hasMoreIssues: boolean;
-    selectedIssue?: number | null;
+    sortBuilds: (builds: Build[]) => Build[];
+    loadMoreBuilds: () => void;
+    hasMoreBuilds: boolean;
+    vscode?: { postMessage: (message: any) => void };
+    selectedBuild?: number | null;
 }
 
-const IssuesTab: React.FC<IssuesTabProps> = ({
-    issues,
-    issueSort,
+const BuildTab: React.FC<BuildTabProps> = ({
+    builds,
+    buildSort,
     isLoading,
     url,
     projectPath,
     onReload,
     onSortChange,
-    sortIssues,
-    loadMoreIssues,
-    hasMoreIssues,
-    selectedIssue,
+    sortBuilds,
+    loadMoreBuilds,
+    hasMoreBuilds,
+    vscode,
+    selectedBuild: selectedBuildProp,
 }) => {
-    // Use shared ExternalLinkIcon
-    const [keyword, setKeyword] = useState("");
-    // Local state for selected issue (for detail panel)
-    const [selectedIssueLocal, setSelectedIssueLocal] = useState<number | null>(
-        selectedIssue ?? null
+    const [selectedBuildLocal, setSelectedBuildLocal] = useState<number | null>(
+        selectedBuildProp ?? null
     );
+    useEffect(() => {
+        setSelectedBuildLocal(selectedBuildProp ?? null);
+    }, [selectedBuildProp]);
+    const [keyword, setKeyword] = useState("");
     const [stateFilter, setStateFilter] = useState<string>("all");
-    // Ref for the Load More button wrapper
+    const allStates = Array.from(new Set(builds.map((b) => b.status))).sort();
+    const filteredBuilds = builds.filter(
+        (b) =>
+            (stateFilter === "all" || b.status === stateFilter) &&
+            b.jobName?.toLowerCase().includes(keyword.toLowerCase())
+    );
+    const pagedBuilds = sortBuilds(filteredBuilds);
     const loadMoreWrapperRef = useRef<HTMLDivElement | null>(null);
-    // Track if we just triggered load more (for scroll restoration)
     const [pendingScroll, setPendingScroll] = useState(false);
-    // When pendingScroll is set, scroll the Load More button into view after render
     useEffect(() => {
         if (pendingScroll && loadMoreWrapperRef.current) {
             loadMoreWrapperRef.current.scrollIntoView({
@@ -56,26 +64,50 @@ const IssuesTab: React.FC<IssuesTabProps> = ({
             });
             setPendingScroll(false);
         }
-    }, [issues, pendingScroll]);
-    const allStates = Array.from(
-        new Set(issues.map((issue) => issue.state))
-    ).sort();
+    }, [builds, pendingScroll]);
+    // Listen for build actions (success/error), ask extension to show VS Code notification
+    useEffect(() => {
+        function handleMessage(event: MessageEvent) {
+            const { command, message } = event.data || {};
+            if (
+                (command === "rebuildSuccess" || command === "rebuildError") &&
+                vscode
+            ) {
+                vscode.postMessage({
+                    command:
+                        command === "rebuildSuccess"
+                            ? "showInfoMessage"
+                            : "showErrorMessage",
+                    message:
+                        message ||
+                        (command === "rebuildSuccess"
+                            ? "Build triggered successfully."
+                            : "Failed to trigger build."),
+                });
+            }
+        }
+        window.addEventListener("message", handleMessage);
+        return () => {
+            window.removeEventListener("message", handleMessage);
+        };
+    }, [vscode]);
+    // Use shared ExternalLinkIcon
 
-    // Table columns config
-    const columns: TableColumn<Issue>[] = [
+    // Table columns config for GenericTable
+    const columns: TableColumn<Build>[] = [
         {
             title: "Number",
             dataIndex: "number",
             width: 80,
         },
         {
-            title: "Title",
-            dataIndex: "title",
-            render: (value, issue) => (
+            title: "Job Name",
+            dataIndex: "jobName",
+            render: (value, b) => (
                 <span>
                     {highlightKeyword(value, keyword)}
                     <a
-                        href={`${url}/${projectPath}/~issues/${issue.number}`}
+                        href={`${url}/${projectPath}/~builds/${b.number}`}
                         target="_blank"
                         rel="noopener noreferrer"
                         title="Open in oneDev"
@@ -87,37 +119,25 @@ const IssuesTab: React.FC<IssuesTabProps> = ({
             ),
         },
         {
-            title: "State",
-            dataIndex: "state",
+            title: "Status",
+            dataIndex: "status",
             width: 90,
         },
-        {
-            title: "Submitter",
-            dataIndex: "submitterId",
-            width: 100,
-        },
     ];
-
-    // Filter and sort issues for display
-    const filteredIssues = sortIssues(
-        issues.filter(
-            (issue) =>
-                (stateFilter === "all" || issue.state === stateFilter) &&
-                (!keyword ||
-                    issue.title.toLowerCase().includes(keyword.toLowerCase()))
-        )
-    );
-
     return (
         <div style={{ display: "flex", height: "100vh", minHeight: 0 }}>
-            {/* Left: Issues list */}
+            {/* Left: Build list */}
             <div
                 style={{ flex: 1, minHeight: 0, overflow: "auto", padding: 8 }}
             >
+                <div className="flex justify-between items-center mb-4">
+                    <h2 className="text-2xl font-bold">Builds</h2>
+                    <VSCodeButton onClick={onReload}>Reload</VSCodeButton>
+                </div>
                 <div className="flex justify-end mb-4 gap-2">
                     <input
                         type="text"
-                        placeholder="Search issues..."
+                        placeholder="Search Builds..."
                         value={keyword}
                         onChange={(e) => setKeyword(e.target.value)}
                         style={{
@@ -144,40 +164,38 @@ const IssuesTab: React.FC<IssuesTabProps> = ({
                         ))}
                     </VSCodeDropdown>
                     <VSCodeDropdown
-                        value={issueSort}
+                        value={buildSort}
                         onChange={(e) =>
                             onSortChange((e.target as HTMLSelectElement).value)
                         }
                     >
                         <VSCodeOption value="newest">Newest First</VSCodeOption>
                         <VSCodeOption value="oldest">Oldest First</VSCodeOption>
-                        <VSCodeOption value="most-comments">
-                            Most Comments
+                        <VSCodeOption value="longest">
+                            Longest Duration
                         </VSCodeOption>
-                        <VSCodeOption value="least-comments">
-                            Least Comments
+                        <VSCodeOption value="shortest">
+                            Shortest Duration
                         </VSCodeOption>
                     </VSCodeDropdown>
                 </div>
-                {isLoading && issues.length === 0 ? (
+                {isLoading && builds.length === 0 ? (
                     <div className="flex justify-center items-center h-64">
                         Loading...
                     </div>
-                ) : filteredIssues.length === 0 ? (
-                    <p>No issues found.</p>
+                ) : filteredBuilds.length === 0 ? (
+                    <p>No builds found.</p>
                 ) : (
                     <>
                         <GenericTable
                             columns={columns}
-                            data={filteredIssues}
-                            rowKey={(issue) => issue.number}
-                            onRowClick={(issue) =>
-                                setSelectedIssueLocal(issue.number)
-                            }
-                            selectedRowKey={selectedIssueLocal}
-                            ariaLabel="Issues"
+                            data={pagedBuilds}
+                            rowKey={(b) => b.number}
+                            onRowClick={(b) => setSelectedBuildLocal(b.number)}
+                            selectedRowKey={selectedBuildLocal}
+                            ariaLabel="Builds"
                         />
-                        {hasMoreIssues && (
+                        {hasMoreBuilds && (
                             <div
                                 className="flex justify-center my-4"
                                 ref={loadMoreWrapperRef}
@@ -185,7 +203,7 @@ const IssuesTab: React.FC<IssuesTabProps> = ({
                                 <VSCodeButton
                                     onClick={() => {
                                         setPendingScroll(true);
-                                        loadMoreIssues();
+                                        loadMoreBuilds();
                                     }}
                                     style={{
                                         display: "flex",
@@ -213,10 +231,10 @@ const IssuesTab: React.FC<IssuesTabProps> = ({
                 }}
             >
                 {(() => {
-                    const issue = issues.find(
-                        (i) => i.number === selectedIssueLocal
+                    const b = builds.find(
+                        (x) => x.number === selectedBuildLocal
                     );
-                    if (!issue)
+                    if (!b)
                         return (
                             <div
                                 style={{
@@ -225,9 +243,51 @@ const IssuesTab: React.FC<IssuesTabProps> = ({
                                     textAlign: "center",
                                 }}
                             >
-                                Please select an issue
+                                Please select a build
                             </div>
                         );
+                    // runningDuration: format as 'X hours Y minutes Z seconds', omit zero units, up to hours
+                    console.log(
+                        "BuildTab debug: runningDuration(raw)",
+                        b.runningDuration,
+                        b
+                    );
+                    let runningDuration = "-";
+                    if (b.runningDuration != null) {
+                        if (b.runningDuration < 1000) {
+                            runningDuration = `${b.runningDuration} ms`;
+                        } else {
+                            let seconds = Math.floor(b.runningDuration / 1000);
+                            const hours = Math.floor(seconds / 3600);
+                            seconds = seconds % 3600;
+                            const minutes = Math.floor(seconds / 60);
+                            seconds = seconds % 60;
+                            const parts = [];
+                            if (hours > 0)
+                                parts.push(
+                                    `${hours} hour${hours > 1 ? "s" : ""}`
+                                );
+                            if (minutes > 0)
+                                parts.push(
+                                    `${minutes} minute${minutes > 1 ? "s" : ""}`
+                                );
+                            if (seconds > 0 || parts.length === 0)
+                                parts.push(
+                                    `${seconds} second${
+                                        seconds !== 1 ? "s" : ""
+                                    }`
+                                );
+                            runningDuration = parts.join(" ");
+                        }
+                    }
+                    // finishDate: use b.finishDate if present
+                    let finishDate = "-";
+                    if (b.finishDate) {
+                        const d = new Date(b.finishDate);
+                        if (!isNaN(d.getTime())) {
+                            finishDate = d.toLocaleString();
+                        }
+                    }
                     return (
                         <div
                             style={{
@@ -244,7 +304,7 @@ const IssuesTab: React.FC<IssuesTabProps> = ({
                                     letterSpacing: 0.5,
                                 }}
                             >
-                                {issue.title}
+                                {b.jobName}
                             </div>
                             <div>
                                 <span
@@ -254,9 +314,9 @@ const IssuesTab: React.FC<IssuesTabProps> = ({
                                         marginRight: 6,
                                     }}
                                 >
-                                    State:
+                                    Number:
                                 </span>
-                                {issue.state}
+                                {b.number}
                             </div>
                             <div>
                                 <span
@@ -266,9 +326,9 @@ const IssuesTab: React.FC<IssuesTabProps> = ({
                                         marginRight: 6,
                                     }}
                                 >
-                                    Author:
+                                    Status:
                                 </span>
-                                {issue.submitterId}
+                                {b.status}
                             </div>
                             <div>
                                 <span
@@ -278,9 +338,9 @@ const IssuesTab: React.FC<IssuesTabProps> = ({
                                         marginRight: 6,
                                     }}
                                 >
-                                    Created:
+                                    Running Duration:
                                 </span>
-                                {new Date(issue.submitDate).toLocaleString()}
+                                {runningDuration}
                             </div>
                             <div>
                                 <span
@@ -290,25 +350,10 @@ const IssuesTab: React.FC<IssuesTabProps> = ({
                                         marginRight: 6,
                                     }}
                                 >
-                                    Last Activity:
+                                    Finish Date:
                                 </span>
-                                {new Date(
-                                    issue.lastActivity.date
-                                ).toLocaleString()}
+                                {finishDate}
                             </div>
-                            {issue.description && (
-                                <div
-                                    style={{
-                                        color: "var(--vscode-foreground)",
-                                        fontSize: 15,
-                                        marginTop: 16,
-                                        whiteSpace: "pre-wrap",
-                                        wordBreak: "break-word",
-                                    }}
-                                >
-                                    {issue.description}
-                                </div>
-                            )}
                         </div>
                     );
                 })()}
@@ -317,4 +362,4 @@ const IssuesTab: React.FC<IssuesTabProps> = ({
     );
 };
 
-export default IssuesTab;
+export default BuildTab;

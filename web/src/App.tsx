@@ -2,8 +2,9 @@ import React, { useState, useEffect } from "react";
 import "./App.css";
 import PRTab from "./components/PRTab";
 import IssuesTab from "./components/IssuesTab";
+import BuildTab from "./components/BuildTab";
 import { VSCodeTextField } from "@vscode/webview-ui-toolkit/react";
-import { PullRequest, Issue } from "./types";
+import { PullRequest, Issue, Build } from "./types";
 
 // Declare the vscode API
 declare global {
@@ -18,152 +19,6 @@ const vscode = window.acquireVsCodeApi ? window.acquireVsCodeApi() : undefined;
 // ...types moved to types.ts...
 
 function App() {
-    const [activeTab, setActiveTab] = useState("pr");
-    const [selectedPR, setSelectedPR] = useState<number | null>(null);
-    const [selectedIssue, setSelectedIssue] = useState<number | null>(null);
-    const [url, setUrl] = useState("");
-    const [email, setEmail] = useState("");
-    const [token, setToken] = useState("");
-    const [projectPath, setProjectPath] = useState("");
-    const [showToken, setShowToken] = useState(false);
-    const [projectId, setProjectId] = useState<number | null>(null);
-    const [message, setMessage] = useState("");
-    const [isError, setIsError] = useState(false);
-    const [showMessage, setShowMessage] = useState(false);
-    const [pullRequests, setPullRequests] = useState<PullRequest[]>([]);
-    const [prOffset, setPrOffset] = useState(0);
-    const PR_PAGE_SIZE = 20;
-    const [hasMorePRs, setHasMorePRs] = useState(true);
-    const [issues, setIssues] = useState<Issue[]>([]);
-    const [issuesOffset, setIssuesOffset] = useState(0);
-    const ISSUES_PAGE_SIZE = 20;
-    const [hasMoreIssues, setHasMoreIssues] = useState(true);
-    const [prSort, setPrSort] = useState("newest");
-    const [issueSort, setIssueSort] = useState("newest");
-    const [isLoading, setIsLoading] = useState(false);
-    // SettingsTab removed: user/workspace values and scope state no longer needed
-
-    useEffect(() => {
-        window.addEventListener("message", handleMessage);
-        vscode.postMessage({ command: "getCredentials" });
-        return () => {
-            window.removeEventListener("message", handleMessage);
-        };
-    }, []);
-
-    // Only fetch data automatically when all credentials are set; also refetch when credentials update
-    useEffect(() => {
-        if (url && email && token && projectPath) {
-            if (activeTab === "pr") {
-                setPrOffset(0);
-                fetchPullRequests(0, PR_PAGE_SIZE, true);
-            } else if (activeTab === "issues") {
-                setIssuesOffset(0);
-                fetchIssues(0, ISSUES_PAGE_SIZE, true);
-            }
-        }
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [activeTab, url, email, token, projectPath]);
-
-    useEffect(() => {
-        if (message) {
-            setTimeout(() => setShowMessage(true), 10);
-            const timer = setTimeout(() => {
-                setShowMessage(false);
-            }, 5000);
-            return () => clearTimeout(timer);
-        }
-    }, [message]);
-
-    const handleMessage = (event: MessageEvent) => {
-        const message = event.data;
-        switch (message.command) {
-            case "setCredentials":
-                setUrl(message.url);
-                setEmail(message.email);
-                setToken(message.token);
-                setProjectPath(message.projectPath);
-                break;
-            // SettingsTab removed: no user/workspace settings
-            case "setProjectId":
-                setProjectId(message.projectId);
-                break;
-            case "showSuccessMessage":
-                setMessage(message.message);
-                setIsError(false);
-                break;
-            case "showErrorMessage":
-                setMessage(message.message);
-                setIsError(true);
-                break;
-            case "setPullRequests": {
-                // If offset is 0, replace; else append
-                if (typeof message.offset === "number" && message.offset > 0) {
-                    setPullRequests((prev) => [
-                        ...prev,
-                        ...(message.pullRequests || []),
-                    ]);
-                } else {
-                    setPullRequests(message.pullRequests || []);
-                }
-                setPrOffset(
-                    (message.offset || 0) + (message.count || PR_PAGE_SIZE)
-                );
-                setHasMorePRs(
-                    (message.pullRequests || []).length ===
-                        (message.count || PR_PAGE_SIZE)
-                );
-                setIsLoading(false);
-                break;
-            }
-            case "setIssues": {
-                // If offset is 0, replace; else append
-                if (typeof message.offset === "number" && message.offset > 0) {
-                    setIssues((prev) => [...prev, ...(message.issues || [])]);
-                } else {
-                    setIssues(message.issues || []);
-                }
-                setIssuesOffset(
-                    (message.offset || 0) + (message.count || ISSUES_PAGE_SIZE)
-                );
-                setHasMoreIssues(
-                    (message.issues || []).length ===
-                        (message.count || ISSUES_PAGE_SIZE)
-                );
-                setIsLoading(false);
-                break;
-            }
-            case "navigateToIssue":
-                setActiveTab("issues");
-                setSelectedIssue(message.issueNumber);
-                if (issues.length === 0) {
-                    fetchIssues(0, ISSUES_PAGE_SIZE, true);
-                }
-                break;
-            case "navigateToPR":
-                setActiveTab("pr");
-                setSelectedPR(message.prNumber);
-                if (pullRequests.length === 0) {
-                    fetchPullRequests(0, PR_PAGE_SIZE, true);
-                }
-                break;
-            case "navigateToBuild":
-                // For builds, we could add a builds tab in the future
-                // For now, we'll just show a message or switch to a relevant tab
-                setMessage(
-                    `Build #${message.buildNumber} selected from tree view`
-                );
-                setIsError(false);
-                break;
-        }
-    };
-
-    // SettingsTab removed: handleSubmit and handleScopeChange no longer needed
-
-    const toggleTokenVisibility = () => {
-        setShowToken(!showToken);
-    };
-
     // Fetch PRs with offset/count, replace: true means reset, false means append
     const fetchPullRequests = (
         offset = 0,
@@ -184,12 +39,6 @@ function App() {
         vscode.postMessage(payload);
         // If replace, clear PRs immediately for better UX
         if (replace) setPullRequests([]);
-    };
-    // For PRTab: load more PRs
-    const loadMorePRs = () => {
-        if (!isLoading && hasMorePRs) {
-            fetchPullRequests(prOffset, PR_PAGE_SIZE, false);
-        }
     };
 
     // Fetch issues with offset/count, replace: true means reset, false means append
@@ -214,10 +63,90 @@ function App() {
         if (replace) setIssues([]);
     };
 
-    // For IssuesTab: load more issues
-    const loadMoreIssues = () => {
-        if (!isLoading && hasMoreIssues) {
-            fetchIssues(issuesOffset, ISSUES_PAGE_SIZE, false);
+    // Fetch builds with offset/count, replace: true means reset, false means append
+    const fetchBuilds = (
+        offset = 0,
+        count = BUILD_PAGE_SIZE,
+        replace = false
+    ) => {
+        setIsLoading(true);
+        const payload = {
+            command: "fetchBuilds",
+            url,
+            email,
+            token,
+            projectPath,
+            offset,
+            count,
+        };
+        console.log("[Webview] postMessage: fetchBuilds", payload);
+        vscode.postMessage(payload);
+        if (replace) setBuilds([]);
+    };
+    const [activeTab, setActiveTab] = useState("pr");
+    const [selectedPR, setSelectedPR] = useState<number | null>(null);
+    const [selectedIssue, setSelectedIssue] = useState<number | null>(null);
+    const [selectedBuild, setSelectedBuild] = useState<number | null>(null);
+    const [url, setUrl] = useState("");
+    const [email, setEmail] = useState("");
+    const [token, setToken] = useState("");
+    const [projectPath, setProjectPath] = useState("");
+    const [showToken, setShowToken] = useState(false);
+    const [projectId, setProjectId] = useState<number | null>(null);
+    const [message, setMessage] = useState("");
+    const [isError, setIsError] = useState(false);
+    const [showMessage, setShowMessage] = useState(false);
+    const [pullRequests, setPullRequests] = useState<PullRequest[]>([]);
+    const [prOffset, setPrOffset] = useState(0);
+    const PR_PAGE_SIZE = 20;
+    const [hasMorePRs, setHasMorePRs] = useState(true);
+    const [prSort, setPrSort] = useState("newest");
+    const [issues, setIssues] = useState<Issue[]>([]);
+    const [issuesOffset, setIssuesOffset] = useState(0);
+    const ISSUES_PAGE_SIZE = 20;
+    const [hasMoreIssues, setHasMoreIssues] = useState(true);
+    const [issueSort, setIssueSort] = useState("newest");
+
+    // PRTab current builds state
+    const [currentBuilds, setCurrentBuilds] = useState<any[] | null>(null);
+    const [loadingBuilds, setLoadingBuilds] = useState(false);
+
+    // Build tab state
+    const [builds, setBuilds] = useState<Build[]>([]);
+    const [buildOffset, setBuildOffset] = useState(0);
+    const BUILD_PAGE_SIZE = 20;
+    const [hasMoreBuilds, setHasMoreBuilds] = useState(true);
+    const [buildSort, setBuildSort] = useState("newest");
+    // Share loading state for all tabs
+    const [isLoading, setIsLoading] = useState(false);
+    const loadMoreBuilds = () => {
+        if (!isLoading && hasMoreBuilds) {
+            fetchBuilds(buildOffset, BUILD_PAGE_SIZE, false);
+        }
+    };
+
+    const sortBuilds = (builds: Build[]) => {
+        switch (buildSort) {
+            case "oldest":
+                return [...builds].sort(
+                    (a, b) =>
+                        (a.startDate ? new Date(a.startDate).getTime() : 0) -
+                        (b.startDate ? new Date(b.startDate).getTime() : 0)
+                );
+            case "longest":
+                return [...builds].sort(
+                    (a, b) => (b.duration || 0) - (a.duration || 0)
+                );
+            case "shortest":
+                return [...builds].sort(
+                    (a, b) => (a.duration || 0) - (b.duration || 0)
+                );
+            default: // newest
+                return [...builds].sort(
+                    (a, b) =>
+                        (b.startDate ? new Date(b.startDate).getTime() : 0) -
+                        (a.startDate ? new Date(a.startDate).getTime() : 0)
+                );
         }
     };
 
@@ -267,13 +196,156 @@ function App() {
         }
     };
 
+    const loadMorePRs = () => {
+        if (!isLoading && hasMorePRs) {
+            fetchPullRequests(prOffset, PR_PAGE_SIZE, false);
+        }
+    };
+
+    const loadMoreIssues = () => {
+        if (!isLoading && hasMoreIssues) {
+            fetchIssues(issuesOffset, ISSUES_PAGE_SIZE, false);
+        }
+    };
+
     const handleReload = () => {
         if (activeTab === "pr") {
             fetchPullRequests();
         } else if (activeTab === "issues") {
             fetchIssues();
+        } else if (activeTab === "builds") {
+            fetchBuilds();
         }
     };
+
+    const handleMessage = (event: MessageEvent) => {
+        const message = event.data;
+        switch (message.command) {
+            case "setCredentials":
+                setUrl(message.url);
+                setEmail(message.email);
+                setToken(message.token);
+                setProjectPath(message.projectPath);
+                break;
+            case "setProjectId":
+                setProjectId(message.projectId);
+                break;
+            case "showSuccessMessage":
+                setMessage(message.message);
+                setIsError(false);
+                break;
+            case "showErrorMessage":
+                setMessage(message.message);
+                setIsError(true);
+                break;
+            case "setCurrentBuilds":
+                setCurrentBuilds(
+                    Array.isArray(message.builds) ? message.builds : []
+                );
+                setLoadingBuilds(false);
+                break;
+            case "setPullRequests":
+                if (typeof message.offset === "number" && message.offset > 0) {
+                    setPullRequests((prev) => [
+                        ...prev,
+                        ...(message.pullRequests || []),
+                    ]);
+                } else {
+                    setPullRequests(message.pullRequests || []);
+                }
+                setPrOffset(
+                    (message.offset || 0) + (message.count || PR_PAGE_SIZE)
+                );
+                setHasMorePRs(
+                    (message.pullRequests || []).length ===
+                        (message.count || PR_PAGE_SIZE)
+                );
+                setIsLoading(false);
+                break;
+            case "setIssues":
+                if (typeof message.offset === "number" && message.offset > 0) {
+                    setIssues((prev) => [...prev, ...(message.issues || [])]);
+                } else {
+                    setIssues(message.issues || []);
+                }
+                setIssuesOffset(
+                    (message.offset || 0) + (message.count || ISSUES_PAGE_SIZE)
+                );
+                setHasMoreIssues(
+                    (message.issues || []).length ===
+                        (message.count || ISSUES_PAGE_SIZE)
+                );
+                setIsLoading(false);
+                break;
+            case "setBuilds":
+                if (typeof message.offset === "number" && message.offset > 0) {
+                    setBuilds((prev) => [...prev, ...(message.builds || [])]);
+                } else {
+                    setBuilds(message.builds || []);
+                }
+                setBuildOffset(
+                    (message.offset || 0) + (message.count || BUILD_PAGE_SIZE)
+                );
+                setHasMoreBuilds(
+                    (message.builds || []).length ===
+                        (message.count || BUILD_PAGE_SIZE)
+                );
+                setIsLoading(false);
+                break;
+            default:
+                break;
+        }
+    };
+
+    // Handle fetch current builds as a message handler style function
+    const handleFetchCurrentBuilds = (prID: number) => {
+        if (!prID) return;
+        if (!url || !email || !token || !projectPath) return;
+        setLoadingBuilds(true);
+        setCurrentBuilds(null);
+        vscode.postMessage({
+            command: "fetchCurrentBuilds",
+            url,
+            email,
+            token,
+            projectPath,
+            prID,
+        });
+    };
+
+    useEffect(() => {
+        window.addEventListener("message", handleMessage);
+        vscode.postMessage({ command: "getCredentials" });
+        return () => {
+            window.removeEventListener("message", handleMessage);
+        };
+    }, []);
+
+    useEffect(() => {
+        if (url && email && token && projectPath) {
+            if (activeTab === "pr") {
+                setPrOffset(0);
+                fetchPullRequests(0, PR_PAGE_SIZE, true);
+            } else if (activeTab === "issues") {
+                setIssuesOffset(0);
+                fetchIssues(0, ISSUES_PAGE_SIZE, true);
+            } else if (activeTab === "builds") {
+                setBuildOffset(0);
+                fetchBuilds(0, BUILD_PAGE_SIZE, true);
+            }
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [activeTab, url, email, token, projectPath]);
+
+    useEffect(() => {
+        if (message) {
+            setTimeout(() => setShowMessage(true), 10);
+            const timer = setTimeout(() => {
+                setShowMessage(false);
+            }, 5000);
+            return () => clearTimeout(timer);
+        }
+    }, [message]);
 
     return (
         <div className="container mx-auto p-4">
@@ -328,7 +400,14 @@ function App() {
                 >
                     Issues
                 </button>
-                {/* SettingsTab removed: no settings tab in UI */}
+                <button
+                    className={`tab-button ${
+                        activeTab === "builds" ? "active" : ""
+                    }`}
+                    onClick={() => setActiveTab("builds")}
+                >
+                    Builds
+                </button>
             </div>
             <div className="tab-content">
                 {activeTab === "pr" && (
@@ -345,6 +424,9 @@ function App() {
                         hasMorePRs={hasMorePRs}
                         vscode={vscode}
                         selectedPR={selectedPR}
+                        currentBuilds={currentBuilds}
+                        loadingBuilds={loadingBuilds}
+                        onFetchCurrentBuilds={handleFetchCurrentBuilds}
                     />
                 )}
                 {activeTab === "issues" && (
@@ -362,10 +444,24 @@ function App() {
                         selectedIssue={selectedIssue}
                     />
                 )}
-                {/* SettingsTab removed: no settings tab content */}
+                {activeTab === "builds" && (
+                    <BuildTab
+                        builds={builds}
+                        buildSort={buildSort}
+                        isLoading={isLoading}
+                        url={url}
+                        projectPath={projectPath}
+                        onReload={handleReload}
+                        onSortChange={setBuildSort}
+                        sortBuilds={sortBuilds}
+                        loadMoreBuilds={loadMoreBuilds}
+                        hasMoreBuilds={hasMoreBuilds}
+                        vscode={vscode}
+                        selectedBuild={selectedBuild}
+                    />
+                )}
             </div>
         </div>
     );
 }
-
 export default App;

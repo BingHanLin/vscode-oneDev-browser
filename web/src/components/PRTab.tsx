@@ -1,12 +1,12 @@
 import React, { useState, useRef, useEffect } from "react";
+import { highlightKeyword } from "../utils/highlightKeyword";
 import {
     VSCodeButton,
     VSCodeDropdown,
     VSCodeOption,
-    VSCodeDataGrid,
-    VSCodeDataGridCell,
-    VSCodeDataGridRow,
 } from "@vscode/webview-ui-toolkit/react";
+import GenericTable, { TableColumn } from "./GenericTable";
+import { ExternalLinkIcon, CheckoutBranchIcon } from "./Icons";
 import { PullRequest } from "../types";
 
 interface PRTabProps {
@@ -22,6 +22,9 @@ interface PRTabProps {
     hasMorePRs: boolean;
     vscode?: { postMessage: (message: any) => void };
     selectedPR?: number | null;
+    currentBuilds: any[] | null;
+    loadingBuilds: boolean;
+    onFetchCurrentBuilds: (prID: number) => void;
 }
 
 const PRTab: React.FC<PRTabProps> = ({
@@ -36,8 +39,29 @@ const PRTab: React.FC<PRTabProps> = ({
     loadMorePRs,
     hasMorePRs,
     vscode,
-    selectedPR,
+    selectedPR: selectedPRProp,
+    currentBuilds,
+    loadingBuilds,
+    onFetchCurrentBuilds,
 }) => {
+    // Local state for selected PR (for detail panel)
+    const [selectedPRLocal, setSelectedPRLocal] = useState<number | null>(
+        selectedPRProp ?? null
+    );
+    // Sync with prop if it changes
+    useEffect(() => {
+        setSelectedPRLocal(selectedPRProp ?? null);
+    }, [selectedPRProp]);
+
+    useEffect(() => {
+        if (selectedPRLocal != null) {
+            const pr = pullRequests.find((p) => p.number === selectedPRLocal);
+            if (pr && pr.id != null) {
+                onFetchCurrentBuilds(pr.id);
+            }
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [selectedPRLocal, pullRequests]);
     // State for keyword search
     const [keyword, setKeyword] = useState("");
 
@@ -54,6 +78,7 @@ const PRTab: React.FC<PRTabProps> = ({
         (pr) =>
             (stateFilter === "all" || pr.status === stateFilter) &&
             (pr.title.toLowerCase().includes(keyword.toLowerCase()) ||
+                // Use shared ExternalLinkIcon
                 pr.sourceBranch.toLowerCase().includes(keyword.toLowerCase()) ||
                 pr.targetBranch.toLowerCase().includes(keyword.toLowerCase()))
     );
@@ -104,300 +129,424 @@ const PRTab: React.FC<PRTabProps> = ({
         };
     }, [vscode]);
 
-    // Highlight keyword in a string (case-insensitive)
-    function highlightKeyword(text: string, keyword: string) {
-        if (!keyword) return text;
-        const regex = new RegExp(
-            `(${keyword.replace(/[.*+?^${}()|[\\\]\[]/g, "\\$&")})`,
-            "gi"
-        );
-        const parts = text.split(regex);
-        return parts.map((part, i) =>
-            regex.test(part) ? (
-                <mark key={i} style={{ background: "#ffe066", padding: 0 }}>
-                    {part}
-                </mark>
-            ) : (
-                <React.Fragment key={i}>{part}</React.Fragment>
-            )
-        );
-    }
+    // Table columns config
+    const columns: TableColumn<PullRequest>[] = [
+        {
+            title: "Number",
+            dataIndex: "number",
+            width: 80,
+        },
+        {
+            title: "Title",
+            dataIndex: "title",
+            render: (value, pr) => (
+                <span>
+                    {highlightKeyword(value, keyword)}
+                    <a
+                        href={`${url}/${projectPath}/~pulls/${pr.number}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        title="Open in oneDev"
+                        style={{ color: "#0078d4", textDecoration: "none" }}
+                    >
+                        <ExternalLinkIcon size={14} />
+                    </a>
+                </span>
+            ),
+        },
+        {
+            title: "Status",
+            dataIndex: "status",
+            width: 90,
+        },
+        {
+            title: "Source",
+            dataIndex: "sourceBranch",
+            render: (value, pr) => (
+                <span style={{ display: "inline-flex", alignItems: "center" }}>
+                    <span>{highlightKeyword(value, keyword)}</span>
+                    <button
+                        title="Checkout Source Branch"
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            if (vscode) {
+                                vscode.postMessage({
+                                    command: "checkoutBranch",
+                                    branch: pr.sourceBranch,
+                                });
+                            } else {
+                                alert("VS Code API not available.");
+                            }
+                        }}
+                        style={{
+                            background: "none",
+                            border: "none",
+                            padding: 0,
+                            marginLeft: 6,
+                            color: "#0078d4",
+                            cursor: "pointer",
+                            display: "inline-flex",
+                            alignItems: "center",
+                        }}
+                    >
+                        <CheckoutBranchIcon size={16} />
+                    </button>
+                </span>
+            ),
+        },
+        {
+            title: "Target",
+            dataIndex: "targetBranch",
+            render: (value) => highlightKeyword(value, keyword),
+        },
+        {
+            title: "Submitter",
+            dataIndex: "submitterId",
+            width: 100,
+        },
+    ];
 
     // SVG external link icon
-    const linkIcon = (
-        <svg
-            xmlns="http://www.w3.org/2000/svg"
-            width="14"
-            height="14"
-            viewBox="0 0 20 20"
-            fill="none"
-            style={{
-                marginLeft: 4,
-                verticalAlign: "middle",
-                cursor: "pointer",
-            }}
-        >
-            <path
-                d="M13.5 2H18v4.5"
-                stroke="currentColor"
-                strokeWidth="1.5"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-            />
-            <path
-                d="M12.5 7.5L18 2"
-                stroke="currentColor"
-                strokeWidth="1.5"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-            />
-            <path
-                d="M10.5 4.5H7A3.5 3.5 0 0 0 3.5 8v5A3.5 3.5 0 0 0 7 16.5h5A3.5 3.5 0 0 0 15.5 13v-3.5"
-                stroke="currentColor"
-                strokeWidth="1.5"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-            />
-        </svg>
-    );
 
     return (
-        <div>
-            <div className="flex justify-between items-center mb-4">
-                <h2 className="text-2xl font-bold">Pull Requests</h2>
-                <VSCodeButton onClick={onReload}>Reload</VSCodeButton>
-            </div>
-            <div className="flex justify-end mb-4 gap-2">
-                {/* Keyword search input for title/source/target branch */}
-                <input
-                    type="text"
-                    placeholder="Search PRs..."
-                    value={keyword}
-                    onChange={(e) => setKeyword(e.target.value)}
-                    style={{
-                        minWidth: 180,
-                        padding: 4,
-                        borderRadius: 4,
-                        border: "1px solid #ccc",
-                    }}
-                />
-                {/* Status filter dropdown */}
-                <VSCodeDropdown
-                    value={stateFilter}
-                    onChange={(e) =>
-                        setStateFilter((e.target as HTMLSelectElement).value)
-                    }
-                    style={{ minWidth: 120 }}
-                >
-                    <VSCodeOption value="all">All States</VSCodeOption>
-                    {allStates.map((state) => (
-                        <VSCodeOption key={state} value={state}>
-                            {state}
+        <div style={{ display: "flex", height: "100vh", minHeight: 0 }}>
+            {/* Left: PR list */}
+            <div
+                style={{ flex: 1, minHeight: 0, overflow: "auto", padding: 8 }}
+            >
+                <div className="flex justify-between items-center mb-4">
+                    <h2 className="text-2xl font-bold">Pull Requests</h2>
+                    <VSCodeButton onClick={onReload}>Reload</VSCodeButton>
+                </div>
+                <div className="flex justify-end mb-4 gap-2">
+                    {/* Keyword search input for title/source/target branch */}
+                    <input
+                        type="text"
+                        placeholder="Search PRs..."
+                        value={keyword}
+                        onChange={(e) => setKeyword(e.target.value)}
+                        style={{
+                            minWidth: 180,
+                            padding: 4,
+                            borderRadius: 4,
+                            border: "1px solid #ccc",
+                        }}
+                    />
+                    {/* Status filter dropdown */}
+                    <VSCodeDropdown
+                        value={stateFilter}
+                        onChange={(e) =>
+                            setStateFilter(
+                                (e.target as HTMLSelectElement).value
+                            )
+                        }
+                        style={{ minWidth: 120 }}
+                    >
+                        <VSCodeOption value="all">All States</VSCodeOption>
+                        {allStates.map((state) => (
+                            <VSCodeOption key={state} value={state}>
+                                {state}
+                            </VSCodeOption>
+                        ))}
+                    </VSCodeDropdown>
+                    <VSCodeDropdown
+                        value={prSort}
+                        onChange={(e) =>
+                            onSortChange((e.target as HTMLSelectElement).value)
+                        }
+                    >
+                        <VSCodeOption value="newest">Newest First</VSCodeOption>
+                        <VSCodeOption value="oldest">Oldest First</VSCodeOption>
+                        <VSCodeOption value="most-comments">
+                            Most Comments
                         </VSCodeOption>
-                    ))}
-                </VSCodeDropdown>
-                <VSCodeDropdown
-                    value={prSort}
-                    onChange={(e) =>
-                        onSortChange((e.target as HTMLSelectElement).value)
-                    }
-                >
-                    <VSCodeOption value="newest">Newest First</VSCodeOption>
-                    <VSCodeOption value="oldest">Oldest First</VSCodeOption>
-                    <VSCodeOption value="most-comments">
-                        Most Comments
-                    </VSCodeOption>
-                    <VSCodeOption value="least-comments">
-                        Least Comments
-                    </VSCodeOption>
-                </VSCodeDropdown>
+                        <VSCodeOption value="least-comments">
+                            Least Comments
+                        </VSCodeOption>
+                    </VSCodeDropdown>
+                </div>
+                {isLoading && pullRequests.length === 0 ? (
+                    <div className="flex justify-center items-center h-64">
+                        Loading...
+                    </div>
+                ) : filteredPRs.length === 0 ? (
+                    <p>No pull requests found.</p>
+                ) : (
+                    <>
+                        <GenericTable
+                            columns={columns}
+                            data={pagedPRs}
+                            rowKey={(pr) => pr.number}
+                            onRowClick={(pr) => setSelectedPRLocal(pr.number)}
+                            selectedRowKey={selectedPRLocal}
+                            ariaLabel="Pull Requests"
+                        />
+                        {hasMorePRs && (
+                            <div
+                                className="flex justify-center my-4"
+                                ref={loadMoreWrapperRef}
+                            >
+                                <VSCodeButton
+                                    onClick={() => {
+                                        setPendingScroll(true);
+                                        loadMorePRs();
+                                    }}
+                                    style={{
+                                        display: "flex",
+                                        alignItems: "center",
+                                    }}
+                                >
+                                    Load More
+                                </VSCodeButton>
+                            </div>
+                        )}
+                    </>
+                )}
             </div>
-            {filteredPRs.length === 0 ? (
-                <p>No pull requests found.</p>
-            ) : (
-                <>
-                    <VSCodeDataGrid aria-label="Pull Requests">
-                        <VSCodeDataGridRow row-type="header">
-                            <VSCodeDataGridCell
-                                cell-type="columnheader"
-                                grid-column="1"
+            {/* Right: Detail panel */}
+            <div
+                style={{
+                    width: 340,
+                    minWidth: 240,
+                    maxWidth: 400,
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: 0,
+                    padding: "28px 24px 20px 24px",
+                    boxSizing: "border-box",
+                }}
+            >
+                {(() => {
+                    const pr = pullRequests.find(
+                        (p) => p.number === selectedPRLocal
+                    );
+                    if (!pr)
+                        return (
+                            <div
+                                style={{
+                                    color: "#888",
+                                    marginTop: 32,
+                                    textAlign: "center",
+                                }}
                             >
-                                Number
-                            </VSCodeDataGridCell>
-                            <VSCodeDataGridCell
-                                cell-type="columnheader"
-                                grid-column="2"
+                                Please select a pull request
+                            </div>
+                        );
+                    return (
+                        <div
+                            style={{
+                                display: "flex",
+                                flexDirection: "column",
+                                gap: 14,
+                            }}
+                        >
+                            <div
+                                style={{
+                                    fontWeight: "bold",
+                                    fontSize: 20,
+                                    marginBottom: 2,
+                                    letterSpacing: 0.5,
+                                }}
                             >
-                                Title
-                            </VSCodeDataGridCell>
-                            <VSCodeDataGridCell
-                                cell-type="columnheader"
-                                grid-column="3"
-                            >
-                                Source
-                            </VSCodeDataGridCell>
-                            <VSCodeDataGridCell
-                                cell-type="columnheader"
-                                grid-column="4"
-                            >
-                                Target
-                            </VSCodeDataGridCell>
-                            <VSCodeDataGridCell
-                                cell-type="columnheader"
-                                grid-column="5"
-                            >
-                                Submitted
-                            </VSCodeDataGridCell>
-                            <VSCodeDataGridCell
-                                cell-type="columnheader"
-                                grid-column="6"
-                            >
-                                Last Activity
-                            </VSCodeDataGridCell>
-                        </VSCodeDataGridRow>
-                        {pagedPRs.map((pr) => (
-                            <VSCodeDataGridRow
-                                key={pr.number}
-                                className={
-                                    selectedPR === pr.number
-                                        ? "vscode-selected-row"
-                                        : ""
-                                }
-                                style={
-                                    selectedPR === pr.number
-                                        ? {
-                                              background:
-                                                  "var(--vscode-list-activeSelectionBackground)",
-                                              color: "var(--vscode-list-activeSelectionForeground)",
-                                          }
-                                        : {}
-                                }
-                            >
-                                <VSCodeDataGridCell grid-column="1">
-                                    {pr.number}
-                                </VSCodeDataGridCell>
-                                <VSCodeDataGridCell grid-column="2">
-                                    <span>
-                                        {highlightKeyword(pr.title, keyword)}
-                                    </span>
-                                    <a
-                                        href={`${url}/${projectPath}/~pulls/${pr.number}`}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        title="Open in oneDev"
+                                {pr.title}
+                            </div>
+                            <div>
+                                <span
+                                    style={{
+                                        fontWeight: 500,
+                                        color: "#666",
+                                        marginRight: 6,
+                                    }}
+                                >
+                                    State:
+                                </span>
+                                {pr.status}
+                            </div>
+                            <div>
+                                <span
+                                    style={{
+                                        fontWeight: 500,
+                                        color: "#666",
+                                        marginRight: 6,
+                                    }}
+                                >
+                                    Author:
+                                </span>
+                                {pr.submitterId}
+                            </div>
+                            <div>
+                                <span
+                                    style={{
+                                        fontWeight: 500,
+                                        color: "#666",
+                                        marginRight: 6,
+                                    }}
+                                >
+                                    Source:
+                                </span>
+                                {pr.sourceBranch}
+                            </div>
+                            <div>
+                                <span
+                                    style={{
+                                        fontWeight: 500,
+                                        color: "#666",
+                                        marginRight: 6,
+                                    }}
+                                >
+                                    Target:
+                                </span>
+                                {pr.targetBranch}
+                            </div>
+                            <div>
+                                <span
+                                    style={{
+                                        fontWeight: 500,
+                                        color: "#666",
+                                        marginRight: 6,
+                                    }}
+                                >
+                                    Created:
+                                </span>
+                                {new Date(pr.submitDate).toLocaleString()}
+                            </div>
+                            {/* <div>
+                                <span
+                                    style={{
+                                        fontWeight: 500,
+                                        color: "#666",
+                                        marginRight: 6,
+                                    }}
+                                >
+                                    Request ID:
+                                </span>
+                                {pr.id}
+                            </div> */}
+                            {/* Current Builds Section */}
+                            <div style={{ marginTop: 18 }}>
+                                <div
+                                    style={{
+                                        fontWeight: 600,
+                                        fontSize: 16,
+                                        marginBottom: 6,
+                                    }}
+                                >
+                                    Builds
+                                </div>
+                                {loadingBuilds ? (
+                                    <div style={{ color: "#888" }}>
+                                        Loading builds...
+                                    </div>
+                                ) : currentBuilds &&
+                                  currentBuilds.length > 0 ? (
+                                    <div
                                         style={{
-                                            color: "#0078d4",
-                                            textDecoration: "none",
+                                            display: "flex",
+                                            flexDirection: "column",
+                                            gap: 6,
                                         }}
                                     >
-                                        {linkIcon}
-                                    </a>
-                                </VSCodeDataGridCell>
-                                <VSCodeDataGridCell grid-column="3">
-                                    <span
-                                        style={{
-                                            display: "inline-flex",
-                                            alignItems: "center",
-                                        }}
-                                    >
-                                        <span>
-                                            {highlightKeyword(
-                                                pr.sourceBranch,
-                                                keyword
-                                            )}
-                                        </span>
-                                        <button
-                                            title="Checkout Source Branch"
-                                            onClick={() => {
-                                                if (vscode) {
-                                                    vscode.postMessage({
-                                                        command:
-                                                            "checkoutBranch",
-                                                        branch: pr.sourceBranch,
-                                                    });
-                                                } else {
-                                                    alert(
-                                                        "VS Code API not available."
-                                                    );
-                                                }
-                                            }}
-                                            style={{
-                                                background: "none",
-                                                border: "none",
-                                                padding: 0,
-                                                marginLeft: 6,
-                                                color: "#0078d4",
-                                                cursor: "pointer",
-                                                display: "inline-flex",
-                                                alignItems: "center",
-                                            }}
-                                        >
-                                            {/* Checkout icon (downward arrow on branch) */}
-                                            <svg
-                                                xmlns="http://www.w3.org/2000/svg"
-                                                width="16"
-                                                height="16"
-                                                viewBox="0 0 20 20"
-                                                fill="none"
+                                        {currentBuilds.map((b) => (
+                                            <div
+                                                key={b.id}
                                                 style={{
-                                                    display: "inline",
-                                                    verticalAlign: "middle",
+                                                    display: "flex",
+                                                    alignItems: "center",
+                                                    borderBottom:
+                                                        "1px solid #eee",
+                                                    padding: "6px 0",
                                                 }}
                                             >
-                                                <path
-                                                    d="M10 2v12"
-                                                    stroke="currentColor"
-                                                    strokeWidth="1.5"
-                                                    strokeLinecap="round"
-                                                />
-                                                <path
-                                                    d="M6 12l4 4 4-4"
-                                                    stroke="currentColor"
-                                                    strokeWidth="1.5"
-                                                    strokeLinecap="round"
-                                                    strokeLinejoin="round"
-                                                />
-                                            </svg>
-                                        </button>
-                                    </span>
-                                </VSCodeDataGridCell>
-                                <VSCodeDataGridCell grid-column="4">
-                                    {highlightKeyword(pr.targetBranch, keyword)}
-                                </VSCodeDataGridCell>
-                                <VSCodeDataGridCell grid-column="5">
-                                    {new Date(
-                                        pr.submitDate
-                                    ).toLocaleDateString()}
-                                </VSCodeDataGridCell>
-                                <VSCodeDataGridCell grid-column="6">
-                                    {new Date(
-                                        pr.lastActivity.date
-                                    ).toLocaleString()}
-                                </VSCodeDataGridCell>
-                            </VSCodeDataGridRow>
-                        ))}
-                    </VSCodeDataGrid>
-                    {hasMorePRs && (
-                        <div
-                            className="flex justify-center my-4"
-                            ref={loadMoreWrapperRef}
-                        >
-                            <VSCodeButton
-                                onClick={() => {
-                                    setPendingScroll(true);
-                                    loadMorePRs();
-                                }}
-                                style={{
-                                    display: "flex",
-                                    alignItems: "center",
-                                }}
-                            >
-                                Load More
-                            </VSCodeButton>
+                                                <span
+                                                    style={{
+                                                        flex: 1,
+                                                        fontWeight: 500,
+                                                    }}
+                                                >
+                                                    {b.jobName}
+                                                </span>
+                                                <span
+                                                    style={{
+                                                        marginRight: 12,
+                                                        color:
+                                                            b.status ===
+                                                            "SUCCESSFUL"
+                                                                ? "#2ecc40"
+                                                                : b.status ===
+                                                                  "FAILED"
+                                                                ? "#e74c3c"
+                                                                : "#666",
+                                                        fontWeight:
+                                                            b.status ===
+                                                                "SUCCESSFUL" ||
+                                                            b.status ===
+                                                                "FAILED"
+                                                                ? "bold"
+                                                                : undefined,
+                                                    }}
+                                                >
+                                                    {b.status}
+                                                </span>
+                                                <a
+                                                    href={
+                                                        url &&
+                                                        projectPath &&
+                                                        b.number
+                                                            ? `${url}/${projectPath}/~builds/${b.number}`
+                                                            : undefined
+                                                    }
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    title="Open build in oneDev"
+                                                    style={{
+                                                        color: "#0078d4",
+                                                        textDecoration: "none",
+                                                        display: "inline-flex",
+                                                        alignItems: "center",
+                                                    }}
+                                                >
+                                                    <ExternalLinkIcon
+                                                        size={15}
+                                                    />
+                                                </a>
+                                            </div>
+                                        ))}
+                                    </div>
+                                ) : (
+                                    <div style={{ color: "#888" }}>
+                                        No builds found.
+                                    </div>
+                                )}
+                            </div>
+                            {/* End Current Builds Section */}
+                            {pr.description && (
+                                <>
+                                    <div
+                                        style={{
+                                            fontWeight: 600,
+                                            fontSize: 16,
+                                            marginTop: 18,
+                                            marginBottom: 6,
+                                        }}
+                                    >
+                                        Description
+                                    </div>
+                                    <div
+                                        style={{
+                                            color: "var(--vscode-foreground)",
+                                            fontSize: 15,
+                                            whiteSpace: "pre-wrap",
+                                            wordBreak: "break-word",
+                                        }}
+                                    >
+                                        {pr.description}
+                                    </div>
+                                </>
+                            )}
                         </div>
-                    )}
-                </>
-            )}
+                    );
+                })()}
+            </div>
         </div>
     );
 };
