@@ -252,17 +252,23 @@ const PRTab: React.FC<PRTabProps> = ({
                                     cell-type="columnheader"
                                     grid-column="3"
                                 >
-                                    Source
+                                    Status
                                 </VSCodeDataGridCell>
                                 <VSCodeDataGridCell
                                     cell-type="columnheader"
                                     grid-column="4"
                                 >
-                                    Target
+                                    Source
                                 </VSCodeDataGridCell>
                                 <VSCodeDataGridCell
                                     cell-type="columnheader"
                                     grid-column="5"
+                                >
+                                    Target
+                                </VSCodeDataGridCell>
+                                <VSCodeDataGridCell
+                                    cell-type="columnheader"
+                                    grid-column="6"
                                 >
                                     Submitter
                                 </VSCodeDataGridCell>
@@ -312,6 +318,9 @@ const PRTab: React.FC<PRTabProps> = ({
                                         </a>
                                     </VSCodeDataGridCell>
                                     <VSCodeDataGridCell grid-column="3">
+                                        {pr.status}
+                                    </VSCodeDataGridCell>
+                                    <VSCodeDataGridCell grid-column="4">
                                         <span
                                             style={{
                                                 display: "inline-flex",
@@ -380,13 +389,13 @@ const PRTab: React.FC<PRTabProps> = ({
                                             </button>
                                         </span>
                                     </VSCodeDataGridCell>
-                                    <VSCodeDataGridCell grid-column="4">
+                                    <VSCodeDataGridCell grid-column="5">
                                         {highlightKeyword(
                                             pr.targetBranch,
                                             keyword
                                         )}
                                     </VSCodeDataGridCell>
-                                    <VSCodeDataGridCell grid-column="5">
+                                    <VSCodeDataGridCell grid-column="6">
                                         {pr.submitterId}
                                     </VSCodeDataGridCell>
                                 </VSCodeDataGridRow>

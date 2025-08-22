@@ -34,7 +34,7 @@ export interface Issue {
 // Build type for BuildTab
 export interface Build {
     number: number;
-    name: string;
+    jobName: string;
     branch: string;
     commitHash?: string;
     status: string;

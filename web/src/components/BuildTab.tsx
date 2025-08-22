@@ -225,37 +225,13 @@ const BuildTab: React.FC<BuildTabProps> = ({
                                     cell-type="columnheader"
                                     grid-column="2"
                                 >
-                                    Name
+                                    Job Name
                                 </VSCodeDataGridCell>
                                 <VSCodeDataGridCell
                                     cell-type="columnheader"
                                     grid-column="3"
                                 >
-                                    Branch
-                                </VSCodeDataGridCell>
-                                <VSCodeDataGridCell
-                                    cell-type="columnheader"
-                                    grid-column="4"
-                                >
-                                    Commit
-                                </VSCodeDataGridCell>
-                                <VSCodeDataGridCell
-                                    cell-type="columnheader"
-                                    grid-column="5"
-                                >
                                     Status
-                                </VSCodeDataGridCell>
-                                <VSCodeDataGridCell
-                                    cell-type="columnheader"
-                                    grid-column="6"
-                                >
-                                    Started
-                                </VSCodeDataGridCell>
-                                <VSCodeDataGridCell
-                                    cell-type="columnheader"
-                                    grid-column="7"
-                                >
-                                    Duration
                                 </VSCodeDataGridCell>
                             </VSCodeDataGridRow>
                             {pagedBuilds.map((b) => (
@@ -284,7 +260,10 @@ const BuildTab: React.FC<BuildTabProps> = ({
                                     </VSCodeDataGridCell>
                                     <VSCodeDataGridCell grid-column="2">
                                         <span>
-                                            {highlightKeyword(b.name, keyword)}
+                                            {highlightKeyword(
+                                                b.jobName,
+                                                keyword
+                                            )}
                                         </span>
                                         <a
                                             href={`${url}/${projectPath}/~builds/${b.number}`}
@@ -300,25 +279,7 @@ const BuildTab: React.FC<BuildTabProps> = ({
                                         </a>
                                     </VSCodeDataGridCell>
                                     <VSCodeDataGridCell grid-column="3">
-                                        {highlightKeyword(b.branch, keyword)}
-                                    </VSCodeDataGridCell>
-                                    <VSCodeDataGridCell grid-column="4">
-                                        {b.commitHash &&
-                                            b.commitHash.substring(0, 8)}
-                                    </VSCodeDataGridCell>
-                                    <VSCodeDataGridCell grid-column="5">
                                         {b.status}
-                                    </VSCodeDataGridCell>
-                                    <VSCodeDataGridCell grid-column="6">
-                                        {b.startDate &&
-                                            new Date(
-                                                b.startDate
-                                            ).toLocaleString()}
-                                    </VSCodeDataGridCell>
-                                    <VSCodeDataGridCell grid-column="7">
-                                        {b.duration != null
-                                            ? `${b.duration} s`
-                                            : "-"}
                                     </VSCodeDataGridCell>
                                 </VSCodeDataGridRow>
                             ))}
