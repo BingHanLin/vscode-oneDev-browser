@@ -350,6 +350,113 @@ const PRTab: React.FC<PRTabProps> = ({
                             >
                                 {pr.title}
                             </div>
+                            {/* Current Builds Section */}
+                            <div style={{ marginTop: 18 }}>
+                                <div
+                                    style={{
+                                        fontWeight: 600,
+                                        fontSize: 16,
+                                        marginBottom: 6,
+                                    }}
+                                >
+                                    Builds
+                                </div>
+                                {loadingBuilds ? (
+                                    <div style={{ color: "#888" }}>
+                                        Loading builds...
+                                    </div>
+                                ) : currentBuilds &&
+                                  currentBuilds.length > 0 ? (
+                                    <div
+                                        style={{
+                                            display: "flex",
+                                            flexDirection: "column",
+                                            gap: 6,
+                                        }}
+                                    >
+                                        {currentBuilds.map((b) => (
+                                            <div
+                                                key={b.id}
+                                                style={{
+                                                    display: "flex",
+                                                    alignItems: "center",
+                                                    borderBottom:
+                                                        "1px solid #eee",
+                                                    padding: "6px 0",
+                                                }}
+                                            >
+                                                <span
+                                                    style={{
+                                                        flex: 1,
+                                                        fontWeight: 500,
+                                                    }}
+                                                >
+                                                    {b.jobName}
+                                                </span>
+                                                <span
+                                                    style={{
+                                                        marginRight: 12,
+                                                        color: "#666",
+                                                    }}
+                                                >
+                                                    {b.status}
+                                                </span>
+                                                <a
+                                                    href={
+                                                        url &&
+                                                        projectPath &&
+                                                        b.number
+                                                            ? `${url}/${projectPath}/~builds/${b.number}`
+                                                            : undefined
+                                                    }
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    title="Open build in oneDev"
+                                                    style={{
+                                                        color: "#0078d4",
+                                                        textDecoration: "none",
+                                                        display: "inline-flex",
+                                                        alignItems: "center",
+                                                    }}
+                                                >
+                                                    <ExternalLinkIcon
+                                                        size={15}
+                                                    />
+                                                </a>
+                                            </div>
+                                        ))}
+                                    </div>
+                                ) : (
+                                    <div style={{ color: "#888" }}>
+                                        No builds found.
+                                    </div>
+                                )}
+                            </div>
+                            {/* End Current Builds Section */}
+                            {pr.description && (
+                                <>
+                                    <div
+                                        style={{
+                                            fontWeight: 600,
+                                            fontSize: 16,
+                                            marginTop: 18,
+                                            marginBottom: 6,
+                                        }}
+                                    >
+                                        Description
+                                    </div>
+                                    <div
+                                        style={{
+                                            color: "var(--vscode-foreground)",
+                                            fontSize: 15,
+                                            whiteSpace: "pre-wrap",
+                                            wordBreak: "break-word",
+                                        }}
+                                    >
+                                        {pr.description}
+                                    </div>
+                                </>
+                            )}
                             <div>
                                 <span
                                     style={{
@@ -436,145 +543,6 @@ const PRTab: React.FC<PRTabProps> = ({
                                 </span>
                                 {pr.id}
                             </div>
-                            {/* Current Builds Section */}
-                            <div style={{ marginTop: 18 }}>
-                                <div
-                                    style={{
-                                        fontWeight: 600,
-                                        fontSize: 16,
-                                        marginBottom: 6,
-                                    }}
-                                >
-                                    Current Builds
-                                </div>
-                                {loadingBuilds ? (
-                                    <div style={{ color: "#888" }}>
-                                        Loading builds...
-                                    </div>
-                                ) : currentBuilds &&
-                                  currentBuilds.length > 0 ? (
-                                    <div
-                                        style={{
-                                            display: "flex",
-                                            flexDirection: "column",
-                                            gap: 10,
-                                        }}
-                                    >
-                                        {currentBuilds.map((b) => {
-                                            // runningDuration formatting (ms)
-                                            let runningDuration = "-";
-                                            if (b.runningDuration != null) {
-                                                if (b.runningDuration < 1000) {
-                                                    runningDuration = `${b.runningDuration} ms`;
-                                                } else {
-                                                    let seconds = Math.floor(
-                                                        b.runningDuration / 1000
-                                                    );
-                                                    const hours = Math.floor(
-                                                        seconds / 3600
-                                                    );
-                                                    seconds = seconds % 3600;
-                                                    const minutes = Math.floor(
-                                                        seconds / 60
-                                                    );
-                                                    seconds = seconds % 60;
-                                                    const parts = [];
-                                                    if (hours > 0)
-                                                        parts.push(
-                                                            `${hours} hour${
-                                                                hours > 1
-                                                                    ? "s"
-                                                                    : ""
-                                                            }`
-                                                        );
-                                                    if (minutes > 0)
-                                                        parts.push(
-                                                            `${minutes} minute${
-                                                                minutes > 1
-                                                                    ? "s"
-                                                                    : ""
-                                                            }`
-                                                        );
-                                                    if (
-                                                        seconds > 0 ||
-                                                        parts.length === 0
-                                                    )
-                                                        parts.push(
-                                                            `${seconds} second${
-                                                                seconds !== 1
-                                                                    ? "s"
-                                                                    : ""
-                                                            }`
-                                                        );
-                                                    runningDuration =
-                                                        parts.join(" ");
-                                                }
-                                            }
-                                            // finishDate formatting
-                                            let finishDate = "-";
-                                            if (b.finishDate) {
-                                                const d = new Date(
-                                                    b.finishDate
-                                                );
-                                                if (!isNaN(d.getTime())) {
-                                                    finishDate =
-                                                        d.toLocaleString();
-                                                }
-                                            }
-                                            return (
-                                                <div
-                                                    key={b.id}
-                                                    style={{
-                                                        border: "1px solid #eee",
-                                                        borderRadius: 6,
-                                                        padding: 10,
-                                                        background: "#fafbfc",
-                                                    }}
-                                                >
-                                                    <div
-                                                        style={{
-                                                            fontWeight: 500,
-                                                            fontSize: 15,
-                                                            marginBottom: 2,
-                                                        }}
-                                                    >
-                                                        Job: {b.jobName}
-                                                    </div>
-                                                    <div>
-                                                        Status: {b.status}
-                                                    </div>
-                                                    <div>
-                                                        Running Duration:{" "}
-                                                        {runningDuration}
-                                                    </div>
-                                                    <div>
-                                                        Finish Date:{" "}
-                                                        {finishDate}
-                                                    </div>
-                                                </div>
-                                            );
-                                        })}
-                                    </div>
-                                ) : (
-                                    <div style={{ color: "#888" }}>
-                                        No builds found.
-                                    </div>
-                                )}
-                            </div>
-                            {/* End Current Builds Section */}
-                            {pr.description && (
-                                <div
-                                    style={{
-                                        color: "var(--vscode-foreground)",
-                                        fontSize: 15,
-                                        marginTop: 16,
-                                        whiteSpace: "pre-wrap",
-                                        wordBreak: "break-word",
-                                    }}
-                                >
-                                    {pr.description}
-                                </div>
-                            )}
                         </div>
                     );
                 })()}
