@@ -212,13 +212,7 @@ const IssuesTab: React.FC<IssuesTabProps> = ({
                                     cell-type="columnheader"
                                     grid-column="4"
                                 >
-                                    Submitted
-                                </VSCodeDataGridCell>
-                                <VSCodeDataGridCell
-                                    cell-type="columnheader"
-                                    grid-column="5"
-                                >
-                                    Last Activity
+                                    Submitter
                                 </VSCodeDataGridCell>
                             </VSCodeDataGridRow>
                             {filteredIssues.map((issue) => (
@@ -273,14 +267,7 @@ const IssuesTab: React.FC<IssuesTabProps> = ({
                                         {issue.state}
                                     </VSCodeDataGridCell>
                                     <VSCodeDataGridCell grid-column="4">
-                                        {new Date(
-                                            issue.submitDate
-                                        ).toLocaleDateString()}
-                                    </VSCodeDataGridCell>
-                                    <VSCodeDataGridCell grid-column="5">
-                                        {new Date(
-                                            issue.lastActivity.date
-                                        ).toLocaleString()}
+                                        {issue.submitterId}
                                     </VSCodeDataGridCell>
                                 </VSCodeDataGridRow>
                             ))}

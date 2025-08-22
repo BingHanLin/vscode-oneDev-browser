@@ -264,13 +264,7 @@ const PRTab: React.FC<PRTabProps> = ({
                                     cell-type="columnheader"
                                     grid-column="5"
                                 >
-                                    Submitted
-                                </VSCodeDataGridCell>
-                                <VSCodeDataGridCell
-                                    cell-type="columnheader"
-                                    grid-column="6"
-                                >
-                                    Last Activity
+                                    Submitter
                                 </VSCodeDataGridCell>
                             </VSCodeDataGridRow>
                             {pagedPRs.map((pr) => (
@@ -393,14 +387,7 @@ const PRTab: React.FC<PRTabProps> = ({
                                         )}
                                     </VSCodeDataGridCell>
                                     <VSCodeDataGridCell grid-column="5">
-                                        {new Date(
-                                            pr.submitDate
-                                        ).toLocaleDateString()}
-                                    </VSCodeDataGridCell>
-                                    <VSCodeDataGridCell grid-column="6">
-                                        {new Date(
-                                            pr.lastActivity.date
-                                        ).toLocaleString()}
+                                        {pr.submitterId}
                                     </VSCodeDataGridCell>
                                 </VSCodeDataGridRow>
                             ))}
