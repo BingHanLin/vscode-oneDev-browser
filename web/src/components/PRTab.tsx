@@ -42,10 +42,34 @@ const PRTab: React.FC<PRTabProps> = ({
     const [selectedPRLocal, setSelectedPRLocal] = useState<number | null>(
         selectedPRProp ?? null
     );
+    // PR builds state
+    const [currentBuilds, setCurrentBuilds] = useState<any[] | null>(null);
+    const [loadingBuilds, setLoadingBuilds] = useState(false);
     // Sync with prop if it changes
     useEffect(() => {
         setSelectedPRLocal(selectedPRProp ?? null);
     }, [selectedPRProp]);
+    // Fetch current builds when selectedPRLocal changes
+    useEffect(() => {
+        if (selectedPRLocal != null) {
+            setLoadingBuilds(true);
+            setCurrentBuilds(null);
+            fetch(`/~api/pulls/${selectedPRLocal}/current-builds`)
+                .then(async (res) => {
+                    if (!res.ok) throw new Error("Failed to fetch builds");
+                    return await res.json();
+                })
+                .then((data) => {
+                    setCurrentBuilds(Array.isArray(data) ? data : []);
+                })
+                .catch((e) => {
+                    setCurrentBuilds([]);
+                })
+                .finally(() => setLoadingBuilds(false));
+        } else {
+            setCurrentBuilds(null);
+        }
+    }, [selectedPRLocal]);
     // State for keyword search
     const [keyword, setKeyword] = useState("");
 
@@ -408,6 +432,132 @@ const PRTab: React.FC<PRTabProps> = ({
                                     pr.lastActivity.date
                                 ).toLocaleString()}
                             </div>
+                            {/* Current Builds Section */}
+                            <div style={{ marginTop: 18 }}>
+                                <div
+                                    style={{
+                                        fontWeight: 600,
+                                        fontSize: 16,
+                                        marginBottom: 6,
+                                    }}
+                                >
+                                    Current Builds
+                                </div>
+                                {loadingBuilds ? (
+                                    <div style={{ color: "#888" }}>
+                                        Loading builds...
+                                    </div>
+                                ) : currentBuilds &&
+                                  currentBuilds.length > 0 ? (
+                                    <div
+                                        style={{
+                                            display: "flex",
+                                            flexDirection: "column",
+                                            gap: 10,
+                                        }}
+                                    >
+                                        {currentBuilds.map((b) => {
+                                            // runningDuration formatting (ms)
+                                            let runningDuration = "-";
+                                            if (b.runningDuration != null) {
+                                                if (b.runningDuration < 1000) {
+                                                    runningDuration = `${b.runningDuration} ms`;
+                                                } else {
+                                                    let seconds = Math.floor(
+                                                        b.runningDuration / 1000
+                                                    );
+                                                    const hours = Math.floor(
+                                                        seconds / 3600
+                                                    );
+                                                    seconds = seconds % 3600;
+                                                    const minutes = Math.floor(
+                                                        seconds / 60
+                                                    );
+                                                    seconds = seconds % 60;
+                                                    const parts = [];
+                                                    if (hours > 0)
+                                                        parts.push(
+                                                            `${hours} hour${
+                                                                hours > 1
+                                                                    ? "s"
+                                                                    : ""
+                                                            }`
+                                                        );
+                                                    if (minutes > 0)
+                                                        parts.push(
+                                                            `${minutes} minute${
+                                                                minutes > 1
+                                                                    ? "s"
+                                                                    : ""
+                                                            }`
+                                                        );
+                                                    if (
+                                                        seconds > 0 ||
+                                                        parts.length === 0
+                                                    )
+                                                        parts.push(
+                                                            `${seconds} second${
+                                                                seconds !== 1
+                                                                    ? "s"
+                                                                    : ""
+                                                            }`
+                                                        );
+                                                    runningDuration =
+                                                        parts.join(" ");
+                                                }
+                                            }
+                                            // finishDate formatting
+                                            let finishDate = "-";
+                                            if (b.finishDate) {
+                                                const d = new Date(
+                                                    b.finishDate
+                                                );
+                                                if (!isNaN(d.getTime())) {
+                                                    finishDate =
+                                                        d.toLocaleString();
+                                                }
+                                            }
+                                            return (
+                                                <div
+                                                    key={b.id}
+                                                    style={{
+                                                        border: "1px solid #eee",
+                                                        borderRadius: 6,
+                                                        padding: 10,
+                                                        background: "#fafbfc",
+                                                    }}
+                                                >
+                                                    <div
+                                                        style={{
+                                                            fontWeight: 500,
+                                                            fontSize: 15,
+                                                            marginBottom: 2,
+                                                        }}
+                                                    >
+                                                        Job: {b.jobName}
+                                                    </div>
+                                                    <div>
+                                                        Status: {b.status}
+                                                    </div>
+                                                    <div>
+                                                        Running Duration:{" "}
+                                                        {runningDuration}
+                                                    </div>
+                                                    <div>
+                                                        Finish Date:{" "}
+                                                        {finishDate}
+                                                    </div>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                ) : (
+                                    <div style={{ color: "#888" }}>
+                                        No builds found.
+                                    </div>
+                                )}
+                            </div>
+                            {/* End Current Builds Section */}
                             {pr.description && (
                                 <div
                                     style={{
