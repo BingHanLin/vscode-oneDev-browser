@@ -214,10 +214,6 @@ const PRTab: React.FC<PRTabProps> = ({
             <div
                 style={{ flex: 1, minHeight: 0, overflow: "auto", padding: 8 }}
             >
-                <div className="flex justify-between items-center mb-4">
-                    <h2 className="text-2xl font-bold">Pull Requests</h2>
-                    <VSCodeButton onClick={onReload}>Reload</VSCodeButton>
-                </div>
                 <div className="flex justify-end mb-4 gap-2">
                     {/* Keyword search input for title/source/target branch */}
                     <input

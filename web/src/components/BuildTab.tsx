@@ -130,10 +130,6 @@ const BuildTab: React.FC<BuildTabProps> = ({
             <div
                 style={{ flex: 1, minHeight: 0, overflow: "auto", padding: 8 }}
             >
-                <div className="flex justify-between items-center mb-4">
-                    <h2 className="text-2xl font-bold">Builds</h2>
-                    <VSCodeButton onClick={onReload}>Reload</VSCodeButton>
-                </div>
                 <div className="flex justify-end mb-4 gap-2">
                     <input
                         type="text"
