@@ -2,7 +2,7 @@
   "name": "onedev-browser",
   "displayName": "oneDev Browser",
   "description": "Browse issues, PRs, and builds on oneDev repositories",
-  "version": "0.0.4",
+  "version": "0.0.5",
   "repository": "https://github.com/BingHanLin/vscode-oneDev-browser",
   "icon": "images/icon.png",
   "main": "./dist/extension.js",
