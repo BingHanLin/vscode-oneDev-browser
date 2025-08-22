@@ -314,6 +314,18 @@ const BuildTab: React.FC<BuildTabProps> = ({
                                         marginRight: 6,
                                     }}
                                 >
+                                    Number:
+                                </span>
+                                {b.number}
+                            </div>
+                            <div>
+                                <span
+                                    style={{
+                                        fontWeight: 500,
+                                        color: "#666",
+                                        marginRight: 6,
+                                    }}
+                                >
                                     Status:
                                 </span>
                                 {b.status}
