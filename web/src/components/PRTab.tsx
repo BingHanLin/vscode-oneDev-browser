@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
+import { highlightKeyword } from "../utils/highlightKeyword";
 import {
     VSCodeButton,
     VSCodeDropdown,
@@ -109,25 +110,6 @@ const PRTab: React.FC<PRTabProps> = ({
             window.removeEventListener("message", handleMessage);
         };
     }, [vscode]);
-
-    // Highlight keyword in a string (case-insensitive)
-    function highlightKeyword(text: string, keyword: string) {
-        if (!keyword) return text;
-        const regex = new RegExp(
-            `(${keyword.replace(/[.*+?^${}()|[\\\]\[]/g, "\\$&")})`,
-            "gi"
-        );
-        const parts = text.split(regex);
-        return parts.map((part, i) =>
-            regex.test(part) ? (
-                <mark key={i} style={{ background: "#ffe066", padding: 0 }}>
-                    {part}
-                </mark>
-            ) : (
-                <React.Fragment key={i}>{part}</React.Fragment>
-            )
-        );
-    }
 
     // Table columns config
     const columns: TableColumn<PullRequest>[] = [

@@ -6,6 +6,7 @@ import {
 } from "@vscode/webview-ui-toolkit/react";
 import GenericTable, { TableColumn } from "./GenericTable";
 import { Issue } from "../types";
+import { highlightKeyword } from "../utils/highlightKeyword";
 
 interface IssuesTabProps {
     issues: Issue[];
@@ -95,24 +96,6 @@ const IssuesTab: React.FC<IssuesTabProps> = ({
     const allStates = Array.from(
         new Set(issues.map((issue) => issue.state))
     ).sort();
-    // Highlight keyword in title
-    function highlightKeyword(text: string, keyword: string) {
-        if (!keyword) return text;
-        const regex = new RegExp(
-            `(${keyword.replace(/[.*+?^${}()|[\]\[]/g, "\\$&")})`,
-            "gi"
-        );
-        const parts = text.split(regex);
-        return parts.map((part, i) =>
-            regex.test(part) ? (
-                <mark key={i} style={{ background: "#ffe066", padding: 0 }}>
-                    {part}
-                </mark>
-            ) : (
-                <React.Fragment key={i}>{part}</React.Fragment>
-            )
-        );
-    }
 
     // Table columns config
     const columns: TableColumn<Issue>[] = [

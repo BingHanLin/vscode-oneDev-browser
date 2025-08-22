@@ -9,6 +9,7 @@ import {
 } from "@vscode/webview-ui-toolkit/react";
 // TODO: Replace with actual Build type definition
 import { Build } from "../types";
+import { highlightKeyword } from "../utils/highlightKeyword";
 
 interface BuildTabProps {
     builds: Build[];
@@ -96,23 +97,6 @@ const BuildTab: React.FC<BuildTabProps> = ({
             window.removeEventListener("message", handleMessage);
         };
     }, [vscode]);
-    function highlightKeyword(text: string, keyword: string) {
-        if (!keyword) return text;
-        const regex = new RegExp(
-            `(${keyword.replace(/[.*+?^${}()|[\\\]\[]/g, "\\$&")})`,
-            "gi"
-        );
-        const parts = text.split(regex);
-        return parts.map((part, i) =>
-            regex.test(part) ? (
-                <mark key={i} style={{ background: "#ffe066", padding: 0 }}>
-                    {part}
-                </mark>
-            ) : (
-                <React.Fragment key={i}>{part}</React.Fragment>
-            )
-        );
-    }
     // SVG external link icon
     const linkIcon = (
         <svg
