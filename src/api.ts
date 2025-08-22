@@ -58,15 +58,22 @@ export async function fetchIssues(
     return json;
 }
 
-export async function fetchBuilds(credentials: Credentials): Promise<any[]> {
+export async function fetchBuilds(
+    credentials: Credentials,
+    offset: number = 0,
+    count: number = 20
+): Promise<any[]> {
+    console.log('[api] fetchBuilds called', credentials, { offset, count });
     const apiUrl = `${credentials.url}/~api/builds`;
     const queryParams = new URLSearchParams({
         query: `"Project" is "${credentials.projectPath}"`,
-        offset: "0",
-        count: "20",
+        offset: offset.toString(),
+        count: count.toString(),
     });
     const response = await makeApiRequest(apiUrl, queryParams, credentials);
-    return await response.json();
+    const json = await response.json();
+    console.log('[api] fetchBuilds response', json);
+    return json;
 }
 
 async function makeApiRequest(

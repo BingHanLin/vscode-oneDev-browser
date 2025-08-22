@@ -249,6 +249,29 @@ function openReactWebview(context: vscode.ExtensionContext) {
             message: 'Failed to fetch pull requests.'
           });
         }
+      } else if (message.command === 'fetchBuilds') {
+        try {
+          const { fetchBuilds } = require('./api');
+          const offset = typeof message.offset === 'number' ? message.offset : 0;
+          const count = typeof message.count === 'number' ? message.count : 20;
+          const builds = await fetchBuilds({
+            url: message.url,
+            email: message.email,
+            token: message.token,
+            projectPath: message.projectPath
+          }, offset, count);
+          panel.webview.postMessage({
+            command: 'setBuilds',
+            builds,
+            offset,
+            count
+          });
+        } catch (err) {
+          panel.webview.postMessage({
+            command: 'showErrorMessage',
+            message: 'Failed to fetch builds.'
+          });
+        }
       } else if (message.command === 'fetchIssues') {
         try {
           const { fetchIssues } = require('./api');

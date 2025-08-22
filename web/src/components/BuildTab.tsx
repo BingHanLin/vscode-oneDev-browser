@@ -7,48 +7,124 @@ import {
     VSCodeDataGridCell,
     VSCodeDataGridRow,
 } from "@vscode/webview-ui-toolkit/react";
-import { Issue } from "../types";
+// TODO: Replace with actual Build type definition
+import { Build } from "../types";
 
-interface IssuesTabProps {
-    issues: Issue[];
-    issueSort: string;
+interface BuildTabProps {
+    builds: Build[];
+    buildSort: string;
     isLoading: boolean;
     url: string;
     projectPath: string;
     onReload: () => void;
     onSortChange: (sort: string) => void;
-    sortIssues: (issues: Issue[]) => Issue[];
-    loadMoreIssues: () => void;
-    hasMoreIssues: boolean;
-    selectedIssue?: number | null;
+    sortBuilds: (builds: Build[]) => Build[];
+    loadMoreBuilds: () => void;
+    hasMoreBuilds: boolean;
+    vscode?: { postMessage: (message: any) => void };
+    selectedBuild?: number | null;
 }
 
-const IssuesTab: React.FC<IssuesTabProps> = ({
-    issues,
-    issueSort,
+const BuildTab: React.FC<BuildTabProps> = ({
+    builds,
+    buildSort,
     isLoading,
     url,
     projectPath,
     onReload,
     onSortChange,
-    sortIssues,
-    loadMoreIssues,
-    hasMoreIssues,
-    selectedIssue,
+    sortBuilds,
+    loadMoreBuilds,
+    hasMoreBuilds,
+    vscode,
+    selectedBuild: selectedBuildProp,
 }) => {
+    const [selectedBuildLocal, setSelectedBuildLocal] = useState<number | null>(
+        selectedBuildProp ?? null
+    );
+    useEffect(() => {
+        setSelectedBuildLocal(selectedBuildProp ?? null);
+    }, [selectedBuildProp]);
+    const [keyword, setKeyword] = useState("");
+    const [stateFilter, setStateFilter] = useState<string>("all");
+    const allStates = Array.from(new Set(builds.map((b) => b.status))).sort();
+    const filteredBuilds = builds.filter(
+        (b) =>
+            (stateFilter === "all" || b.status === stateFilter) &&
+            (b.name?.toLowerCase().includes(keyword.toLowerCase()) ||
+                false ||
+                b.branch?.toLowerCase().includes(keyword.toLowerCase()) ||
+                false ||
+                b.commitHash?.toLowerCase().includes(keyword.toLowerCase()) ||
+                false)
+    );
+    const pagedBuilds = sortBuilds(filteredBuilds);
+    const loadMoreWrapperRef = useRef<HTMLDivElement | null>(null);
+    const [pendingScroll, setPendingScroll] = useState(false);
+    useEffect(() => {
+        if (pendingScroll && loadMoreWrapperRef.current) {
+            loadMoreWrapperRef.current.scrollIntoView({
+                behavior: "smooth",
+                block: "center",
+            });
+            setPendingScroll(false);
+        }
+    }, [builds, pendingScroll]);
+    // Listen for build actions (success/error), ask extension to show VS Code notification
+    useEffect(() => {
+        function handleMessage(event: MessageEvent) {
+            const { command, message } = event.data || {};
+            if (
+                (command === "rebuildSuccess" || command === "rebuildError") &&
+                vscode
+            ) {
+                vscode.postMessage({
+                    command:
+                        command === "rebuildSuccess"
+                            ? "showInfoMessage"
+                            : "showErrorMessage",
+                    message:
+                        message ||
+                        (command === "rebuildSuccess"
+                            ? "Build triggered successfully."
+                            : "Failed to trigger build."),
+                });
+            }
+        }
+        window.addEventListener("message", handleMessage);
+        return () => {
+            window.removeEventListener("message", handleMessage);
+        };
+    }, [vscode]);
+    function highlightKeyword(text: string, keyword: string) {
+        if (!keyword) return text;
+        const regex = new RegExp(
+            `(${keyword.replace(/[.*+?^${}()|[\\\]\[]/g, "\\$&")})`,
+            "gi"
+        );
+        const parts = text.split(regex);
+        return parts.map((part, i) =>
+            regex.test(part) ? (
+                <mark key={i} style={{ background: "#ffe066", padding: 0 }}>
+                    {part}
+                </mark>
+            ) : (
+                <React.Fragment key={i}>{part}</React.Fragment>
+            )
+        );
+    }
     // SVG external link icon
     const linkIcon = (
         <svg
-            width="20"
-            height="20"
+            xmlns="http://www.w3.org/2000/svg"
+            width="14"
+            height="14"
             viewBox="0 0 20 20"
             fill="none"
-            xmlns="http://www.w3.org/2000/svg"
             style={{
-                display: "inline",
-                verticalAlign: "middle",
                 marginLeft: 4,
-                color: "#0078d4",
+                verticalAlign: "middle",
+                cursor: "pointer",
             }}
         >
             <path
@@ -74,68 +150,20 @@ const IssuesTab: React.FC<IssuesTabProps> = ({
             />
         </svg>
     );
-    const [keyword, setKeyword] = useState("");
-    // Local state for selected issue (for detail panel)
-    const [selectedIssueLocal, setSelectedIssueLocal] = useState<number | null>(
-        selectedIssue ?? null
-    );
-    const [stateFilter, setStateFilter] = useState<string>("all");
-    // Ref for the Load More button wrapper
-    const loadMoreWrapperRef = useRef<HTMLDivElement | null>(null);
-    // Track if we just triggered load more (for scroll restoration)
-    const [pendingScroll, setPendingScroll] = useState(false);
-    // When pendingScroll is set, scroll the Load More button into view after render
-    useEffect(() => {
-        if (pendingScroll && loadMoreWrapperRef.current) {
-            loadMoreWrapperRef.current.scrollIntoView({
-                behavior: "smooth",
-                block: "center",
-            });
-            setPendingScroll(false);
-        }
-    }, [issues, pendingScroll]);
-    const allStates = Array.from(
-        new Set(issues.map((issue) => issue.state))
-    ).sort();
-    // Highlight keyword in title
-    function highlightKeyword(text: string, keyword: string) {
-        if (!keyword) return text;
-        const regex = new RegExp(
-            `(${keyword.replace(/[.*+?^${}()|[\]\[]/g, "\\$&")})`,
-            "gi"
-        );
-        const parts = text.split(regex);
-        return parts.map((part, i) =>
-            regex.test(part) ? (
-                <mark key={i} style={{ background: "#ffe066", padding: 0 }}>
-                    {part}
-                </mark>
-            ) : (
-                <React.Fragment key={i}>{part}</React.Fragment>
-            )
-        );
-    }
-
-    // Filter and sort issues for display
-    const filteredIssues = sortIssues(
-        issues.filter(
-            (issue) =>
-                (stateFilter === "all" || issue.state === stateFilter) &&
-                (!keyword ||
-                    issue.title.toLowerCase().includes(keyword.toLowerCase()))
-        )
-    );
-
     return (
         <div style={{ display: "flex", height: "100vh", minHeight: 0 }}>
-            {/* Left: Issues list */}
+            {/* Left: Build list */}
             <div
                 style={{ flex: 1, minHeight: 0, overflow: "auto", padding: 8 }}
             >
+                <div className="flex justify-between items-center mb-4">
+                    <h2 className="text-2xl font-bold">Builds</h2>
+                    <VSCodeButton onClick={onReload}>Reload</VSCodeButton>
+                </div>
                 <div className="flex justify-end mb-4 gap-2">
                     <input
                         type="text"
-                        placeholder="Search issues..."
+                        placeholder="Search Builds..."
                         value={keyword}
                         onChange={(e) => setKeyword(e.target.value)}
                         style={{
@@ -162,33 +190,30 @@ const IssuesTab: React.FC<IssuesTabProps> = ({
                         ))}
                     </VSCodeDropdown>
                     <VSCodeDropdown
-                        value={issueSort}
+                        value={buildSort}
                         onChange={(e) =>
                             onSortChange((e.target as HTMLSelectElement).value)
                         }
                     >
                         <VSCodeOption value="newest">Newest First</VSCodeOption>
                         <VSCodeOption value="oldest">Oldest First</VSCodeOption>
-                        <VSCodeOption value="most-comments">
-                            Most Comments
+                        <VSCodeOption value="longest">
+                            Longest Duration
                         </VSCodeOption>
-                        <VSCodeOption value="least-comments">
-                            Least Comments
+                        <VSCodeOption value="shortest">
+                            Shortest Duration
                         </VSCodeOption>
                     </VSCodeDropdown>
                 </div>
-                {isLoading && issues.length === 0 ? (
+                {isLoading && builds.length === 0 ? (
                     <div className="flex justify-center items-center h-64">
                         Loading...
                     </div>
-                ) : filteredIssues.length === 0 ? (
-                    <p>No issues found.</p>
+                ) : filteredBuilds.length === 0 ? (
+                    <p>No builds found.</p>
                 ) : (
                     <>
-                        <VSCodeDataGrid
-                            aria-label="Issues"
-                            style={{ background: "transparent" }}
-                        >
+                        <VSCodeDataGrid aria-label="Builds">
                             <VSCodeDataGridRow row-type="header">
                                 <VSCodeDataGridCell
                                     cell-type="columnheader"
@@ -200,64 +225,69 @@ const IssuesTab: React.FC<IssuesTabProps> = ({
                                     cell-type="columnheader"
                                     grid-column="2"
                                 >
-                                    Title
+                                    Name
                                 </VSCodeDataGridCell>
                                 <VSCodeDataGridCell
                                     cell-type="columnheader"
                                     grid-column="3"
                                 >
-                                    State
+                                    Branch
                                 </VSCodeDataGridCell>
                                 <VSCodeDataGridCell
                                     cell-type="columnheader"
                                     grid-column="4"
                                 >
-                                    Submitted
+                                    Commit
                                 </VSCodeDataGridCell>
                                 <VSCodeDataGridCell
                                     cell-type="columnheader"
                                     grid-column="5"
                                 >
-                                    Last Activity
+                                    Status
+                                </VSCodeDataGridCell>
+                                <VSCodeDataGridCell
+                                    cell-type="columnheader"
+                                    grid-column="6"
+                                >
+                                    Started
+                                </VSCodeDataGridCell>
+                                <VSCodeDataGridCell
+                                    cell-type="columnheader"
+                                    grid-column="7"
+                                >
+                                    Duration
                                 </VSCodeDataGridCell>
                             </VSCodeDataGridRow>
-                            {filteredIssues.map((issue) => (
+                            {pagedBuilds.map((b) => (
                                 <VSCodeDataGridRow
-                                    key={issue.number}
+                                    key={b.number}
                                     className={
-                                        selectedIssueLocal === issue.number
+                                        selectedBuildLocal === b.number
                                             ? "vscode-selected-row"
                                             : ""
                                     }
-                                    style={{
-                                        ...(selectedIssueLocal === issue.number
+                                    style={
+                                        selectedBuildLocal === b.number
                                             ? {
                                                   background:
                                                       "var(--vscode-list-activeSelectionBackground)",
                                                   color: "var(--vscode-list-activeSelectionForeground)",
                                               }
-                                            : {}),
-                                        borderRadius: 6,
-                                        marginBottom: 4,
-                                        cursor: "pointer",
-                                        transition: "background 0.15s",
-                                    }}
+                                            : {}
+                                    }
                                     onClick={() =>
-                                        setSelectedIssueLocal(issue.number)
+                                        setSelectedBuildLocal(b.number)
                                     }
                                 >
                                     <VSCodeDataGridCell grid-column="1">
-                                        {issue.number}
+                                        {b.number}
                                     </VSCodeDataGridCell>
                                     <VSCodeDataGridCell grid-column="2">
                                         <span>
-                                            {highlightKeyword(
-                                                issue.title,
-                                                keyword
-                                            )}
+                                            {highlightKeyword(b.name, keyword)}
                                         </span>
                                         <a
-                                            href={`${url}/${projectPath}/~issues/${issue.number}`}
+                                            href={`${url}/${projectPath}/~builds/${b.number}`}
                                             target="_blank"
                                             rel="noopener noreferrer"
                                             title="Open in oneDev"
@@ -270,22 +300,30 @@ const IssuesTab: React.FC<IssuesTabProps> = ({
                                         </a>
                                     </VSCodeDataGridCell>
                                     <VSCodeDataGridCell grid-column="3">
-                                        {issue.state}
+                                        {highlightKeyword(b.branch, keyword)}
                                     </VSCodeDataGridCell>
                                     <VSCodeDataGridCell grid-column="4">
-                                        {new Date(
-                                            issue.submitDate
-                                        ).toLocaleDateString()}
+                                        {b.commitHash &&
+                                            b.commitHash.substring(0, 8)}
                                     </VSCodeDataGridCell>
                                     <VSCodeDataGridCell grid-column="5">
-                                        {new Date(
-                                            issue.lastActivity.date
-                                        ).toLocaleString()}
+                                        {b.status}
+                                    </VSCodeDataGridCell>
+                                    <VSCodeDataGridCell grid-column="6">
+                                        {b.startDate &&
+                                            new Date(
+                                                b.startDate
+                                            ).toLocaleString()}
+                                    </VSCodeDataGridCell>
+                                    <VSCodeDataGridCell grid-column="7">
+                                        {b.duration != null
+                                            ? `${b.duration} s`
+                                            : "-"}
                                     </VSCodeDataGridCell>
                                 </VSCodeDataGridRow>
                             ))}
                         </VSCodeDataGrid>
-                        {hasMoreIssues && (
+                        {hasMoreBuilds && (
                             <div
                                 className="flex justify-center my-4"
                                 ref={loadMoreWrapperRef}
@@ -293,7 +331,7 @@ const IssuesTab: React.FC<IssuesTabProps> = ({
                                 <VSCodeButton
                                     onClick={() => {
                                         setPendingScroll(true);
-                                        loadMoreIssues();
+                                        loadMoreBuilds();
                                     }}
                                     style={{
                                         display: "flex",
@@ -321,10 +359,10 @@ const IssuesTab: React.FC<IssuesTabProps> = ({
                 }}
             >
                 {(() => {
-                    const issue = issues.find(
-                        (i) => i.number === selectedIssueLocal
+                    const b = builds.find(
+                        (x) => x.number === selectedBuildLocal
                     );
-                    if (!issue)
+                    if (!b)
                         return (
                             <div
                                 style={{
@@ -333,7 +371,7 @@ const IssuesTab: React.FC<IssuesTabProps> = ({
                                     textAlign: "center",
                                 }}
                             >
-                                Please select an issue
+                                Please select a build
                             </div>
                         );
                     return (
@@ -352,7 +390,7 @@ const IssuesTab: React.FC<IssuesTabProps> = ({
                                     letterSpacing: 0.5,
                                 }}
                             >
-                                {issue.title}
+                                {b.name}
                             </div>
                             <div>
                                 <span
@@ -364,7 +402,7 @@ const IssuesTab: React.FC<IssuesTabProps> = ({
                                 >
                                     State:
                                 </span>
-                                {issue.state}
+                                {b.status}
                             </div>
                             <div>
                                 <span
@@ -374,9 +412,9 @@ const IssuesTab: React.FC<IssuesTabProps> = ({
                                         marginRight: 6,
                                     }}
                                 >
-                                    Author:
+                                    Branch:
                                 </span>
-                                {issue.submitterId}
+                                {b.branch}
                             </div>
                             <div>
                                 <span
@@ -386,9 +424,9 @@ const IssuesTab: React.FC<IssuesTabProps> = ({
                                         marginRight: 6,
                                     }}
                                 >
-                                    Created:
+                                    Commit:
                                 </span>
-                                {new Date(issue.submitDate).toLocaleString()}
+                                {b.commitHash}
                             </div>
                             <div>
                                 <span
@@ -398,13 +436,24 @@ const IssuesTab: React.FC<IssuesTabProps> = ({
                                         marginRight: 6,
                                     }}
                                 >
-                                    Last Activity:
+                                    Started:
                                 </span>
-                                {new Date(
-                                    issue.lastActivity.date
-                                ).toLocaleString()}
+                                {b.startDate &&
+                                    new Date(b.startDate).toLocaleString()}
                             </div>
-                            {issue.description && (
+                            <div>
+                                <span
+                                    style={{
+                                        fontWeight: 500,
+                                        color: "#666",
+                                        marginRight: 6,
+                                    }}
+                                >
+                                    Duration:
+                                </span>
+                                {b.duration != null ? `${b.duration} s` : "-"}
+                            </div>
+                            {b.log && (
                                 <div
                                     style={{
                                         color: "var(--vscode-foreground)",
@@ -414,7 +463,7 @@ const IssuesTab: React.FC<IssuesTabProps> = ({
                                         wordBreak: "break-word",
                                     }}
                                 >
-                                    {issue.description}
+                                    {b.log}
                                 </div>
                             )}
                         </div>
@@ -425,4 +474,4 @@ const IssuesTab: React.FC<IssuesTabProps> = ({
     );
 };
 
-export default IssuesTab;
+export default BuildTab;

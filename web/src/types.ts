@@ -30,3 +30,15 @@ export interface Issue {
     };
     commentCount: number;
 }
+
+// Build type for BuildTab
+export interface Build {
+    number: number;
+    name: string;
+    branch: string;
+    commitHash?: string;
+    status: string;
+    startDate?: string;
+    duration?: number; // seconds
+    log?: string;
+}
