@@ -468,7 +468,21 @@ const PRTab: React.FC<PRTabProps> = ({
                                                 <span
                                                     style={{
                                                         marginRight: 12,
-                                                        color: "#666",
+                                                        color:
+                                                            b.status ===
+                                                            "SUCCESSFUL"
+                                                                ? "#2ecc40"
+                                                                : b.status ===
+                                                                  "FAILED"
+                                                                ? "#e74c3c"
+                                                                : "#666",
+                                                        fontWeight:
+                                                            b.status ===
+                                                                "SUCCESSFUL" ||
+                                                            b.status ===
+                                                                "FAILED"
+                                                                ? "bold"
+                                                                : undefined,
                                                     }}
                                                 >
                                                     {b.status}
