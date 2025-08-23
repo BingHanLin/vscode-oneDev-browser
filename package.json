@@ -67,6 +67,21 @@
           "type": "string",
           "default": "",
           "description": "Your oneDev project path"
+        },
+        "onedev-browser.maxPRItems": {
+          "type": "number",
+          "default": 10,
+          "description": "Maximum number of Pull Requests to show in the tree view. User setting has highest priority."
+        },
+        "onedev-browser.maxIssueItems": {
+          "type": "number",
+          "default": 10,
+          "description": "Maximum number of Issues to show in the tree view. User setting has highest priority."
+        },
+        "onedev-browser.maxBuildItems": {
+          "type": "number",
+          "default": 10,
+          "description": "Maximum number of Builds to show in the tree view. User setting has highest priority."
         }
       }
     },
