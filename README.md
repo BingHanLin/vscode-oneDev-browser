@@ -2,6 +2,8 @@
 
 A Visual Studio Code extension to browse pull requests, issues, and builds from your [oneDev](https://onedev.io/) instance, with a modern React + Tailwind UI.
 
+> **Notice: This extension is a personal side project and is not an official plugin from oneDev or its maintainers.**
+
 ---
 
 ## Features
