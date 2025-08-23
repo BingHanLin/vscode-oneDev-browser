@@ -21,11 +21,11 @@ export class BuildsTreeDataProvider implements vscode.TreeDataProvider<vscode.Tr
         const maxItems = getConfigNumber(config, "maxBuildItems");
         const builds = await fetchBuilds(creds);
         return builds.slice(0, maxItems).map((build: any) => {
-            const item = new vscode.TreeItem(`#${build.number} ${build.status || ''}`);
-            item.description = `${build.jobName || ''} | ${build.submitterId || ''}`;
+            const item = new vscode.TreeItem(`#${build.number}  ${build.jobName || ''}`);
+            item.description = `${build.status || ''}`;
             if (build.submitDate) {
                 const date = new Date(build.submitDate);
-                item.tooltip = `Job: ${build.jobName || ''}\nStatus: ${build.status || ''}\nAuthor: ${build.submitterId || ''}\nCreated: ${date.toLocaleString()}`;
+                item.tooltip = `Job: ${build.jobName || ''}\nStatus: ${build.status || ''}\nCreated: ${date.toLocaleString()}`;
             }
             item.command = {
                 command: 'onedev-browser.openWebviewToBuild',

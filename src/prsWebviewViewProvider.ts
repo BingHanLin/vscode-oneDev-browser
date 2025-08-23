@@ -23,10 +23,10 @@ export class PRsTreeDataProvider implements vscode.TreeDataProvider<vscode.TreeI
         const prs = await fetchPullRequests(creds);
         return prs.slice(0, maxItems).map((pr: any) => {
             const item = new vscode.TreeItem(`#${pr.number} ${pr.title}`);
-            item.description = `${pr.state || ''} | ${pr.submitterId || ''}`;
+            item.description = `${pr.status || ''} | ${pr.submitterId || ''}`;
             if (pr.submitDate) {
                 const date = new Date(pr.submitDate);
-                item.tooltip = `State: ${pr.state}\nAuthor: ${pr.submitterId}\nCreated: ${date.toLocaleString()}`;
+                item.tooltip = `Status: ${pr.status}\nAuthor: ${pr.submitterId}\nCreated: ${date.toLocaleString()}`;
             }
             item.command = {
                 command: 'onedev-browser.openWebviewToPR',
