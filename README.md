@@ -36,6 +36,8 @@ Before using the extension, go to VS Code **Settings** (`Ctrl+,` or `Cmd+,` on m
 
 1. Use the **oneDev Browser** sidebar tree view to browse Pull Requests, Issues, and Builds for your configured project.
 
+    - You can configure the maximum number of Pull Requests, Issues, and Builds shown in the tree view via the settings: `onedev-browser.maxPRItems`, `onedev-browser.maxIssueItems`, and `onedev-browser.maxBuildItems`.
+
 2. To view rich details, open the command palette (`Ctrl+Shift+P` or `Cmd+Shift+P` on macOS) and run `Open oneDev Webview`.
 
 ## Development
