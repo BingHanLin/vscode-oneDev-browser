@@ -23,23 +23,20 @@ A Visual Studio Code extension to browse pull requests, issues, and builds from 
 1. Search for `oneDev Browser` in the VS Code Extensions Marketplace and install it.
 2. Reload VS Code if prompted.
 
-### Usage
-
-1. Open the command palette (`Ctrl+Shift+P` or `Cmd+Shift+P` on macOS).
-2. Run `Open oneDev Browser`.
-3. Enter your oneDev instance URL, email, and API token when prompted.
-4. Use the sidebar tabs to browse Pull Requests, Issues, and Builds.
-5. Use the dropdowns and search boxes to sort, filter, and search items.
-6. Click any item to view details in a webview panel.
-
 ### Configuration
 
-You will be prompted for the following settings on first use (or can update them later in the extension settings):
+Before using the extension, go to VS Code **Settings** (`Ctrl+,` or `Cmd+,` on macOS), search for `Onedev-browser`, and set the following options:
 
 -   **oneDev URL**: The base URL of your oneDev instance (e.g., `https://your-onedev-instance.com`).
 -   **Email**: Your oneDev account email address.
 -   **API Token**: Your personal API token for authentication.
 -   **Project Path**: The path to your project within oneDev (e.g., `projects/your-project`).
+
+### Usage
+
+1. Use the **oneDev Browser** sidebar tree view to browse Pull Requests, Issues, and Builds for your configured project.
+
+2. To view rich details, open the command palette (`Ctrl+Shift+P` or `Cmd+Shift+P` on macOS) and run `Open oneDev Webview`.
 
 ## Development
 
