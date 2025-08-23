@@ -128,9 +128,20 @@ const BuildTab: React.FC<BuildTabProps> = ({
         <div style={{ display: "flex", height: "100vh", minHeight: 0 }}>
             {/* Left: Build list */}
             <div
-                style={{ flex: 1, minHeight: 0, overflow: "auto", padding: 8 }}
+                style={{
+                    flex: 1,
+                    minHeight: 0,
+                    display: "flex",
+                    flexDirection: "column",
+                    padding: 8,
+                }}
             >
-                <div className="flex justify-end mb-4 gap-2">
+                {/* Controls area: always fixed above the table, not affected by table scroll */}
+                <div
+                    className="flex justify-end mb-4 gap-2"
+                    style={{ flexShrink: 0 }}
+                >
+                    {" "}
                     <input
                         type="text"
                         placeholder="Search Builds..."
@@ -175,43 +186,48 @@ const BuildTab: React.FC<BuildTabProps> = ({
                         </VSCodeOption>
                     </VSCodeDropdown>
                 </div>
-                {isLoading && builds.length === 0 ? (
-                    <div className="flex justify-center items-center h-64">
-                        Loading...
-                    </div>
-                ) : filteredBuilds.length === 0 ? (
-                    <p>No builds found.</p>
-                ) : (
-                    <>
-                        <GenericTable
-                            columns={columns}
-                            data={pagedBuilds}
-                            rowKey={(b) => b.number}
-                            onRowClick={(b) => setSelectedBuildLocal(b.number)}
-                            selectedRowKey={selectedBuildLocal}
-                            ariaLabel="Builds"
-                        />
-                        {hasMoreBuilds && (
-                            <div
-                                className="flex justify-center my-4"
-                                ref={loadMoreWrapperRef}
-                            >
-                                <VSCodeButton
-                                    onClick={() => {
-                                        setPendingScroll(true);
-                                        loadMoreBuilds();
-                                    }}
-                                    style={{
-                                        display: "flex",
-                                        alignItems: "center",
-                                    }}
+                {/* Table area: scrollable, controls above will not move when scrolling horizontally */}
+                <div style={{ flex: 1, minHeight: 0, overflow: "auto" }}>
+                    {isLoading && builds.length === 0 ? (
+                        <div className="flex justify-center items-center h-64">
+                            Loading...
+                        </div>
+                    ) : filteredBuilds.length === 0 ? (
+                        <p>No builds found.</p>
+                    ) : (
+                        <>
+                            <GenericTable
+                                columns={columns}
+                                data={pagedBuilds}
+                                rowKey={(b) => b.number}
+                                onRowClick={(b) =>
+                                    setSelectedBuildLocal(b.number)
+                                }
+                                selectedRowKey={selectedBuildLocal}
+                                ariaLabel="Builds"
+                            />
+                            {hasMoreBuilds && (
+                                <div
+                                    className="flex justify-center my-4"
+                                    ref={loadMoreWrapperRef}
                                 >
-                                    Load More
-                                </VSCodeButton>
-                            </div>
-                        )}
-                    </>
-                )}
+                                    <VSCodeButton
+                                        onClick={() => {
+                                            setPendingScroll(true);
+                                            loadMoreBuilds();
+                                        }}
+                                        style={{
+                                            display: "flex",
+                                            alignItems: "center",
+                                        }}
+                                    >
+                                        Load More
+                                    </VSCodeButton>
+                                </div>
+                            )}
+                        </>
+                    )}
+                </div>
             </div>
             {/* Right: Detail panel */}
             <div

@@ -112,9 +112,19 @@ const IssuesTab: React.FC<IssuesTabProps> = ({
         <div style={{ display: "flex", height: "100vh", minHeight: 0 }}>
             {/* Left: Issues list */}
             <div
-                style={{ flex: 1, minHeight: 0, overflow: "auto", padding: 8 }}
+                style={{
+                    flex: 1,
+                    minHeight: 0,
+                    display: "flex",
+                    flexDirection: "column",
+                    padding: 8,
+                }}
             >
-                <div className="flex justify-end mb-4 gap-2">
+                {/* Controls area: always fixed above the table, not affected by table scroll */}
+                <div
+                    className="flex justify-end mb-4 gap-2"
+                    style={{ flexShrink: 0 }}
+                >
                     <input
                         type="text"
                         placeholder="Search issues..."
@@ -159,45 +169,48 @@ const IssuesTab: React.FC<IssuesTabProps> = ({
                         </VSCodeOption>
                     </VSCodeDropdown>
                 </div>
-                {isLoading && issues.length === 0 ? (
-                    <div className="flex justify-center items-center h-64">
-                        Loading...
-                    </div>
-                ) : filteredIssues.length === 0 ? (
-                    <p>No issues found.</p>
-                ) : (
-                    <>
-                        <GenericTable
-                            columns={columns}
-                            data={filteredIssues}
-                            rowKey={(issue) => issue.number}
-                            onRowClick={(issue) =>
-                                setSelectedIssueLocal(issue.number)
-                            }
-                            selectedRowKey={selectedIssueLocal}
-                            ariaLabel="Issues"
-                        />
-                        {hasMoreIssues && (
-                            <div
-                                className="flex justify-center my-4"
-                                ref={loadMoreWrapperRef}
-                            >
-                                <VSCodeButton
-                                    onClick={() => {
-                                        setPendingScroll(true);
-                                        loadMoreIssues();
-                                    }}
-                                    style={{
-                                        display: "flex",
-                                        alignItems: "center",
-                                    }}
+                {/* Table area: scrollable, controls above will not move when scrolling horizontally */}
+                <div style={{ flex: 1, minHeight: 0, overflow: "auto" }}>
+                    {isLoading && issues.length === 0 ? (
+                        <div className="flex justify-center items-center h-64">
+                            Loading...
+                        </div>
+                    ) : filteredIssues.length === 0 ? (
+                        <p>No issues found.</p>
+                    ) : (
+                        <>
+                            <GenericTable
+                                columns={columns}
+                                data={filteredIssues}
+                                rowKey={(issue) => issue.number}
+                                onRowClick={(issue) =>
+                                    setSelectedIssueLocal(issue.number)
+                                }
+                                selectedRowKey={selectedIssueLocal}
+                                ariaLabel="Issues"
+                            />
+                            {hasMoreIssues && (
+                                <div
+                                    className="flex justify-center my-4"
+                                    ref={loadMoreWrapperRef}
                                 >
-                                    Load More
-                                </VSCodeButton>
-                            </div>
-                        )}
-                    </>
-                )}
+                                    <VSCodeButton
+                                        onClick={() => {
+                                            setPendingScroll(true);
+                                            loadMoreIssues();
+                                        }}
+                                        style={{
+                                            display: "flex",
+                                            alignItems: "center",
+                                        }}
+                                    >
+                                        Load More
+                                    </VSCodeButton>
+                                </div>
+                            )}
+                        </>
+                    )}
+                </div>
             </div>
             {/* Right: Detail panel */}
             <div

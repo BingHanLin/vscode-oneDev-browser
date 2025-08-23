@@ -212,9 +212,19 @@ const PRTab: React.FC<PRTabProps> = ({
         <div style={{ display: "flex", height: "100vh", minHeight: 0 }}>
             {/* Left: PR list */}
             <div
-                style={{ flex: 1, minHeight: 0, overflow: "auto", padding: 8 }}
+                style={{
+                    flex: 1,
+                    minHeight: 0,
+                    display: "flex",
+                    flexDirection: "column",
+                    padding: 8,
+                }}
             >
-                <div className="flex justify-end mb-4 gap-2">
+                {/* Controls area: always fixed above the table, not affected by table scroll */}
+                <div
+                    className="flex justify-end mb-4 gap-2"
+                    style={{ flexShrink: 0 }}
+                >
                     {/* Keyword search input for title/source/target branch */}
                     <input
                         type="text"
@@ -261,43 +271,48 @@ const PRTab: React.FC<PRTabProps> = ({
                         </VSCodeOption>
                     </VSCodeDropdown>
                 </div>
-                {isLoading && pullRequests.length === 0 ? (
-                    <div className="flex justify-center items-center h-64">
-                        Loading...
-                    </div>
-                ) : filteredPRs.length === 0 ? (
-                    <p>No pull requests found.</p>
-                ) : (
-                    <>
-                        <GenericTable
-                            columns={columns}
-                            data={pagedPRs}
-                            rowKey={(pr) => pr.number}
-                            onRowClick={(pr) => setSelectedPRLocal(pr.number)}
-                            selectedRowKey={selectedPRLocal}
-                            ariaLabel="Pull Requests"
-                        />
-                        {hasMorePRs && (
-                            <div
-                                className="flex justify-center my-4"
-                                ref={loadMoreWrapperRef}
-                            >
-                                <VSCodeButton
-                                    onClick={() => {
-                                        setPendingScroll(true);
-                                        loadMorePRs();
-                                    }}
-                                    style={{
-                                        display: "flex",
-                                        alignItems: "center",
-                                    }}
+                {/* Table area: scrollable, controls above will not move when scrolling horizontally */}
+                <div style={{ flex: 1, minHeight: 0, overflow: "auto" }}>
+                    {isLoading && pullRequests.length === 0 ? (
+                        <div className="flex justify-center items-center h-64">
+                            Loading...
+                        </div>
+                    ) : filteredPRs.length === 0 ? (
+                        <p>No pull requests found.</p>
+                    ) : (
+                        <>
+                            <GenericTable
+                                columns={columns}
+                                data={pagedPRs}
+                                rowKey={(pr) => pr.number}
+                                onRowClick={(pr) =>
+                                    setSelectedPRLocal(pr.number)
+                                }
+                                selectedRowKey={selectedPRLocal}
+                                ariaLabel="Pull Requests"
+                            />
+                            {hasMorePRs && (
+                                <div
+                                    className="flex justify-center my-4"
+                                    ref={loadMoreWrapperRef}
                                 >
-                                    Load More
-                                </VSCodeButton>
-                            </div>
-                        )}
-                    </>
-                )}
+                                    <VSCodeButton
+                                        onClick={() => {
+                                            setPendingScroll(true);
+                                            loadMorePRs();
+                                        }}
+                                        style={{
+                                            display: "flex",
+                                            alignItems: "center",
+                                        }}
+                                    >
+                                        Load More
+                                    </VSCodeButton>
+                                </div>
+                            )}
+                        </>
+                    )}
+                </div>
             </div>
             {/* Right: Detail panel */}
             <div
