@@ -1,3 +1,7 @@
+import fetch from "node-fetch";
+import { Credentials, PullRequest, Issue, Build } from "./types";
+
+
 export async function fetchCurrentBuilds(
     credentials: Credentials,
     requestId: number
@@ -8,8 +12,6 @@ export async function fetchCurrentBuilds(
     return await response.json();
 }
 
-import fetch from "node-fetch";
-import { Credentials } from "./types";
 
 export async function fetchProjectId(
     credentials: Credentials
@@ -35,7 +37,7 @@ export async function fetchPullRequests(
     credentials: Credentials,
     offset: number = 0,
     count: number = 20
-): Promise<any[]> {
+): Promise<PullRequest[]> {
     console.log('[api] fetchPullRequests called', credentials, { offset, count });
     const apiUrl = `${credentials.url}/~api/pulls`;
     const queryParams = new URLSearchParams({
