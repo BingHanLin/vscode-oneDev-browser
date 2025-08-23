@@ -169,37 +169,6 @@ function openReactWebview(context: vscode.ExtensionContext) {
           token,
           projectPath
         });
-      } else if (message.command === 'saveCredentials') {
-        // scope: 'user' or 'workspace'
-        const config = vscode.workspace.getConfiguration('onedev-browser');
-        const target = message.scope === 'user' ? vscode.ConfigurationTarget.Global : vscode.ConfigurationTarget.Workspace;
-        await config.update('url', message.url, target);
-        await config.update('email', message.email, target);
-        await config.update('token', message.token, target);
-        await config.update('projectPath', message.projectPath, target);
-        panel.webview.postMessage({
-          command: 'showSuccessMessage',
-          message: 'Credentials saved successfully.'
-        });
-        // Optional: fetch projectId
-        try {
-          const { fetchProjectId } = require('./api');
-          const projectId = await fetchProjectId({
-            url: message.url,
-            email: message.email,
-            token: message.token,
-            projectPath: message.projectPath
-          });
-          panel.webview.postMessage({
-            command: 'setProjectId',
-            projectId
-          });
-        } catch (err) {
-          panel.webview.postMessage({
-            command: 'showErrorMessage',
-            message: 'Failed to fetch project ID.'
-          });
-        }
       } else if (message.command === 'checkoutBranch') {
         try {
           const branch = message.branch;

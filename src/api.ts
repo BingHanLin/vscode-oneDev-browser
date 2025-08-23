@@ -5,11 +5,12 @@ import { Credentials, PullRequest, Issue, Build } from "./types";
 export async function fetchCurrentBuilds(
     credentials: Credentials,
     requestId: number
-): Promise<any[]> {
+): Promise<Build[]> {
     const apiUrl = `${credentials.url}/~api/pulls/${requestId}/current-builds`;
     const queryParams = new URLSearchParams();
     const response = await makeApiRequest(apiUrl, queryParams, credentials);
-    return await response.json();
+    const json = await response.json();
+    return json as Build[];
 }
 
 
@@ -48,14 +49,14 @@ export async function fetchPullRequests(
     const response = await makeApiRequest(apiUrl, queryParams, credentials);
     const json = await response.json();
     console.log('[api] fetchPullRequests response', json);
-    return json;
+    return json as PullRequest[];
 }
 
 export async function fetchIssues(
     credentials: Credentials,
     offset: number = 0,
     count: number = 20
-): Promise<any[]> {
+): Promise<Issue[]> {
     console.log('[api] fetchIssues called', credentials, { offset, count });
     const apiUrl = `${credentials.url}/~api/issues`;
     const queryParams = new URLSearchParams({
@@ -66,14 +67,14 @@ export async function fetchIssues(
     const response = await makeApiRequest(apiUrl, queryParams, credentials);
     const json = await response.json();
     console.log('[api] fetchIssues response', json);
-    return json;
+    return json as Issue[];
 }
 
 export async function fetchBuilds(
     credentials: Credentials,
     offset: number = 0,
     count: number = 20
-): Promise<any[]> {
+): Promise<Build[]> {
     console.log('[api] fetchBuilds called', credentials, { offset, count });
     const apiUrl = `${credentials.url}/~api/builds`;
     const queryParams = new URLSearchParams({
@@ -84,7 +85,7 @@ export async function fetchBuilds(
     const response = await makeApiRequest(apiUrl, queryParams, credentials);
     const json = await response.json();
     console.log('[api] fetchBuilds response', json);
-    return json;
+    return json as Build[];
 }
 
 async function makeApiRequest(
