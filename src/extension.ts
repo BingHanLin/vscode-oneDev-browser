@@ -4,7 +4,7 @@ import { PRsTreeDataProvider } from "./prsWebviewViewProvider";
 import { IssuesTreeDataProvider } from "./issuesTreeDataProvider";
 import { BuildsTreeDataProvider } from "./buildsTreeDataProvider";
 import { registerStatusBarCommand } from "./statusbar";
-
+import { getConfigValue, getConfigNumber } from "./utils/config";
 
 
 export function activate(context: vscode.ExtensionContext) {
@@ -154,14 +154,11 @@ function openReactWebview(context: vscode.ExtensionContext) {
     try {
       if (message.command === 'getCredentials') {
         const config = vscode.workspace.getConfiguration('onedev-browser');
-        function getPrefValue(key: string): string {
-          const inspect = config.inspect<string>(key);
-          return (inspect?.globalValue ?? '') || (inspect?.workspaceValue ?? '') || '';
-        }
-        const url = getPrefValue('url');
-        const email = getPrefValue('email');
-        const token = getPrefValue('token');
-        const projectPath = getPrefValue('projectPath');
+
+        const url = getConfigValue(config, 'url');
+        const email = getConfigValue(config, 'email');
+        const token = getConfigValue(config, 'token');
+        const projectPath = getConfigValue(config, 'projectPath');
         panel.webview.postMessage({
           command: 'setCredentials',
           url,
