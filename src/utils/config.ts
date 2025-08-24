@@ -5,15 +5,10 @@ import * as vscode from "vscode";
  */
 export function getConfigValue(config: vscode.WorkspaceConfiguration, key: string): string {
     const inspected = config.inspect(key);
-    if (typeof inspected?.globalValue === 'string' && inspected.globalValue !== "") {
-        return inspected.globalValue;
-    }
-    if (typeof inspected?.workspaceValue === 'string' && inspected.workspaceValue !== "") {
-        return inspected.workspaceValue;
-    }
-    if (typeof inspected?.workspaceFolderValue === 'string' && inspected.workspaceFolderValue !== "") {
-        return inspected.workspaceFolderValue;
-    }
+    if (inspected?.workspaceFolderValue !== undefined) return inspected.workspaceFolderValue as string;
+    if (inspected?.workspaceValue !== undefined) return inspected.workspaceValue as string;
+    if (inspected?.globalValue !== undefined) return inspected.globalValue as string;
+    if (inspected?.defaultValue !== undefined) return inspected.defaultValue as string;
     return "";
 }
 
@@ -22,8 +17,9 @@ export function getConfigValue(config: vscode.WorkspaceConfiguration, key: strin
  */
 export function getConfigNumber(config: vscode.WorkspaceConfiguration, key: string): number {
     const inspected = config.inspect(key);
-    if (typeof inspected?.globalValue === 'number') return inspected.globalValue;
-    if (typeof inspected?.workspaceValue === 'number') return inspected.workspaceValue;
-    if (typeof inspected?.workspaceFolderValue === 'number') return inspected.workspaceFolderValue;
+    if (inspected?.workspaceFolderValue !== undefined) return inspected.workspaceFolderValue as number;
+    if (inspected?.workspaceValue !== undefined) return inspected.workspaceValue as number;
+    if (inspected?.globalValue !== undefined) return inspected.globalValue as number;
+    if (inspected?.defaultValue !== undefined) return inspected.defaultValue as number;
     return 0;
 }
