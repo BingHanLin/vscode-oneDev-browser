@@ -41,6 +41,14 @@ export interface Build {
     finishDate: string;
 }
 
+export interface PullRequestChange {
+    type: "ADD" | "MODIFY" | "DELETE" | "RENAME";
+    path: string;
+    oldPath?: string;
+    blobId?: string;
+    oldBlobId?: string;
+}
+
 export interface Credentials {
     url: string;
     email: string;

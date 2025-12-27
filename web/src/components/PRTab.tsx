@@ -7,22 +7,30 @@ import {
 } from "@vscode/webview-ui-toolkit/react";
 import GenericTable, { TableColumn } from "./GenericTable";
 import { ExternalLinkIcon, CheckoutBranchIcon } from "./Icons";
-import { PullRequest } from "../types";
+import { PullRequest, Build, PullRequestChange } from "../types";
+import ReactMarkdown from 'react-markdown';
+
+interface VSCodeMessagePayload {
+    command: string;
+    [key: string]: unknown;
+}
 
 interface PRTabProps {
     pullRequests: PullRequest[];
     prSort: string;
     isLoading: boolean;
     url: string;
+    email: string;
+    token: string;
     projectPath: string;
     onReload: () => void;
     onSortChange: (sort: string) => void;
     sortPullRequests: (prs: PullRequest[]) => PullRequest[];
     loadMorePRs: () => void;
     hasMorePRs: boolean;
-    vscode?: { postMessage: (message: any) => void };
+    vscode?: { postMessage: (message: VSCodeMessagePayload) => void };
     selectedPR?: number | null;
-    currentBuilds: any[] | null;
+    currentBuilds: Build[] | null;
     loadingBuilds: boolean;
     onFetchCurrentBuilds: (prID: number) => void;
 }
@@ -32,6 +40,8 @@ const PRTab: React.FC<PRTabProps> = ({
     prSort,
     isLoading,
     url,
+    email,
+    token,
     projectPath,
     onReload,
     onSortChange,
@@ -44,6 +54,11 @@ const PRTab: React.FC<PRTabProps> = ({
     loadingBuilds,
     onFetchCurrentBuilds,
 }) => {
+    console.log("PRTab component rendered", { 
+        selectedPRProp, 
+        pullRequestsCount: pullRequests.length,
+        hasVscode: !!vscode 
+    });
     // Local state for selected PR (for detail panel)
     const [selectedPRLocal, setSelectedPRLocal] = useState<number | null>(
         selectedPRProp ?? null
@@ -62,7 +77,75 @@ const PRTab: React.FC<PRTabProps> = ({
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [selectedPRLocal, pullRequests]);
-    // State for keyword search
+
+    // Changes state
+    const [prChanges, setPrChanges] = useState<PullRequestChange[]>([]);
+    const [loadingChanges, setLoadingChanges] = useState(false);
+    const [review, setReview] = useState<string>("");
+    const [generatingReview, setGeneratingReview] = useState(false);
+
+    useEffect(() => {
+        console.log("PRTab useEffect check", { selectedPRLocal, vscode: !!vscode, prCount: pullRequests.length });
+        if (selectedPRLocal && vscode) {
+             const pr = pullRequests.find(p => p.number === selectedPRLocal);
+             console.log("PRTab found PR", pr);
+             if (pr && pr.id) {
+               setLoadingChanges(true);
+               setPrChanges([]);
+               setReview("");
+               console.log("PRTab sending getPrChanges", pr.id);
+               vscode.postMessage({
+                   command: 'getPrChanges',
+                   url, email, token, projectPath,
+                   prId: pr.id,
+                   pr // Pass the full PR object for Git logic
+               });
+             }
+        }
+    }, [selectedPRLocal, pullRequests, vscode]); // Depend on selectedPRLocal changes
+
+    
+    useEffect(() => {
+        const handleMessage = (event: MessageEvent) => {
+             const { command, changes, review } = event.data;
+             if (command === 'setPrChanges') {
+                 setPrChanges(changes || []);
+                 setLoadingChanges(false);
+             } else if (command === 'setCodeReview') {
+                 setReview(review);
+                 setGeneratingReview(false);
+             }
+        };
+        window.addEventListener('message', handleMessage);
+        return () => window.removeEventListener('message', handleMessage);
+    }, []);
+
+    const handleGenerateReview = () => {
+        if (selectedPRLocal && vscode) {
+            const pr = pullRequests.find(p => p.number === selectedPRLocal);
+            if (pr && pr.id) {
+                setGeneratingReview(true);
+                vscode.postMessage({
+                    command: 'generateCodeReview',
+                    url, email, token, projectPath,
+                    prId: pr.id,
+                    projectId: pr.id, // TODO: Check if projectId logic in extension needs fix, might need fetchProjectId
+                    pr // Pass PR object for Git logic
+                });
+            }
+        }
+    };
+
+    const handleOpenDiff = (change: PullRequestChange) => {
+         if (vscode && selectedPRLocal) {
+            const pr = pullRequests.find(p => p.number === selectedPRLocal);
+             vscode.postMessage({
+                 command: 'openDiff',
+                 change,
+                 projectId: pr?.id // Using pr id as project ID proxy for now, might need actual project ID
+             });
+         }
+    };
     const [keyword, setKeyword] = useState("");
 
     // State for PR status filter
@@ -141,7 +224,7 @@ const PRTab: React.FC<PRTabProps> = ({
             dataIndex: "title",
             render: (value, pr) => (
                 <span>
-                    {highlightKeyword(value, keyword)}
+                    {highlightKeyword(value as string, keyword)}
                     <a
                         href={`${url}/${projectPath}/~pulls/${pr.number}`}
                         target="_blank"
@@ -164,7 +247,7 @@ const PRTab: React.FC<PRTabProps> = ({
             dataIndex: "sourceBranch",
             render: (value, pr) => (
                 <span style={{ display: "inline-flex", alignItems: "center" }}>
-                    <span>{highlightKeyword(value, keyword)}</span>
+                    <span>{highlightKeyword(value as string, keyword)}</span>
                     <button
                         title="Checkout Source Branch"
                         onClick={(e) => {
@@ -197,7 +280,7 @@ const PRTab: React.FC<PRTabProps> = ({
         {
             title: "Target",
             dataIndex: "targetBranch",
-            render: (value) => highlightKeyword(value, keyword),
+            render: (value) => highlightKeyword(value as string, keyword),
         },
         {
             title: "Submitter",
@@ -459,7 +542,7 @@ const PRTab: React.FC<PRTabProps> = ({
                                     >
                                         {currentBuilds.map((b) => (
                                             <div
-                                                key={b.id}
+                                                key={b.number}
                                                 style={{
                                                     display: "flex",
                                                     alignItems: "center",
@@ -530,6 +613,64 @@ const PRTab: React.FC<PRTabProps> = ({
                                 )}
                             </div>
                             {/* End Current Builds Section */}
+
+                            {/* Changes Section */}
+                             <div style={{ marginTop: 18 }}>
+                                <div style={{ fontWeight: 600, fontSize: 16, marginBottom: 6 }}>
+                                    Changes
+                                </div>
+                                {loadingChanges ? (
+                                    <div>Loading changes...</div>
+                                ) : (
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                                        {prChanges.map((change, idx) => (
+                                            <div key={idx} style={{ display: 'flex', alignItems: 'center', fontSize: 13 }}>
+                                                 <span style={{ 
+                                                     fontWeight: 'bold', 
+                                                     color: change.type === 'ADD' ? 'green' : change.type === 'DELETE' ? 'red' : 'orange',
+                                                     marginRight: 6,
+                                                     width: 12
+                                                }}>
+                                                     {change.type[0]}
+                                                </span>
+                                                <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={change.path}>
+                                                    {change.path}
+                                                </span>
+                                                <button 
+                                                    onClick={() => handleOpenDiff(change)}
+                                                    style={{ border: 'none', background: 'none', color: '#0078d4', cursor: 'pointer' }}
+                                                >
+                                                    Diff
+                                                </button>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                             </div>
+
+                            {/* AI Review Section */}
+                             <div style={{ marginTop: 18 }}>
+                                <div style={{ fontWeight: 600, fontSize: 16, marginBottom: 6, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                                    <span>AI Code Review</span>
+                                    <button 
+                                        onClick={handleGenerateReview}
+                                        disabled={generatingReview}
+                                        style={{ 
+                                            fontSize: 12, 
+                                            padding: '4px 8px', 
+                                            cursor: generatingReview ? 'wait' : 'pointer' 
+                                        }}
+                                    >
+                                        {generatingReview ? "Generating..." : "Generate"}
+                                    </button>
+                                </div>
+                                {review && (
+                                    <div className="markdown-body" style={{ fontSize: 14, overflow: 'auto', maxHeight: 400, border: '1px solid #eee', padding: 8 }}>
+                                        <ReactMarkdown>{review}</ReactMarkdown>
+                                    </div>
+                                )}
+                             </div>
+
                             {pr.description && (
                                 <>
                                     <div

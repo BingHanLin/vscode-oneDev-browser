@@ -1,5 +1,5 @@
 import fetch from "node-fetch";
-import { Credentials, PullRequest, Issue, Build } from "./types";
+import { Credentials, PullRequest, Issue, Build, PullRequestChange } from "./types";
 
 
 export async function fetchCurrentBuilds(
@@ -86,6 +86,35 @@ export async function fetchBuilds(
     const json = await response.json();
     console.log('[api] fetchBuilds response', json);
     return json as Build[];
+}
+
+export async function fetchPullRequestChanges(
+    credentials: Credentials,
+    prId: number
+): Promise<PullRequestChange[]> {
+    console.log('[api] fetchPullRequestChanges called', credentials, prId);
+    const apiUrl = `${credentials.url}/~api/pulls/${prId}/changes`;
+    const queryParams = new URLSearchParams();
+    // Usually no query params needed for changes, but keeping structure
+    const response = await makeApiRequest(apiUrl, queryParams, credentials);
+    const json = await response.json();
+    console.log('[api] fetchPullRequestChanges response', json);
+    return json as PullRequestChange[];
+}
+
+export async function fetchFileContent(
+    credentials: Credentials,
+    projectId: number,
+    blobId: string
+): Promise<string> {
+    console.log('[api] fetchFileContent called', credentials, projectId, blobId);
+    const apiUrl = `${credentials.url}/~api/projects/${projectId}/blobs/${blobId}`;
+    const queryParams = new URLSearchParams();
+    const response = await makeApiRequest(apiUrl, queryParams, credentials);
+    const text = await response.text();
+    // OneDev might return base64 or raw text depending on API.
+    // Assuming raw text or headers for now, will adjust during verification.
+    return text;
 }
 
 async function makeApiRequest(

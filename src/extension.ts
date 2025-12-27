@@ -115,6 +115,61 @@ export function activate(context: vscode.ExtensionContext) {
       }
     })
   );
+
+  // Register Content Provider for readonly file access
+  const myScheme = 'onedev';
+  const myProvider = new OneDevContentProvider();
+  context.subscriptions.push(vscode.workspace.registerTextDocumentContentProvider(myScheme, myProvider));
+}
+
+class OneDevContentProvider implements vscode.TextDocumentContentProvider {
+  async provideTextDocumentContent(uri: vscode.Uri): Promise<string> {
+    const query = new URLSearchParams(uri.query);
+    const projectId = query.get('projectId');
+    const blobId = query.get('blobId');
+
+    if (!projectId || !blobId) {
+      return "Error: Missing projectId or blobId";
+    }
+
+    // Try Local Git first if blobId looks like a SHA (40 hex chars)
+    // or just always try git if we have a workspace
+    const workspaceFolders = vscode.workspace.workspaceFolders;
+    if (workspaceFolders && workspaceFolders.length > 0) {
+      const rootPath = workspaceFolders[0].uri.fsPath;
+      const cp = require('child_process');
+      try {
+        return await new Promise<string>((resolve, reject) => {
+          // -p pretty print, but simple git show blobId works for blobs
+          cp.exec(`git show ${blobId}`, { cwd: rootPath }, (err: any, stdout: string, stderr: string) => {
+            if (err) {
+              reject(err);
+            } else {
+              resolve(stdout);
+            }
+          });
+        });
+      } catch (gitErr) {
+        console.log("Local git fetch failed, falling back to API", gitErr);
+      }
+    }
+
+    const config = vscode.workspace.getConfiguration("onedev-browser");
+    const creds = {
+      url: getConfigValue(config, "url"),
+      email: getConfigValue(config, "email"),
+      token: getConfigValue(config, "token"),
+      projectPath: getConfigValue(config, "projectPath")
+    };
+
+    try {
+      const { fetchFileContent } = require('./api');
+      const content = await fetchFileContent(creds, parseInt(projectId), blobId);
+      return content;
+    } catch (err: any) {
+      return `Error reading file: ${err.message}`;
+    }
+  }
 }
 
 let oneDevPanel: vscode.WebviewPanel | undefined;
@@ -283,6 +338,179 @@ function openReactWebview(context: vscode.ExtensionContext) {
           panel.webview.postMessage({
             command: 'showErrorMessage',
             message: 'Failed to fetch issues.'
+          });
+        }
+      } else if (message.command === 'getPrChanges') {
+        try {
+          // Use Local Git logic
+          const { getPullRequestChanges } = require('./git');
+          const workspaceFolders = vscode.workspace.workspaceFolders;
+          if (!workspaceFolders || workspaceFolders.length === 0) {
+            throw new Error("No workspace folder open.");
+          }
+          const rootPath = workspaceFolders[0].uri.fsPath;
+
+          // We need to fetch the PR details to get branch names if not passed?
+          // The message only has prId. We need to find the PR object.
+          // BUT, we don't have the list here easily unless we fetch it again or pass it.
+          // Let's assume we can fetch the single PR details via API first to get branches.
+          const { fetchPullRequestChanges: fetchPRChangesAPI, fetchPullRequests } = require('./api');
+
+          // Helper to get PR details - reusing fetchPullRequests for now or need a getPullRequest(id)
+          // Since we don't have getPullRequest(id), let's assume we can pass the source/target branches 
+          // from the frontend, OR we fetch all and find. 
+          // Fetching specific PR by ID is probably better.
+          // For now, let's ask the frontend to pass the PR details or fetch changes via API failure fallback?
+          // User said API is broken.
+
+          // Actually, let's fetch the PR details using the API. fetchPullRequestChanges (list of files) is broken,
+          // but fetching the PR metadata (title, branches) usually is a different endpoint /~api/pulls/:id
+          // I didn't verify that endpoint. Let's assume fetching PR list worked, so we can pass the PR object 
+          // from frontend to backend in the message!
+
+          const prDetails = message.pr; // We need to update frontend to pass this.
+
+          if (!prDetails) {
+            // Fallback: try to fetch it? 
+            throw new Error("PR details not provided for Git diff.");
+          }
+
+          const changes = await getPullRequestChanges(
+            rootPath,
+            prDetails.sourceBranch,
+            prDetails.targetBranch,
+            prDetails.id || prDetails.number, // Pass PR number
+            message.url, // Pass remote URL for auth construction
+            message.token // Pass token
+          );
+
+          panel.webview.postMessage({
+            command: 'setPrChanges',
+            changes
+          });
+        } catch (err: any) {
+          panel.webview.postMessage({
+            command: 'showErrorMessage',
+            message: `Failed to fetch PR changes (Git): ${err.message}`
+          });
+        }
+      } else if (message.command === 'openDiff') {
+        const { change, projectId } = message;
+        // URI format: onedev:/path/to/file?projectId=123&blobId=abc
+        // If deleted, we might want to handle it (show empty).
+        // If added, oldURI is empty/null.
+
+        let oldUri: vscode.Uri | undefined;
+        let newUri: vscode.Uri | undefined;
+
+        if (change.oldBlobId) {
+          oldUri = vscode.Uri.parse(`onedev:${change.oldPath || change.path}?projectId=${projectId}&blobId=${change.oldBlobId}`);
+        }
+        if (change.blobId) {
+          newUri = vscode.Uri.parse(`onedev:${change.path}?projectId=${projectId}&blobId=${change.blobId}`);
+        }
+
+        if (oldUri && newUri) {
+          const title = `${change.oldPath || change.path} (OneDev Diff)`;
+          await vscode.commands.executeCommand('vscode.diff', oldUri, newUri, title);
+        } else if (newUri) {
+          await vscode.window.showTextDocument(newUri);
+        }
+      } else if (message.command === 'generateCodeReview') {
+        try {
+          // Use Local Git logic
+          const { getPullRequestChanges } = require('./git');
+          const workspaceFolders = vscode.workspace.workspaceFolders;
+          const rootPath = workspaceFolders ? workspaceFolders[0].uri.fsPath : undefined;
+
+          if (!rootPath) throw new Error("No workspace open.");
+
+          // Message should pass PR object now via handleGenerateReview? 
+          // Frontend might need update if it doesn't pass PR.
+          // But we can check message.prId and maybe we have to assume message.projectId is prId?
+          // Actually, the PRTab generate button logic only sends prId currently.
+          // I need to update PRTab.tsx for generating review too OR reuse logic.
+          // Wait, I updated getPrChanges message, but generateCodeReview message might not have 'pr'.
+          // Let's assume we update frontend to pass 'pr' or we fail.
+          // IF we don't have 'pr', we can't get branches.
+
+          // Ideally we shouldn't fail if we can avoid it.
+          // But for now, let's update frontend too.
+
+          const prDetails = message.pr;
+          if (!prDetails) throw new Error("PR details not provided for Git review.");
+
+          const changes = await getPullRequestChanges(
+            rootPath,
+            prDetails.sourceBranch,
+            prDetails.targetBranch,
+            prDetails.id || prDetails.number,
+            message.url,
+            message.token
+          );
+
+          let prompt = "Please review the following code changes:\n\n";
+          let tokensUsed = 0;
+          const MAX_TOKENS = 8000;
+
+          // For content, we shouldn't use fetchFileContent(api) if we want local git content.
+          // We can use git show.
+          // Let's use `git show blobId` (which is SHA) or `git show sourceBranch:path`.
+          // We'll use cp.exec directly or add helper.
+
+          const cp = require('child_process');
+          const getBlobContent = (sha: string) => {
+            return new Promise<string>((resolve) => {
+              cp.exec(`git show ${sha}`, { cwd: rootPath }, (err: any, stdout: string) => {
+                resolve(stdout || "");
+              });
+            });
+          };
+
+          for (const change of changes) {
+            if (change.type === 'MODIFY' || change.type === 'ADD') {
+              if (change.blobId) {
+                // change.blobId from getPullRequestChanges is a SHA
+                const content = await getBlobContent(change.blobId);
+                const truncatedContent = content.slice(0, 2000);
+                prompt += `File: ${change.path}\nContent:\n\`\`\`\n${truncatedContent}\n\`\`\`\n\n`;
+                tokensUsed += truncatedContent.length / 4;
+                if (tokensUsed > MAX_TOKENS) break;
+              }
+            }
+          }
+
+          const models = await vscode.lm.selectChatModels();
+          let model;
+          if (models && models.length > 0) {
+            model = models[0];
+          } else {
+            const allModels = await vscode.lm.selectChatModels();
+            if (allModels.length > 0) model = allModels[0];
+          }
+
+          if (model) {
+            const chatResponse = await model.sendRequest([
+              vscode.LanguageModelChatMessage.User(prompt)
+            ], {}, new vscode.CancellationTokenSource().token);
+
+            let reviewText = "";
+            for await (const fragment of chatResponse.text) {
+              reviewText += fragment;
+            }
+
+            panel.webview.postMessage({
+              command: 'setCodeReview',
+              review: reviewText
+            });
+          } else {
+            throw new Error("No Language Model found.");
+          }
+
+        } catch (err: any) {
+          panel.webview.postMessage({
+            command: 'showErrorMessage',
+            message: `Code review failed: ${err.message}`
           });
         }
       }

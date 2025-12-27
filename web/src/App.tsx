@@ -7,9 +7,12 @@ import { VSCodeTextField } from "@vscode/webview-ui-toolkit/react";
 import { PullRequest, Issue, Build } from "./types";
 
 // Declare the vscode API
+interface VSCodeApi {
+    postMessage: (message: unknown) => void;
+}
 declare global {
     interface Window {
-        acquireVsCodeApi?: () => any;
+        acquireVsCodeApi?: () => VSCodeApi;
     }
 }
 
@@ -36,7 +39,7 @@ function App() {
             count,
         };
         console.log("[Webview] postMessage: fetchPullRequests", payload);
-        vscode.postMessage(payload);
+        if (vscode) vscode.postMessage(payload);
         // If replace, clear PRs immediately for better UX
         if (replace) setPullRequests([]);
     };
@@ -58,7 +61,7 @@ function App() {
             count,
         };
         console.log("[Webview] postMessage: fetchIssues", payload);
-        vscode.postMessage(payload);
+        if (vscode) vscode.postMessage(payload);
         // If replace, clear issues immediately for better UX
         if (replace) setIssues([]);
     };
@@ -80,7 +83,7 @@ function App() {
             count,
         };
         console.log("[Webview] postMessage: fetchBuilds", payload);
-        vscode.postMessage(payload);
+        if (vscode) vscode.postMessage(payload);
         if (replace) setBuilds([]);
     };
     const [activeTab, setActiveTab] = useState("pr");
@@ -108,7 +111,7 @@ function App() {
     const [issueSort, setIssueSort] = useState("newest");
 
     // PRTab current builds state
-    const [currentBuilds, setCurrentBuilds] = useState<any[] | null>(null);
+    const [currentBuilds, setCurrentBuilds] = useState<Build[] | null>(null);
     const [loadingBuilds, setLoadingBuilds] = useState(false);
 
     // Build tab state
@@ -303,19 +306,20 @@ function App() {
         if (!url || !email || !token || !projectPath) return;
         setLoadingBuilds(true);
         setCurrentBuilds(null);
-        vscode.postMessage({
-            command: "fetchCurrentBuilds",
-            url,
-            email,
-            token,
-            projectPath,
-            prID,
-        });
+        if (vscode)
+            vscode.postMessage({
+                command: "fetchCurrentBuilds",
+                url,
+                email,
+                token,
+                projectPath,
+                prID,
+            });
     };
 
     useEffect(() => {
         window.addEventListener("message", handleMessage);
-        vscode.postMessage({ command: "getCredentials" });
+        if (vscode) vscode.postMessage({ command: "getCredentials" });
         return () => {
             window.removeEventListener("message", handleMessage);
         };
@@ -416,6 +420,8 @@ function App() {
                         prSort={prSort}
                         isLoading={isLoading}
                         url={url}
+                        email={email}
+                        token={token}
                         projectPath={projectPath}
                         onReload={handleReload}
                         onSortChange={setPrSort}
