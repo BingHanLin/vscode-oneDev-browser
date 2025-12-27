@@ -63,7 +63,6 @@ export async function getPullRequestChanges(
         const runFetches = async () => {
             for (const cmd of cmds) {
                 await new Promise<void>((res) => {
-                    console.log(`[git] Executing: ${cmd}`);
                     cp.exec(cmd, { cwd: rootPath }, (err) => {
                         if (err) console.warn(`[git] Fetch warning: ${err.message}`);
                         res();
@@ -81,7 +80,6 @@ export async function getPullRequestChanges(
             // Converting to Direct Diff (base head) to avoid ambiguous merge-base issues
             // Note: This shows diff between tips, so if target has advanced, it might show extra noise.
             const diffCmd = `git diff --name-status ${baseObj} ${headObj}`;
-            console.log(`[git] Diffing: ${diffCmd}`);
 
             cp.exec(diffCmd, { cwd: rootPath }, async (error, stdout, stderr) => {
                 if (error) {

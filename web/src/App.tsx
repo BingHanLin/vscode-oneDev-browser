@@ -38,7 +38,6 @@ function App() {
             offset,
             count,
         };
-        console.log("[Webview] postMessage: fetchPullRequests", payload);
         if (vscode) vscode.postMessage(payload);
         // If replace, clear PRs immediately for better UX
         if (replace) setPullRequests([]);
@@ -60,7 +59,6 @@ function App() {
             offset,
             count,
         };
-        console.log("[Webview] postMessage: fetchIssues", payload);
         if (vscode) vscode.postMessage(payload);
         // If replace, clear issues immediately for better UX
         if (replace) setIssues([]);
@@ -82,7 +80,6 @@ function App() {
             offset,
             count,
         };
-        console.log("[Webview] postMessage: fetchBuilds", payload);
         if (vscode) vscode.postMessage(payload);
         if (replace) setBuilds([]);
     };

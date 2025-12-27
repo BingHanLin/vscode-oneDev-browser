@@ -116,6 +116,28 @@
         "command": "onedev-browser.refreshAllViews",
         "title": "Refresh"
       }
+    ],
+    "chatParticipants": [
+      {
+        "id": "onedev-browser.chatParticipant",
+        "name": "onedev",
+        "description": "Interact with OneDev issues, PRs, and builds.",
+        "isSticky": true,
+        "commands": [
+          {
+            "name": "issues",
+            "description": "Search and list issues"
+          },
+          {
+            "name": "pr",
+            "description": "Search PRs or summarize changes"
+          },
+          {
+            "name": "build",
+            "description": "Check build status"
+          }
+        ]
+      }
     ]
   },
   "scripts": {

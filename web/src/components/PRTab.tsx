@@ -54,11 +54,6 @@ const PRTab: React.FC<PRTabProps> = ({
     loadingBuilds,
     onFetchCurrentBuilds,
 }) => {
-    console.log("PRTab component rendered", { 
-        selectedPRProp, 
-        pullRequestsCount: pullRequests.length,
-        hasVscode: !!vscode 
-    });
     // Local state for selected PR (for detail panel)
     const [selectedPRLocal, setSelectedPRLocal] = useState<number | null>(
         selectedPRProp ?? null
@@ -85,15 +80,12 @@ const PRTab: React.FC<PRTabProps> = ({
     const [generatingReview, setGeneratingReview] = useState(false);
 
     useEffect(() => {
-        console.log("PRTab useEffect check", { selectedPRLocal, vscode: !!vscode, prCount: pullRequests.length });
         if (selectedPRLocal && vscode) {
              const pr = pullRequests.find(p => p.number === selectedPRLocal);
-             console.log("PRTab found PR", pr);
              if (pr && pr.id) {
                setLoadingChanges(true);
                setPrChanges([]);
                setReview("");
-               console.log("PRTab sending getPrChanges", pr.id);
                vscode.postMessage({
                    command: 'getPrChanges',
                    url, email, token, projectPath,

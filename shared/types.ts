@@ -37,8 +37,10 @@ export interface Build {
     number: number;
     jobName: string;
     status: string;
-    runningDuration: number;
-    finishDate: string;
+    runningDuration?: number;
+    finishDate?: string;
+    startDate?: string;
+    duration?: number;
 }
 
 export interface PullRequestChange {

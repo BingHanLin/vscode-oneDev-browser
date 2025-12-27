@@ -37,54 +37,70 @@ export async function fetchProjectId(
 export async function fetchPullRequests(
     credentials: Credentials,
     offset: number = 0,
-    count: number = 20
+    count: number = 20,
+    query?: string
 ): Promise<PullRequest[]> {
-    console.log('[api] fetchPullRequests called', credentials, { offset, count });
     const apiUrl = `${credentials.url}/~api/pulls`;
+
+    // Construct query: "Target Project" is "..." AND (<user_query>)
+    let filter = `"Target Project" is "${credentials.projectPath}"`;
+    if (query) {
+        filter = `${filter} AND (${query})`;
+    }
+
     const queryParams = new URLSearchParams({
-        query: `"Target Project" is "${credentials.projectPath}"`,
+        query: filter,
         offset: offset.toString(),
         count: count.toString(),
     });
     const response = await makeApiRequest(apiUrl, queryParams, credentials);
     const json = await response.json();
-    console.log('[api] fetchPullRequests response', json);
     return json as PullRequest[];
 }
 
 export async function fetchIssues(
     credentials: Credentials,
     offset: number = 0,
-    count: number = 20
+    count: number = 20,
+    query?: string
 ): Promise<Issue[]> {
-    console.log('[api] fetchIssues called', credentials, { offset, count });
     const apiUrl = `${credentials.url}/~api/issues`;
+
+    let filter = `"Project" is "${credentials.projectPath}"`;
+    if (query) {
+        filter = `${filter} AND (${query})`;
+    }
+
     const queryParams = new URLSearchParams({
-        query: `"Project" is "${credentials.projectPath}"`,
+        query: filter,
         offset: offset.toString(),
         count: count.toString(),
     });
     const response = await makeApiRequest(apiUrl, queryParams, credentials);
     const json = await response.json();
-    console.log('[api] fetchIssues response', json);
     return json as Issue[];
 }
 
 export async function fetchBuilds(
     credentials: Credentials,
     offset: number = 0,
-    count: number = 20
+    count: number = 20,
+    query?: string
 ): Promise<Build[]> {
-    console.log('[api] fetchBuilds called', credentials, { offset, count });
     const apiUrl = `${credentials.url}/~api/builds`;
+
+    let filter = `"Project" is "${credentials.projectPath}"`;
+    if (query) {
+        filter = `${filter} AND (${query})`;
+    }
+
     const queryParams = new URLSearchParams({
-        query: `"Project" is "${credentials.projectPath}"`,
+        query: filter,
         offset: offset.toString(),
         count: count.toString(),
     });
     const response = await makeApiRequest(apiUrl, queryParams, credentials);
     const json = await response.json();
-    console.log('[api] fetchBuilds response', json);
     return json as Build[];
 }
 
@@ -92,13 +108,11 @@ export async function fetchPullRequestChanges(
     credentials: Credentials,
     prId: number
 ): Promise<PullRequestChange[]> {
-    console.log('[api] fetchPullRequestChanges called', credentials, prId);
     const apiUrl = `${credentials.url}/~api/pulls/${prId}/changes`;
     const queryParams = new URLSearchParams();
     // Usually no query params needed for changes, but keeping structure
     const response = await makeApiRequest(apiUrl, queryParams, credentials);
     const json = await response.json();
-    console.log('[api] fetchPullRequestChanges response', json);
     return json as PullRequestChange[];
 }
 
@@ -107,7 +121,6 @@ export async function fetchFileContent(
     projectId: number,
     blobId: string
 ): Promise<string> {
-    console.log('[api] fetchFileContent called', credentials, projectId, blobId);
     const apiUrl = `${credentials.url}/~api/projects/${projectId}/blobs/${blobId}`;
     const queryParams = new URLSearchParams();
     const response = await makeApiRequest(apiUrl, queryParams, credentials);
@@ -122,7 +135,6 @@ async function makeApiRequest(
     queryParams: URLSearchParams,
     credentials: Credentials
 ) {
-    console.log('[api] makeApiRequest', apiUrl, queryParams.toString(), credentials);
     const response = await fetch(`${apiUrl}?${queryParams}`, {
         method: "GET",
         headers: {
@@ -133,7 +145,6 @@ async function makeApiRequest(
                 ).toString("base64"),
         },
     });
-    console.log('[api] makeApiRequest response status', response.status);
     if (!response.ok) {
         const text = await response.text();
         console.error(`[api] HTTP error! status: ${response.status}, body:`, text);

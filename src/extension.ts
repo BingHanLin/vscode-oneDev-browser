@@ -7,7 +7,13 @@ import { registerStatusBarCommand } from "./statusbar";
 import { getConfigValue, getConfigNumber } from "./utils/config";
 
 
+import { registerChatParticipant } from './chatParticipant';
+
 export function activate(context: vscode.ExtensionContext) {
+
+  // Register Chat Participant
+  registerChatParticipant(context);
+
   // Register PRs/Issues/Builds providers ONCE
   const prsProvider = new PRsTreeDataProvider();
   const issuesProvider = new IssuesTreeDataProvider();
@@ -180,7 +186,8 @@ function openReactWebview(context: vscode.ExtensionContext) {
     return oneDevPanel;
   }
   let panel = vscode.window.createWebviewPanel("webview", "oneDev Browser", vscode.ViewColumn.One, {
-    enableScripts: true
+    enableScripts: true,
+    retainContextWhenHidden: true
   });
   oneDevPanel = panel;
 
@@ -205,7 +212,6 @@ function openReactWebview(context: vscode.ExtensionContext) {
     oneDevPanel = undefined;
   });
   panel.webview.onDidReceiveMessage(async (message) => {
-    console.log('[Extension] Received message:', message);
     try {
       if (message.command === 'getCredentials') {
         const config = vscode.workspace.getConfiguration('onedev-browser');
