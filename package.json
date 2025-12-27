@@ -135,6 +135,10 @@
           {
             "name": "build",
             "description": "Check build status"
+          },
+          {
+            "name": "review",
+            "description": "Review pull request changes"
           }
         ]
       }

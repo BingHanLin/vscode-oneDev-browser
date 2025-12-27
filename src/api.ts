@@ -42,10 +42,10 @@ export async function fetchPullRequests(
 ): Promise<PullRequest[]> {
     const apiUrl = `${credentials.url}/~api/pulls`;
 
-    // Construct query: "Target Project" is "..." AND (<user_query>)
+    // Construct query: "Target Project" is "..." and (<user_query>)
     let filter = `"Target Project" is "${credentials.projectPath}"`;
     if (query) {
-        filter = `${filter} AND (${query})`;
+        filter = `${filter} and (${query})`;
     }
 
     const queryParams = new URLSearchParams({
@@ -68,7 +68,7 @@ export async function fetchIssues(
 
     let filter = `"Project" is "${credentials.projectPath}"`;
     if (query) {
-        filter = `${filter} AND (${query})`;
+        filter = `${filter} and (${query})`;
     }
 
     const queryParams = new URLSearchParams({
@@ -91,7 +91,7 @@ export async function fetchBuilds(
 
     let filter = `"Project" is "${credentials.projectPath}"`;
     if (query) {
-        filter = `${filter} AND (${query})`;
+        filter = `${filter} and (${query})`;
     }
 
     const queryParams = new URLSearchParams({

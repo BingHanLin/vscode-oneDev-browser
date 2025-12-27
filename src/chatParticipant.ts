@@ -40,6 +40,8 @@ export function registerChatParticipant(context: ExtensionContext) {
                 await handlePRs(creds, prompt, response);
             } else if (cmd === 'build') {
                 await handleBuilds(creds, prompt, response);
+            } else if (cmd === 'review') {
+                await handleReview(creds, prompt, response);
             } else {
                 response.markdown('I can help you querying **issues**, **PRs**, and **builds**. Try `@onedev /issues assigned to me`.');
             }
@@ -47,8 +49,6 @@ export function registerChatParticipant(context: ExtensionContext) {
             response.markdown(`Error processing request: ${err.message}`);
         }
     });
-
-
 
     // Set the icon
     participant.iconPath = vscode.Uri.joinPath(context.extensionUri, 'images', 'icon.png');
@@ -158,7 +158,7 @@ async function handlePRs(creds: OneDevCredentials, prompt: string, response: vsc
 async function summarizePR(creds: OneDevCredentials, prNumber: number, response: vscode.ChatResponseStream) {
     // 1. Fetch PR details to get branches (Wait, fetchPullRequests returns list, we need specific PR details?)
     // fetchPullRequests supports query. query by number.
-    const prs = await fetchPullRequests(creds, 0, 1, `"Number" is "${prNumber}"`);
+    const prs = await fetchPullRequests(creds, 0, 1, `"Number" is "${creds.projectPath}#${prNumber}"`);
     if (prs.length === 0) {
         response.markdown(`PR #${prNumber} not found.`);
         return;
@@ -256,5 +256,98 @@ async function handleBuilds(creds: OneDevCredentials, prompt: string, response: 
         // url/projects/projectPath/builds/number
         const buildUrl = `${creds.url}/projects/${creds.projectPath}/builds/${build.number}`;
         response.markdown(`- ${icon} [**#${build.number}**](${buildUrl}) ${build.jobName} - ${build.status}\n`);
+    }
+}
+
+async function handleReview(creds: OneDevCredentials, prompt: string, response: vscode.ChatResponseStream) {
+    // Expect prompt to contain PR number like "#123" or just numbers "123"
+    const match = prompt.match(/#?(\d+)/);
+    if (!match) {
+        response.markdown('Please specify a PR number, e.g., `@onedev /review #123`.');
+        return;
+    }
+    const prNumber = parseInt(match[1]);
+
+    // 1. Fetch PR details
+    response.progress(`Fetching PR #${prNumber}...`);
+    const prs = await fetchPullRequests(creds, 0, 1, `"Number" is "${creds.projectPath}#${prNumber}"`);
+    if (prs.length === 0) {
+        response.markdown(`PR #${prNumber} not found.`);
+        return;
+    }
+    const pr = prs[0];
+
+    // 2. Fetch changes via Git (reuse logic)
+    const workspaceFolders = vscode.workspace.workspaceFolders;
+    if (!workspaceFolders || workspaceFolders.length === 0) {
+        response.markdown('No workspace folder open. Cannot run git diff.');
+        return;
+    }
+    const rootPath = workspaceFolders[0].uri.fsPath;
+
+    try {
+        const { getPullRequestChanges } = require('./git');
+        var cp = require('child_process');
+
+        response.progress('Fetching changes from Git...');
+        const changes = await getPullRequestChanges(
+            rootPath,
+            pr.sourceBranch,
+            pr.targetBranch,
+            pr.id,
+            creds.url,
+            creds.token
+        );
+
+        if (changes.length === 0) {
+            response.markdown('No changes found in this PR.');
+            return;
+        }
+
+        // 3. Construct Prompt (Review Style)
+        let promptText = `Please provide a code review for the following changes in PR #${pr.number}: "${pr.title}". \n`;
+        promptText += `Focus on logic errors, potential bugs, code style, and best practices.\n\n`;
+
+        let tokensUsed = 0;
+        const MAX_TOKENS = 6000;
+
+        const getBlobContent = (sha: string) => {
+            return new Promise<string>((resolve) => {
+                try {
+                    cp.exec(`git show ${sha}`, { cwd: rootPath }, (err: any, stdout: string) => {
+                        resolve(stdout || "");
+                    });
+                } catch (e) { resolve(""); }
+            });
+        };
+
+        for (const change of changes) {
+            if ((change.type === 'MODIFY' || change.type === 'ADD') && change.blobId) {
+                const content = await getBlobContent(change.blobId);
+                const truncated = content.slice(0, 1500);
+                promptText += `File: ${change.path}\n\`\`\`\n${truncated}\n\`\`\`\n\n`;
+                tokensUsed += truncated.length / 4;
+                if (tokensUsed > MAX_TOKENS) break;
+            }
+        }
+
+        // 4. Send to LM
+        response.progress('Generating Review...');
+        const models = await vscode.lm.selectChatModels({ family: 'gpt-4' });
+        let model = models.length > 0 ? models[0] : (await vscode.lm.selectChatModels())[0];
+
+        if (!model) {
+            response.markdown('No Language Model found. Please check GitHub Copilot Chat.');
+            return;
+        }
+
+        const chatReq = await model.sendRequest([vscode.LanguageModelChatMessage.User(promptText)], {}, new vscode.CancellationTokenSource().token);
+
+        for await (const frag of chatReq.text) {
+            response.markdown(frag);
+        }
+
+    } catch (err: any) {
+        response.markdown(`Failed to generate review: ${err.message}`);
     }
 }
