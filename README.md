@@ -8,13 +8,9 @@ A Visual Studio Code extension to browse pull requests, issues, and builds from 
 
 ## Features
 
--   **Tabbed UI**: Switch between Pull Requests, Issues, and Builds in a single sidebar view.
--   **Sorting & Filtering**: Sort and filter PRs, Issues, and Builds by state, status, or keyword.
--   **Search**: Quickly search PRs, Issues, and Builds by title or number.
--   **Status Bar Integration**: Access the oneDev Browser instantly from the VS Code status bar.
--   **Webview Details**: Open PR, Issue, or Build details in a rich webview panel.
--   **Progress Indicators**: Visual feedback while loading data.
--   **Project Configuration**: Connect to any oneDev instance and project with your credentials.
+-   **AI Chat Participant**: Interact with OneDev via `@onedev` in GitHub Copilot Chat.
+    -   **AI Code Review**: Generate reviews for Pull Requests using your preferred model.
+    -   **Clickable Diffs**: Open file diffs directly from the AI's review comments.
 
 ## Getting Started
 
@@ -34,11 +30,15 @@ Before using the extension, go to VS Code **Settings** (`Ctrl+,` or `Cmd+,` on m
 
 ### Usage
 
-1. Use the **oneDev Browser** sidebar tree view to browse Pull Requests, Issues, and Builds for your configured project.
+1. **Tree Views**: Use the **oneDev Browser** sidebar to browse Pull Requests, Issues, and Builds.
+2. **Webview**: Open the command palette and run `Open oneDev Webview` to see a rich dashboard.
+3. **AI Chat**: Open Copilot Chat and type `@onedev` to start interacting.
+    -   `@onedev /review #123`: Request an AI code review for PR #123.
 
-    - You can configure the maximum number of Pull Requests, Issues, and Builds shown in the tree view via the settings: `onedev-browser.maxPRItems`, `onedev-browser.maxIssueItems`, and `onedev-browser.maxBuildItems`.
+## AI Code Review Setup
 
-2. To view rich details, open the command palette (`Ctrl+Shift+P` or `Cmd+Shift+P` on macOS) and run `Open oneDev Webview`.
+1.  **Select Model**: Run `OneDev: Select Code Review Model` to choose which AI model to use (e.g., GPT-4). You can set this globally or per workspace.
+2.  **Custom Prompt**: Configure `onedev-browser.codeReviewPrompt` in settings to customize the instructions given to the AI (e.g., "Focus on security vulnerabilities").
 
 ## Development
 

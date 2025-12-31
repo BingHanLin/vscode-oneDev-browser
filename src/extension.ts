@@ -127,7 +127,7 @@ export function activate(context: vscode.ExtensionContext) {
 
         // Add option to clear
         items.unshift({
-          label: "Auto-detect (Default)",
+          label: "Default",
           description: "Clear setting to use default behavior",
           modelId: ""
         });

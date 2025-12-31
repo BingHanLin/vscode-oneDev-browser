@@ -2,7 +2,7 @@
   "name": "onedev-browser",
   "displayName": "oneDev Browser",
   "description": "Browse issues, PRs, and builds on oneDev repositories",
-  "version": "0.0.10",
+  "version": "0.0.11",
   "repository": "https://github.com/BingHanLin/vscode-oneDev-browser",
   "icon": "images/icon.png",
   "main": "./dist/extension.js",
@@ -139,18 +139,6 @@
         "description": "Interact with OneDev issues, PRs, and builds.",
         "isSticky": true,
         "commands": [
-          {
-            "name": "issues",
-            "description": "Search and list issues"
-          },
-          {
-            "name": "pr",
-            "description": "Search PRs or summarize changes"
-          },
-          {
-            "name": "build",
-            "description": "Check build status"
-          },
           {
             "name": "review",
             "description": "Review pull request changes"
