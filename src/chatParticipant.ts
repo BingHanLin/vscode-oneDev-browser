@@ -317,12 +317,22 @@ async function handleReview(creds: OneDevCredentials, prompt: string, response: 
             });
         };
 
+        // Create a map for fast lookup
+        const changeMap = new Map<string, any>();
+        for (const change of changes) {
+            changeMap.set(change.path, change);
+        }
+
+        let fileLinksPrompt = "When referring to files in your review, you MUST use the format `[FILE:path/to/file]`. Do not use Markdown links yourself. I will convert them to clickable links automatically.\n";
+
         for (const change of changes) {
             if ((change.type === 'MODIFY' || change.type === 'ADD') && change.blobId) {
                 const content = await getBlobContent(change.blobId);
                 promptText += `File: ${change.path}\n\`\`\`\n${content}\n\`\`\`\n\n`;
             }
         }
+
+        promptText = fileLinksPrompt + "\n" + promptText;
 
         // 4. Select Model
         response.progress('Configuring Model...');
@@ -354,8 +364,60 @@ async function handleReview(creds: OneDevCredentials, prompt: string, response: 
 
         const chatReq = await model.sendRequest([vscode.LanguageModelChatMessage.User(promptText)], {}, new vscode.CancellationTokenSource().token);
 
+        let buffer = "";
+        const FILE_REGEX_GLOBAL = /\[FILE:(.*?)\]/g;
+
         for await (const frag of chatReq.text) {
-            response.markdown(frag);
+            buffer += frag;
+
+            let newlineIndex;
+            while ((newlineIndex = buffer.indexOf('\n')) !== -1) {
+                const line = buffer.substring(0, newlineIndex + 1);
+                buffer = buffer.substring(newlineIndex + 1);
+
+                // Process tags in the line
+                const processedLine = line.replace(FILE_REGEX_GLOBAL, (match, filePath) => {
+                    const change = changeMap.get(filePath);
+                    if (change) {
+                        const args = [
+                            change.path,
+                            change.oldBlobId || undefined,
+                            change.blobId || undefined,
+                            "0"
+                        ];
+                        const encodedArgs = encodeURIComponent(JSON.stringify(args));
+                        return `[${filePath}](command:onedev-browser.openDiffFromChat?${encodedArgs})`;
+                    }
+                    return `\`${filePath}\``;
+                });
+
+                const md = new vscode.MarkdownString(processedLine);
+                md.isTrusted = { enabledCommands: ['onedev-browser.openDiffFromChat'] };
+                md.supportHtml = true; // Just in case
+                response.markdown(md);
+            }
+        }
+
+        // Output remaining
+        if (buffer.length > 0) {
+            const processedLine = buffer.replace(FILE_REGEX_GLOBAL, (match, filePath) => {
+                const change = changeMap.get(filePath);
+                if (change) {
+                    const args = [
+                        change.path,
+                        change.oldBlobId || undefined,
+                        change.blobId || undefined,
+                        "0"
+                    ];
+                    const encodedArgs = encodeURIComponent(JSON.stringify(args));
+                    return `[${filePath}](command:onedev-browser.openDiffFromChat?${encodedArgs})`;
+                }
+                return `\`${filePath}\``;
+            });
+            const md = new vscode.MarkdownString(processedLine);
+            md.isTrusted = { enabledCommands: ['onedev-browser.openDiffFromChat'] };
+            md.supportHtml = true;
+            response.markdown(md);
         }
 
     } catch (err: any) {

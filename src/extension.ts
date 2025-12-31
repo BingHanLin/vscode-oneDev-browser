@@ -169,6 +169,35 @@ export function activate(context: vscode.ExtensionContext) {
   );
 
   context.subscriptions.push(
+    vscode.commands.registerCommand('onedev-browser.openDiffFromChat', async (path: string, oldBlobId: string | undefined, newBlobId: string | undefined, projectId: string) => {
+      try {
+        let oldUri: vscode.Uri | undefined;
+        let newUri: vscode.Uri | undefined;
+
+        if (oldBlobId) {
+          oldUri = vscode.Uri.parse(`onedev:${path}?projectId=${projectId}&blobId=${oldBlobId}`);
+        }
+        if (newBlobId) {
+          newUri = vscode.Uri.parse(`onedev:${path}?projectId=${projectId}&blobId=${newBlobId}`);
+        }
+
+        if (oldUri && newUri) {
+          const title = `${path} (OneDev Diff)`;
+          await vscode.commands.executeCommand('vscode.diff', oldUri, newUri, title);
+        } else if (newUri) {
+          await vscode.window.showTextDocument(newUri);
+        } else if (oldUri) {
+          await vscode.window.showTextDocument(oldUri);
+        } else {
+          vscode.window.showErrorMessage('Invalid file information for diff.');
+        }
+      } catch (e: any) {
+        vscode.window.showErrorMessage(`Failed to open diff: ${e.message}`);
+      }
+    })
+  );
+
+  context.subscriptions.push(
     vscode.commands.registerCommand('onedev-browser.openWebviewToBuild', (buildNumber: number, build: any, url?: string, projectPath?: string) => {
       // Open the Build in the user's default browser
       if (url && projectPath && buildNumber) {
