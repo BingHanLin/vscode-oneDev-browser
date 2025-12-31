@@ -356,23 +356,6 @@ function openReactWebview(context: vscode.ExtensionContext) {
           }
           const rootPath = workspaceFolders[0].uri.fsPath;
 
-          // We need to fetch the PR details to get branch names if not passed?
-          // The message only has prId. We need to find the PR object.
-          // BUT, we don't have the list here easily unless we fetch it again or pass it.
-          // Let's assume we can fetch the single PR details via API first to get branches.
-          const { fetchPullRequestChanges: fetchPRChangesAPI, fetchPullRequests } = require('./api');
-
-          // Helper to get PR details - reusing fetchPullRequests for now or need a getPullRequest(id)
-          // Since we don't have getPullRequest(id), let's assume we can pass the source/target branches 
-          // from the frontend, OR we fetch all and find. 
-          // Fetching specific PR by ID is probably better.
-          // For now, let's ask the frontend to pass the PR details or fetch changes via API failure fallback?
-          // User said API is broken.
-
-          // Actually, let's fetch the PR details using the API. fetchPullRequestChanges (list of files) is broken,
-          // but fetching the PR metadata (title, branches) usually is a different endpoint /~api/pulls/:id
-          // I didn't verify that endpoint. Let's assume fetching PR list worked, so we can pass the PR object 
-          // from frontend to backend in the message!
 
           const prDetails = message.pr; // We need to update frontend to pass this.
 
@@ -383,11 +366,8 @@ function openReactWebview(context: vscode.ExtensionContext) {
 
           const changes = await getPullRequestChanges(
             rootPath,
-            prDetails.sourceBranch,
-            prDetails.targetBranch,
-            prDetails.id || prDetails.number, // Pass PR number
-            message.url, // Pass remote URL for auth construction
-            message.token // Pass token
+            prDetails.number, // Pass PR number
+            prDetails.baseCommitHash // Pass baseCommitHash
           );
 
           panel.webview.postMessage({

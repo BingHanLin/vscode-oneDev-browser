@@ -179,17 +179,12 @@ async function summarizePR(creds: OneDevCredentials, prNumber: number, response:
 
         const changes = await getPullRequestChanges(
             rootPath,
-            pr.sourceBranch,
-            pr.targetBranch,
-            pr.id,
-            creds.url,
-            creds.token
+            pr.number,
+            pr.baseCommitHash
         );
 
         // 3. Construct Prompt
         let promptText = `Please summarize the following changes for PR #${pr.number}: "${pr.title}":\n\n`;
-        let tokensUsed = 0;
-        const MAX_TOKENS = 6000;
 
         const getBlobContent = (sha: string) => {
             return new Promise<string>((resolve) => {
@@ -206,8 +201,6 @@ async function summarizePR(creds: OneDevCredentials, prNumber: number, response:
                 const content = await getBlobContent(change.blobId);
                 const truncated = content.slice(0, 1500);
                 promptText += `File: ${change.path}\n\`\`\`\n${truncated}\n\`\`\`\n\n`;
-                tokensUsed += truncated.length / 4;
-                if (tokensUsed > MAX_TOKENS) break;
             }
         }
 
@@ -292,11 +285,8 @@ async function handleReview(creds: OneDevCredentials, prompt: string, response: 
         response.progress('Fetching changes from Git...');
         const changes = await getPullRequestChanges(
             rootPath,
-            pr.sourceBranch,
-            pr.targetBranch,
-            pr.id,
-            creds.url,
-            creds.token
+            pr.number,
+            pr.baseCommitHash
         );
 
         if (changes.length === 0) {
@@ -307,9 +297,6 @@ async function handleReview(creds: OneDevCredentials, prompt: string, response: 
         // 3. Construct Prompt (Review Style)
         let promptText = `Please provide a code review for the following changes in PR #${pr.number}: "${pr.title}". \n`;
         promptText += `Focus on logic errors, potential bugs, code style, and best practices.\n\n`;
-
-        let tokensUsed = 0;
-        const MAX_TOKENS = 6000;
 
         const getBlobContent = (sha: string) => {
             return new Promise<string>((resolve) => {
@@ -324,10 +311,7 @@ async function handleReview(creds: OneDevCredentials, prompt: string, response: 
         for (const change of changes) {
             if ((change.type === 'MODIFY' || change.type === 'ADD') && change.blobId) {
                 const content = await getBlobContent(change.blobId);
-                const truncated = content.slice(0, 1500);
-                promptText += `File: ${change.path}\n\`\`\`\n${truncated}\n\`\`\`\n\n`;
-                tokensUsed += truncated.length / 4;
-                if (tokensUsed > MAX_TOKENS) break;
+                promptText += `File: ${change.path}\n\`\`\`\n${content}\n\`\`\`\n\n`;
             }
         }
 

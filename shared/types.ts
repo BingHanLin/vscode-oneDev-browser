@@ -15,6 +15,8 @@ export interface PullRequest {
     };
     commentCount: number;
     state?: string;
+    baseCommitHash: string;
+    buildCommitHash: string;
     status?: string;
 }
 

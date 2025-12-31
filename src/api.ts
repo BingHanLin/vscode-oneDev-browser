@@ -104,18 +104,6 @@ export async function fetchBuilds(
     return json as Build[];
 }
 
-export async function fetchPullRequestChanges(
-    credentials: Credentials,
-    prId: number
-): Promise<PullRequestChange[]> {
-    const apiUrl = `${credentials.url}/~api/pulls/${prId}/changes`;
-    const queryParams = new URLSearchParams();
-    // Usually no query params needed for changes, but keeping structure
-    const response = await makeApiRequest(apiUrl, queryParams, credentials);
-    const json = await response.json();
-    return json as PullRequestChange[];
-}
-
 export async function fetchFileContent(
     credentials: Credentials,
     projectId: number,
