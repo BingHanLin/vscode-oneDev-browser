@@ -51,7 +51,7 @@ export function registerChatParticipant(context: ExtensionContext) {
     });
 
     // Set the icon
-    participant.iconPath = vscode.Uri.joinPath(context.extensionUri, 'images', 'icon.png');
+    participant.iconPath = vscode.Uri.joinPath(context.extensionUri, 'images', 'icon-chat.png');
 
     context.subscriptions.push(participant);
 }
