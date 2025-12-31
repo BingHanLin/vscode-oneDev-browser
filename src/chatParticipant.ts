@@ -294,9 +294,18 @@ async function handleReview(creds: OneDevCredentials, prompt: string, response: 
             return;
         }
 
-        // 3. Construct Prompt (Review Style)
-        let promptText = `Please provide a code review for the following changes in PR #${pr.number}: "${pr.title}". \n`;
-        promptText += `Focus on logic errors, potential bugs, code style, and best practices.\n\n`;
+        // 3. Construct Prompt with Customizability
+        const config = vscode.workspace.getConfiguration("onedev-browser");
+        const customPrompt = getConfigValue(config, "codeReviewPrompt");
+
+        let promptText = "";
+
+        if (customPrompt && customPrompt.trim().length > 0) {
+            promptText = customPrompt + "\n\n";
+        } else {
+            promptText = `Please provide a code review for the following changes in PR #${pr.number}: "${pr.title}". \n`;
+            promptText += `Focus on logic errors, potential bugs, code style, and best practices.\n\n`;
+        }
 
         const getBlobContent = (sha: string) => {
             return new Promise<string>((resolve) => {
@@ -318,7 +327,6 @@ async function handleReview(creds: OneDevCredentials, prompt: string, response: 
         // 4. Select Model
         response.progress('Configuring Model...');
 
-        const config = vscode.workspace.getConfiguration("onedev-browser");
         const preferredModel = getConfigValue(config, "codeReviewModel");
 
         let model: vscode.LanguageModelChat | undefined;
