@@ -1,13 +1,19 @@
 
 import * as vscode from "vscode";
-import { PRsTreeDataProvider } from "./prsWebviewViewProvider";
+import { PRsTreeDataProvider } from "./prsTreeDataProvider";
 import { IssuesTreeDataProvider } from "./issuesTreeDataProvider";
 import { BuildsTreeDataProvider } from "./buildsTreeDataProvider";
 import { registerStatusBarCommand } from "./statusbar";
 import { getConfigValue, getConfigNumber } from "./utils/config";
 
 
+import { registerChatParticipant } from './chatParticipant';
+
 export function activate(context: vscode.ExtensionContext) {
+
+  // Register Chat Participant
+  registerChatParticipant(context);
+
   // Register PRs/Issues/Builds providers ONCE
   const prsProvider = new PRsTreeDataProvider();
   const issuesProvider = new IssuesTreeDataProvider();
@@ -105,6 +111,93 @@ export function activate(context: vscode.ExtensionContext) {
   );
 
   context.subscriptions.push(
+    vscode.commands.registerCommand('onedev-browser.selectCodeReviewModel', async () => {
+      try {
+        const models = await vscode.lm.selectChatModels();
+        if (!models || models.length === 0) {
+          vscode.window.showInformationMessage("No Language Models found available.");
+          return;
+        }
+
+        const items = models.map(m => ({
+          label: `${m.name} (${m.family})`,
+          description: `ID: ${m.id}`,
+          modelId: m.id // Keep track
+        }));
+
+        // Add option to clear
+        items.unshift({
+          label: "Default",
+          description: "Clear setting to use default behavior",
+          modelId: ""
+        });
+
+        const selection = await vscode.window.showQuickPick(items, {
+          placeHolder: "Select a Language Model for Code Reviews"
+        });
+
+        if (selection) {
+          let target = vscode.ConfigurationTarget.Global;
+
+          // Ask for scope if a workspace is open
+          if (vscode.workspace.workspaceFolders && vscode.workspace.workspaceFolders.length > 0) {
+            const scopeItems = [
+              { label: 'User Settings', target: vscode.ConfigurationTarget.Global, description: "Apply to all workspaces" },
+              { label: 'Workspace Settings', target: vscode.ConfigurationTarget.Workspace, description: "Apply to this workspace only" }
+            ];
+            const scopeSelection = await vscode.window.showQuickPick(scopeItems, {
+              placeHolder: 'Select target setting scope'
+            });
+            if (!scopeSelection) return; // User cancelled
+            target = scopeSelection.target;
+          }
+
+          const config = vscode.workspace.getConfiguration("onedev-browser");
+          await config.update("codeReviewModel", selection.modelId, target);
+
+          const scopeLabel = target === vscode.ConfigurationTarget.Workspace ? "Workspace" : "User";
+          if (selection.modelId) {
+            vscode.window.showInformationMessage(`[${scopeLabel}] Code Review Model set to: ${selection.label}`);
+          } else {
+            vscode.window.showInformationMessage(`[${scopeLabel}] Code Review Model set to Auto-detect.`);
+          }
+        }
+      } catch (e: any) {
+        vscode.window.showErrorMessage(`Failed to select model: ${e.message}`);
+      }
+    })
+  );
+
+  context.subscriptions.push(
+    vscode.commands.registerCommand('onedev-browser.openDiffFromChat', async (path: string, oldBlobId: string | undefined, newBlobId: string | undefined, projectId: string) => {
+      try {
+        let oldUri: vscode.Uri | undefined;
+        let newUri: vscode.Uri | undefined;
+
+        if (oldBlobId) {
+          oldUri = vscode.Uri.parse(`onedev:${path}?projectId=${projectId}&blobId=${oldBlobId}`);
+        }
+        if (newBlobId) {
+          newUri = vscode.Uri.parse(`onedev:${path}?projectId=${projectId}&blobId=${newBlobId}`);
+        }
+
+        if (oldUri && newUri) {
+          const title = `${path} (OneDev Diff)`;
+          await vscode.commands.executeCommand('vscode.diff', oldUri, newUri, title);
+        } else if (newUri) {
+          await vscode.window.showTextDocument(newUri);
+        } else if (oldUri) {
+          await vscode.window.showTextDocument(oldUri);
+        } else {
+          vscode.window.showErrorMessage('Invalid file information for diff.');
+        }
+      } catch (e: any) {
+        vscode.window.showErrorMessage(`Failed to open diff: ${e.message}`);
+      }
+    })
+  );
+
+  context.subscriptions.push(
     vscode.commands.registerCommand('onedev-browser.openWebviewToBuild', (buildNumber: number, build: any, url?: string, projectPath?: string) => {
       // Open the Build in the user's default browser
       if (url && projectPath && buildNumber) {
@@ -115,6 +208,61 @@ export function activate(context: vscode.ExtensionContext) {
       }
     })
   );
+
+  // Register Content Provider for readonly file access
+  const myScheme = 'onedev';
+  const myProvider = new OneDevContentProvider();
+  context.subscriptions.push(vscode.workspace.registerTextDocumentContentProvider(myScheme, myProvider));
+}
+
+class OneDevContentProvider implements vscode.TextDocumentContentProvider {
+  async provideTextDocumentContent(uri: vscode.Uri): Promise<string> {
+    const query = new URLSearchParams(uri.query);
+    const projectId = query.get('projectId');
+    const blobId = query.get('blobId');
+
+    if (!projectId || !blobId) {
+      return "Error: Missing projectId or blobId";
+    }
+
+    // Try Local Git first if blobId looks like a SHA (40 hex chars)
+    // or just always try git if we have a workspace
+    const workspaceFolders = vscode.workspace.workspaceFolders;
+    if (workspaceFolders && workspaceFolders.length > 0) {
+      const rootPath = workspaceFolders[0].uri.fsPath;
+      const cp = require('child_process');
+      try {
+        return await new Promise<string>((resolve, reject) => {
+          // -p pretty print, but simple git show blobId works for blobs
+          cp.exec(`git show ${blobId}`, { cwd: rootPath }, (err: any, stdout: string, stderr: string) => {
+            if (err) {
+              reject(err);
+            } else {
+              resolve(stdout);
+            }
+          });
+        });
+      } catch (gitErr) {
+        console.log("Local git fetch failed, falling back to API", gitErr);
+      }
+    }
+
+    const config = vscode.workspace.getConfiguration("onedev-browser");
+    const creds = {
+      url: getConfigValue(config, "url"),
+      email: getConfigValue(config, "email"),
+      token: getConfigValue(config, "token"),
+      projectPath: getConfigValue(config, "projectPath")
+    };
+
+    try {
+      const { fetchFileContent } = require('./api');
+      const content = await fetchFileContent(creds, parseInt(projectId), blobId);
+      return content;
+    } catch (err: any) {
+      return `Error reading file: ${err.message}`;
+    }
+  }
 }
 
 let oneDevPanel: vscode.WebviewPanel | undefined;
@@ -125,7 +273,8 @@ function openReactWebview(context: vscode.ExtensionContext) {
     return oneDevPanel;
   }
   let panel = vscode.window.createWebviewPanel("webview", "oneDev Browser", vscode.ViewColumn.One, {
-    enableScripts: true
+    enableScripts: true,
+    retainContextWhenHidden: true
   });
   oneDevPanel = panel;
 
@@ -150,7 +299,6 @@ function openReactWebview(context: vscode.ExtensionContext) {
     oneDevPanel = undefined;
   });
   panel.webview.onDidReceiveMessage(async (message) => {
-    console.log('[Extension] Received message:', message);
     try {
       if (message.command === 'getCredentials') {
         const config = vscode.workspace.getConfiguration('onedev-browser');
@@ -284,6 +432,67 @@ function openReactWebview(context: vscode.ExtensionContext) {
             command: 'showErrorMessage',
             message: 'Failed to fetch issues.'
           });
+        }
+      } else if (message.command === 'getPrChanges') {
+        try {
+          // Use Local Git logic
+          const { getPullRequestChanges } = require('./git');
+          const workspaceFolders = vscode.workspace.workspaceFolders;
+          if (!workspaceFolders || workspaceFolders.length === 0) {
+            throw new Error("No workspace folder open.");
+          }
+          const rootPath = workspaceFolders[0].uri.fsPath;
+
+
+          const prDetails = message.pr; // We need to update frontend to pass this.
+
+          if (!prDetails) {
+            // Fallback: try to fetch it? 
+            throw new Error("PR details not provided for Git diff.");
+          }
+
+          const changes = await getPullRequestChanges(
+            rootPath,
+            prDetails.number, // Pass PR number
+            prDetails.baseCommitHash // Pass baseCommitHash
+          );
+
+          panel.webview.postMessage({
+            command: 'setPrChanges',
+            changes
+          });
+        } catch (err: any) {
+          panel.webview.postMessage({
+            command: 'showErrorMessage',
+            message: `Failed to fetch PR changes (Git): ${err.message}`
+          });
+        }
+      } else if (message.command === 'openDiff') {
+        const { change, projectId } = message;
+        // URI format: onedev:/path/to/file?projectId=123&blobId=abc
+        // If deleted, we might want to handle it (show empty).
+        // If added, oldURI is empty/null.
+
+        let oldUri: vscode.Uri | undefined;
+        let newUri: vscode.Uri | undefined;
+
+        if (change.oldBlobId) {
+          oldUri = vscode.Uri.parse(`onedev:${change.oldPath || change.path}?projectId=${projectId}&blobId=${change.oldBlobId}`);
+        }
+        if (change.blobId) {
+          newUri = vscode.Uri.parse(`onedev:${change.path}?projectId=${projectId}&blobId=${change.blobId}`);
+        }
+
+        if (oldUri && newUri) {
+          const title = `${change.oldPath || change.path} (OneDev Diff)`;
+          await vscode.commands.executeCommand('vscode.diff', oldUri, newUri, title);
+        } else if (newUri) {
+          await vscode.window.showTextDocument(newUri);
+        }
+      } else if (message.command === 'openChatReview') {
+        const prNumber = message.prNumber;
+        if (prNumber) {
+          vscode.commands.executeCommand('workbench.action.chat.open', { query: `@onedev /review #${prNumber}` });
         }
       }
     } catch (err) {

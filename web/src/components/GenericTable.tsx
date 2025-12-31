@@ -8,7 +8,7 @@ import {
 export interface TableColumn<T> {
     title: string;
     dataIndex: keyof T | string;
-    render?: (value: any, record: T, rowIndex: number) => React.ReactNode;
+    render?: (value: unknown, record: T, rowIndex: number) => React.ReactNode;
     width?: number | string;
 }
 
@@ -73,7 +73,12 @@ function GenericTable<T>({
                         }
                     >
                         {columns.map((col, colIdx) => {
-                            const value = (record as any)[col.dataIndex];
+                            const value =
+                                typeof col.dataIndex === "string"
+                                    ? (record as Record<string, unknown>)[
+                                          col.dataIndex
+                                      ]
+                                    : record[col.dataIndex];
                             return (
                                 <VSCodeDataGridCell
                                     key={col.dataIndex as string}
@@ -81,7 +86,7 @@ function GenericTable<T>({
                                 >
                                     {col.render
                                         ? col.render(value, record, rowIdx)
-                                        : value}
+                                        : (value as React.ReactNode)}
                                 </VSCodeDataGridCell>
                             );
                         })}

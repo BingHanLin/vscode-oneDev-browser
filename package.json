@@ -2,7 +2,7 @@
   "name": "onedev-browser",
   "displayName": "oneDev Browser",
   "description": "Browse issues, PRs, and builds on oneDev repositories",
-  "version": "0.0.10",
+  "version": "0.0.11",
   "repository": "https://github.com/BingHanLin/vscode-oneDev-browser",
   "icon": "images/icon.png",
   "main": "./dist/extension.js",
@@ -82,6 +82,17 @@
           "type": "number",
           "default": 10,
           "description": "Maximum number of Builds to show in the tree view. User setting has highest priority."
+        },
+        "onedev-browser.codeReviewModel": {
+          "type": "string",
+          "default": "",
+          "description": "Specific Language Model family or ID to use for Code Reviews. Use the 'OneDev: Select Code Review Model' command to select from available models."
+        },
+        "onedev-browser.codeReviewPrompt": {
+          "type": "string",
+          "default": "",
+          "description": "Custom instruction prompt for Code Reviews. If empty, uses the default system prompt.",
+          "editPresentation": "multiline"
         }
       }
     },
@@ -98,6 +109,10 @@
     },
     "commands": [
       {
+        "command": "onedev-browser.selectCodeReviewModel",
+        "title": "OneDev: Select Code Review Model"
+      },
+      {
         "command": "onedev-browser.openWebview",
         "title": "Open oneDev Webview"
       },
@@ -112,6 +127,20 @@
       {
         "command": "onedev-browser.refreshAllViews",
         "title": "Refresh"
+      }
+    ],
+    "chatParticipants": [
+      {
+        "id": "onedev-browser.chatParticipant",
+        "name": "onedev",
+        "description": "Interact with OneDev issues, PRs, and builds.",
+        "isSticky": true,
+        "commands": [
+          {
+            "name": "review",
+            "description": "Review pull request changes"
+          }
+        ]
       }
     ]
   },

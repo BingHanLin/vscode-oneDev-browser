@@ -15,6 +15,8 @@ export interface PullRequest {
     };
     commentCount: number;
     state?: string;
+    baseCommitHash: string;
+    buildCommitHash: string;
     status?: string;
 }
 
@@ -37,8 +39,18 @@ export interface Build {
     number: number;
     jobName: string;
     status: string;
-    runningDuration: number;
-    finishDate: string;
+    runningDuration?: number;
+    finishDate?: string;
+    startDate?: string;
+    duration?: number;
+}
+
+export interface PullRequestChange {
+    type: "ADD" | "MODIFY" | "DELETE" | "RENAME";
+    path: string;
+    oldPath?: string;
+    blobId?: string;
+    oldBlobId?: string;
 }
 
 export interface Credentials {
