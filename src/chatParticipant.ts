@@ -315,15 +315,34 @@ async function handleReview(creds: OneDevCredentials, prompt: string, response: 
             }
         }
 
-        // 4. Send to LM
-        response.progress('Generating Review...');
-        const models = await vscode.lm.selectChatModels({ family: 'gpt-4' });
-        let model = models.length > 0 ? models[0] : (await vscode.lm.selectChatModels())[0];
+        // 4. Select Model
+        response.progress('Configuring Model...');
+
+        const config = vscode.workspace.getConfiguration("onedev-browser");
+        const preferredModel = getConfigValue(config, "codeReviewModel");
+
+        let model: vscode.LanguageModelChat | undefined;
+
+        if (preferredModel) {
+            const allModels = await vscode.lm.selectChatModels();
+            model = allModels.find(m => m.family === preferredModel || m.id === preferredModel || m.name === preferredModel);
+            if (!model) {
+                response.markdown(`Warning: Configured model '${preferredModel}' not found. Falling back to default.\n\n`);
+            }
+        }
+
+        if (!model) {
+            const models = await vscode.lm.selectChatModels({ family: 'gpt-4' });
+            model = models.length > 0 ? models[0] : (await vscode.lm.selectChatModels())[0];
+        }
 
         if (!model) {
             response.markdown('No Language Model found. Please check GitHub Copilot Chat.');
             return;
         }
+
+        // 5. Send to LM, show working model name
+        response.progress(`Generating Review With ${model.name}...`);
 
         const chatReq = await model.sendRequest([vscode.LanguageModelChatMessage.User(promptText)], {}, new vscode.CancellationTokenSource().token);
 

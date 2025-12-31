@@ -111,6 +111,64 @@ export function activate(context: vscode.ExtensionContext) {
   );
 
   context.subscriptions.push(
+    vscode.commands.registerCommand('onedev-browser.selectCodeReviewModel', async () => {
+      try {
+        const models = await vscode.lm.selectChatModels();
+        if (!models || models.length === 0) {
+          vscode.window.showInformationMessage("No Language Models found available.");
+          return;
+        }
+
+        const items = models.map(m => ({
+          label: `${m.name} (${m.family})`,
+          description: `ID: ${m.id}`,
+          modelId: m.id // Keep track
+        }));
+
+        // Add option to clear
+        items.unshift({
+          label: "Auto-detect (Default)",
+          description: "Clear setting to use default behavior",
+          modelId: ""
+        });
+
+        const selection = await vscode.window.showQuickPick(items, {
+          placeHolder: "Select a Language Model for Code Reviews"
+        });
+
+        if (selection) {
+          let target = vscode.ConfigurationTarget.Global;
+
+          // Ask for scope if a workspace is open
+          if (vscode.workspace.workspaceFolders && vscode.workspace.workspaceFolders.length > 0) {
+            const scopeItems = [
+              { label: 'User Settings', target: vscode.ConfigurationTarget.Global, description: "Apply to all workspaces" },
+              { label: 'Workspace Settings', target: vscode.ConfigurationTarget.Workspace, description: "Apply to this workspace only" }
+            ];
+            const scopeSelection = await vscode.window.showQuickPick(scopeItems, {
+              placeHolder: 'Select target setting scope'
+            });
+            if (!scopeSelection) return; // User cancelled
+            target = scopeSelection.target;
+          }
+
+          const config = vscode.workspace.getConfiguration("onedev-browser");
+          await config.update("codeReviewModel", selection.modelId, target);
+
+          const scopeLabel = target === vscode.ConfigurationTarget.Workspace ? "Workspace" : "User";
+          if (selection.modelId) {
+            vscode.window.showInformationMessage(`[${scopeLabel}] Code Review Model set to: ${selection.label}`);
+          } else {
+            vscode.window.showInformationMessage(`[${scopeLabel}] Code Review Model set to Auto-detect.`);
+          }
+        }
+      } catch (e: any) {
+        vscode.window.showErrorMessage(`Failed to select model: ${e.message}`);
+      }
+    })
+  );
+
+  context.subscriptions.push(
     vscode.commands.registerCommand('onedev-browser.openWebviewToBuild', (buildNumber: number, build: any, url?: string, projectPath?: string) => {
       // Open the Build in the user's default browser
       if (url && projectPath && buildNumber) {

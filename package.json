@@ -85,6 +85,11 @@
           "type": "number",
           "default": 10,
           "description": "Maximum number of Builds to show in the tree view. User setting has highest priority."
+        },
+        "onedev-browser.codeReviewModel": {
+          "type": "string",
+          "default": "",
+          "description": "Specific Language Model family or ID to use for Code Reviews. Use the 'OneDev: Select Code Review Model' command to select from available models."
         }
       }
     },
@@ -100,6 +105,10 @@
       ]
     },
     "commands": [
+      {
+        "command": "onedev-browser.selectCodeReviewModel",
+        "title": "OneDev: Select Code Review Model"
+      },
       {
         "command": "onedev-browser.openWebview",
         "title": "Open oneDev Webview"
