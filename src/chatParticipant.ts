@@ -23,6 +23,12 @@ function getCredentials(): OneDevCredentials {
 }
 
 export function registerChatParticipant(context: ExtensionContext) {
+    if (!vscode.chat) {
+        // Chat API not available (e.g. older VS Code or feature not enabled)
+        console.log("OneDev: vscode.chat API not available. Chat features disabled.");
+        return;
+    }
+
     const participant = vscode.chat.createChatParticipant('onedev-browser.chatParticipant', async (request, context, response, token) => {
         const cmd = request.command;
         const prompt = request.prompt;

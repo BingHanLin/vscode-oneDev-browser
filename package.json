@@ -13,9 +13,6 @@
   "categories": [
     "Other"
   ],
-  "extensionDependencies": [
-    "github.copilot-chat"
-  ],
   "activationEvents": [
     "*"
   ],
