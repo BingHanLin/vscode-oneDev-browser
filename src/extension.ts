@@ -1,6 +1,6 @@
 
 import * as vscode from "vscode";
-import { PRsTreeDataProvider } from "./prsWebviewViewProvider";
+import { PRsTreeDataProvider } from "./prsTreeDataProvider";
 import { IssuesTreeDataProvider } from "./issuesTreeDataProvider";
 import { BuildsTreeDataProvider } from "./buildsTreeDataProvider";
 import { registerStatusBarCommand } from "./statusbar";
@@ -422,102 +422,10 @@ function openReactWebview(context: vscode.ExtensionContext) {
         } else if (newUri) {
           await vscode.window.showTextDocument(newUri);
         }
-      } else if (message.command === 'generateCodeReview') {
-        try {
-          // Use Local Git logic
-          const { getPullRequestChanges } = require('./git');
-          const workspaceFolders = vscode.workspace.workspaceFolders;
-          const rootPath = workspaceFolders ? workspaceFolders[0].uri.fsPath : undefined;
-
-          if (!rootPath) throw new Error("No workspace open.");
-
-          // Message should pass PR object now via handleGenerateReview? 
-          // Frontend might need update if it doesn't pass PR.
-          // But we can check message.prId and maybe we have to assume message.projectId is prId?
-          // Actually, the PRTab generate button logic only sends prId currently.
-          // I need to update PRTab.tsx for generating review too OR reuse logic.
-          // Wait, I updated getPrChanges message, but generateCodeReview message might not have 'pr'.
-          // Let's assume we update frontend to pass 'pr' or we fail.
-          // IF we don't have 'pr', we can't get branches.
-
-          // Ideally we shouldn't fail if we can avoid it.
-          // But for now, let's update frontend too.
-
-          const prDetails = message.pr;
-          if (!prDetails) throw new Error("PR details not provided for Git review.");
-
-          const changes = await getPullRequestChanges(
-            rootPath,
-            prDetails.sourceBranch,
-            prDetails.targetBranch,
-            prDetails.id || prDetails.number,
-            message.url,
-            message.token
-          );
-
-          let prompt = "Please review the following code changes:\n\n";
-          let tokensUsed = 0;
-          const MAX_TOKENS = 8000;
-
-          // For content, we shouldn't use fetchFileContent(api) if we want local git content.
-          // We can use git show.
-          // Let's use `git show blobId` (which is SHA) or `git show sourceBranch:path`.
-          // We'll use cp.exec directly or add helper.
-
-          const cp = require('child_process');
-          const getBlobContent = (sha: string) => {
-            return new Promise<string>((resolve) => {
-              cp.exec(`git show ${sha}`, { cwd: rootPath }, (err: any, stdout: string) => {
-                resolve(stdout || "");
-              });
-            });
-          };
-
-          for (const change of changes) {
-            if (change.type === 'MODIFY' || change.type === 'ADD') {
-              if (change.blobId) {
-                // change.blobId from getPullRequestChanges is a SHA
-                const content = await getBlobContent(change.blobId);
-                const truncatedContent = content.slice(0, 2000);
-                prompt += `File: ${change.path}\nContent:\n\`\`\`\n${truncatedContent}\n\`\`\`\n\n`;
-                tokensUsed += truncatedContent.length / 4;
-                if (tokensUsed > MAX_TOKENS) break;
-              }
-            }
-          }
-
-          const models = await vscode.lm.selectChatModels();
-          let model;
-          if (models && models.length > 0) {
-            model = models[0];
-          } else {
-            const allModels = await vscode.lm.selectChatModels();
-            if (allModels.length > 0) model = allModels[0];
-          }
-
-          if (model) {
-            const chatResponse = await model.sendRequest([
-              vscode.LanguageModelChatMessage.User(prompt)
-            ], {}, new vscode.CancellationTokenSource().token);
-
-            let reviewText = "";
-            for await (const fragment of chatResponse.text) {
-              reviewText += fragment;
-            }
-
-            panel.webview.postMessage({
-              command: 'setCodeReview',
-              review: reviewText
-            });
-          } else {
-            throw new Error("No Language Model found.");
-          }
-
-        } catch (err: any) {
-          panel.webview.postMessage({
-            command: 'showErrorMessage',
-            message: `Code review failed: ${err.message}`
-          });
+      } else if (message.command === 'openChatReview') {
+        const prNumber = message.prNumber;
+        if (prNumber) {
+          vscode.commands.executeCommand('workbench.action.chat.open', { query: `@onedev /review #${prNumber}` });
         }
       }
     } catch (err) {

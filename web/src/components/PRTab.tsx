@@ -8,7 +8,7 @@ import {
 import GenericTable, { TableColumn } from "./GenericTable";
 import { ExternalLinkIcon, CheckoutBranchIcon } from "./Icons";
 import { PullRequest, Build, PullRequestChange } from "../types";
-import ReactMarkdown from 'react-markdown';
+import ReactMarkdown from "react-markdown";
 
 interface VSCodeMessagePayload {
     command: string;
@@ -76,67 +76,59 @@ const PRTab: React.FC<PRTabProps> = ({
     // Changes state
     const [prChanges, setPrChanges] = useState<PullRequestChange[]>([]);
     const [loadingChanges, setLoadingChanges] = useState(false);
-    const [review, setReview] = useState<string>("");
-    const [generatingReview, setGeneratingReview] = useState(false);
 
     useEffect(() => {
         if (selectedPRLocal && vscode) {
-             const pr = pullRequests.find(p => p.number === selectedPRLocal);
-             if (pr && pr.id) {
-               setLoadingChanges(true);
-               setPrChanges([]);
-               setReview("");
-               vscode.postMessage({
-                   command: 'getPrChanges',
-                   url, email, token, projectPath,
-                   prId: pr.id,
-                   pr // Pass the full PR object for Git logic
-               });
-             }
+            const pr = pullRequests.find((p) => p.number === selectedPRLocal);
+            if (pr && pr.id) {
+                setLoadingChanges(true);
+                setPrChanges([]);
+                vscode.postMessage({
+                    command: "getPrChanges",
+                    url,
+                    email,
+                    token,
+                    projectPath,
+                    prId: pr.id,
+                    pr, // Pass the full PR object for Git logic
+                });
+            }
         }
     }, [selectedPRLocal, pullRequests, vscode]); // Depend on selectedPRLocal changes
 
-    
     useEffect(() => {
         const handleMessage = (event: MessageEvent) => {
-             const { command, changes, review } = event.data;
-             if (command === 'setPrChanges') {
-                 setPrChanges(changes || []);
-                 setLoadingChanges(false);
-             } else if (command === 'setCodeReview') {
-                 setReview(review);
-                 setGeneratingReview(false);
-             }
+            const { command, changes } = event.data;
+            if (command === "setPrChanges") {
+                setPrChanges(changes || []);
+                setLoadingChanges(false);
+            }
         };
-        window.addEventListener('message', handleMessage);
-        return () => window.removeEventListener('message', handleMessage);
+        window.addEventListener("message", handleMessage);
+        return () => window.removeEventListener("message", handleMessage);
     }, []);
 
     const handleGenerateReview = () => {
         if (selectedPRLocal && vscode) {
-            const pr = pullRequests.find(p => p.number === selectedPRLocal);
+            const pr = pullRequests.find((p) => p.number === selectedPRLocal);
             if (pr && pr.id) {
-                setGeneratingReview(true);
                 vscode.postMessage({
-                    command: 'generateCodeReview',
-                    url, email, token, projectPath,
-                    prId: pr.id,
-                    projectId: pr.id, // TODO: Check if projectId logic in extension needs fix, might need fetchProjectId
-                    pr // Pass PR object for Git logic
+                    command: "openChatReview",
+                    prNumber: pr.number,
                 });
             }
         }
     };
 
     const handleOpenDiff = (change: PullRequestChange) => {
-         if (vscode && selectedPRLocal) {
-            const pr = pullRequests.find(p => p.number === selectedPRLocal);
-             vscode.postMessage({
-                 command: 'openDiff',
-                 change,
-                 projectId: pr?.id // Using pr id as project ID proxy for now, might need actual project ID
-             });
-         }
+        if (vscode && selectedPRLocal) {
+            const pr = pullRequests.find((p) => p.number === selectedPRLocal);
+            vscode.postMessage({
+                command: "openDiff",
+                change,
+                projectId: pr?.id, // Using pr id as project ID proxy for now, might need actual project ID
+            });
+        }
     };
     const [keyword, setKeyword] = useState("");
 
@@ -606,31 +598,126 @@ const PRTab: React.FC<PRTabProps> = ({
                             </div>
                             {/* End Current Builds Section */}
 
+                            {/* Description Section */}
+                            <div
+                                style={{
+                                    fontWeight: 600,
+                                    fontSize: 16,
+                                    marginTop: 18,
+                                    marginBottom: 6,
+                                }}
+                            >
+                                Description
+                            </div>
+                            <div
+                                style={{
+                                    color: "var(--vscode-foreground)",
+                                    fontSize: 15,
+                                    whiteSpace: "pre-wrap",
+                                    wordBreak: "break-word",
+                                }}
+                            >
+                                {pr.description &&
+                                pr.description.trim() !== "" ? (
+                                    pr.description
+                                ) : (
+                                    <span style={{ color: "#888" }}>
+                                        No description provided.
+                                    </span>
+                                )}
+                            </div>
+
+                            {/* AI Review Section */}
+                            <div style={{ marginTop: 18 }}>
+                                <div
+                                    style={{
+                                        fontWeight: 600,
+                                        fontSize: 16,
+                                        marginBottom: 6,
+                                        display: "flex",
+                                        alignItems: "center",
+                                        justifyContent: "space-between",
+                                    }}
+                                >
+                                    <span>AI Code Review</span>
+                                    <VSCodeButton
+                                        onClick={handleGenerateReview}
+                                        style={{ fontSize: 12 }}
+                                    >
+                                        Start Chat Review
+                                    </VSCodeButton>
+                                </div>
+                            </div>
+
                             {/* Changes Section */}
-                             <div style={{ marginTop: 18 }}>
-                                <div style={{ fontWeight: 600, fontSize: 16, marginBottom: 6 }}>
+                            <div style={{ marginTop: 18 }}>
+                                <div
+                                    style={{
+                                        fontWeight: 600,
+                                        fontSize: 16,
+                                        marginBottom: 6,
+                                    }}
+                                >
                                     Changes
                                 </div>
                                 {loadingChanges ? (
                                     <div>Loading changes...</div>
                                 ) : (
-                                    <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                                    <div
+                                        style={{
+                                            display: "flex",
+                                            flexDirection: "column",
+                                            gap: 4,
+                                        }}
+                                    >
                                         {prChanges.map((change, idx) => (
-                                            <div key={idx} style={{ display: 'flex', alignItems: 'center', fontSize: 13 }}>
-                                                 <span style={{ 
-                                                     fontWeight: 'bold', 
-                                                     color: change.type === 'ADD' ? 'green' : change.type === 'DELETE' ? 'red' : 'orange',
-                                                     marginRight: 6,
-                                                     width: 12
-                                                }}>
-                                                     {change.type[0]}
+                                            <div
+                                                key={idx}
+                                                style={{
+                                                    display: "flex",
+                                                    alignItems: "center",
+                                                    fontSize: 13,
+                                                }}
+                                            >
+                                                <span
+                                                    style={{
+                                                        fontWeight: "bold",
+                                                        color:
+                                                            change.type ===
+                                                            "ADD"
+                                                                ? "green"
+                                                                : change.type ===
+                                                                  "DELETE"
+                                                                ? "red"
+                                                                : "orange",
+                                                        marginRight: 6,
+                                                        width: 12,
+                                                    }}
+                                                >
+                                                    {change.type[0]}
                                                 </span>
-                                                <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={change.path}>
+                                                <span
+                                                    style={{
+                                                        flex: 1,
+                                                        overflow: "hidden",
+                                                        textOverflow:
+                                                            "ellipsis",
+                                                        whiteSpace: "nowrap",
+                                                    }}
+                                                    title={change.path}
+                                                >
                                                     {change.path}
                                                 </span>
-                                                <button 
-                                                    onClick={() => handleOpenDiff(change)}
-                                                    style={{ border: 'none', background: 'none', color: '#0078d4', cursor: 'pointer' }}
+                                                <button
+                                                    onClick={() =>
+                                                        handleOpenDiff(change)
+                                                    }
+                                                    style={{
+                                                        border: "none",
+                                                        background: "none",
+                                                        color: "#0078d4",
+                                                        cursor: "pointer",
+                                                    }}
                                                 >
                                                     Diff
                                                 </button>
@@ -638,55 +725,7 @@ const PRTab: React.FC<PRTabProps> = ({
                                         ))}
                                     </div>
                                 )}
-                             </div>
-
-                            {/* AI Review Section */}
-                             <div style={{ marginTop: 18 }}>
-                                <div style={{ fontWeight: 600, fontSize: 16, marginBottom: 6, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                                    <span>AI Code Review</span>
-                                    <button 
-                                        onClick={handleGenerateReview}
-                                        disabled={generatingReview}
-                                        style={{ 
-                                            fontSize: 12, 
-                                            padding: '4px 8px', 
-                                            cursor: generatingReview ? 'wait' : 'pointer' 
-                                        }}
-                                    >
-                                        {generatingReview ? "Generating..." : "Generate"}
-                                    </button>
-                                </div>
-                                {review && (
-                                    <div className="markdown-body" style={{ fontSize: 14, overflow: 'auto', maxHeight: 400, border: '1px solid #eee', padding: 8 }}>
-                                        <ReactMarkdown>{review}</ReactMarkdown>
-                                    </div>
-                                )}
-                             </div>
-
-                            {pr.description && (
-                                <>
-                                    <div
-                                        style={{
-                                            fontWeight: 600,
-                                            fontSize: 16,
-                                            marginTop: 18,
-                                            marginBottom: 6,
-                                        }}
-                                    >
-                                        Description
-                                    </div>
-                                    <div
-                                        style={{
-                                            color: "var(--vscode-foreground)",
-                                            fontSize: 15,
-                                            whiteSpace: "pre-wrap",
-                                            wordBreak: "break-word",
-                                        }}
-                                    >
-                                        {pr.description}
-                                    </div>
-                                </>
-                            )}
+                            </div>
                         </div>
                     );
                 })()}
