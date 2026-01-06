@@ -173,24 +173,26 @@ export function activate(context: vscode.ExtensionContext) {
       try {
         let oldUri: vscode.Uri | undefined;
         let newUri: vscode.Uri | undefined;
+        let title = `${path} (OneDev Diff)`;
 
         if (oldBlobId) {
           oldUri = vscode.Uri.parse(`onedev:${path}?projectId=${projectId}&blobId=${oldBlobId}`);
-        }
-        if (newBlobId) {
-          newUri = vscode.Uri.parse(`onedev:${path}?projectId=${projectId}&blobId=${newBlobId}`);
+        } else {
+          // Added file
+          oldUri = vscode.Uri.parse(`onedev:${path}?projectId=${projectId}&blobId=EMPTY`);
+          title = `${path} (Created)`;
         }
 
-        if (oldUri && newUri) {
-          const title = `${path} (OneDev Diff)`;
-          await vscode.commands.executeCommand('vscode.diff', oldUri, newUri, title);
-        } else if (newUri) {
-          await vscode.window.showTextDocument(newUri);
-        } else if (oldUri) {
-          await vscode.window.showTextDocument(oldUri);
+        if (newBlobId) {
+          newUri = vscode.Uri.parse(`onedev:${path}?projectId=${projectId}&blobId=${newBlobId}`);
         } else {
-          vscode.window.showErrorMessage('Invalid file information for diff.');
+          // Deleted file
+          newUri = vscode.Uri.parse(`onedev:${path}?projectId=${projectId}&blobId=EMPTY`);
+          title = `${path} (Deleted)`;
         }
+
+        await vscode.commands.executeCommand('vscode.diff', oldUri, newUri, title);
+
       } catch (e: any) {
         vscode.window.showErrorMessage(`Failed to open diff: ${e.message}`);
       }
@@ -249,6 +251,10 @@ class OneDevContentProvider implements vscode.TextDocumentContentProvider {
     const query = new URLSearchParams(uri.query);
     const projectId = query.get('projectId');
     const blobId = query.get('blobId');
+
+    if (blobId === 'EMPTY') {
+      return "";
+    }
 
     if (!projectId || !blobId) {
       return "Error: Missing projectId or blobId";
