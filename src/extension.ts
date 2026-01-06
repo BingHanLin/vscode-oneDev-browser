@@ -214,6 +214,27 @@ export function activate(context: vscode.ExtensionContext) {
       if (prNumber) {
         await vscode.commands.executeCommand('workbench.action.chat.open', { query: `@onedev /review #${prNumber}` });
       }
+
+
+    })
+  );
+
+  context.subscriptions.push(
+    vscode.commands.registerCommand('onedev-browser.openLocalFile', async (filePath: string) => {
+      const workspaceFolders = vscode.workspace.workspaceFolders;
+      if (!workspaceFolders || workspaceFolders.length === 0) {
+        vscode.window.showWarningMessage('No workspace open to find local file.');
+        return;
+      }
+      const rootPath = workspaceFolders[0].uri.fsPath;
+      const uri = vscode.Uri.file(require('path').join(rootPath, filePath));
+
+      try {
+        await vscode.workspace.fs.stat(uri);
+        await vscode.window.showTextDocument(uri);
+      } catch (e) {
+        vscode.window.showWarningMessage(`File not found locally: ${filePath}`);
+      }
     })
   );
 

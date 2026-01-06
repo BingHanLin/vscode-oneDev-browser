@@ -392,13 +392,20 @@ async function handleReview(creds: OneDevCredentials, prompt: string, response: 
                             "0"
                         ];
                         const encodedArgs = encodeURIComponent(JSON.stringify(args));
-                        return `[${filePath}](command:onedev-browser.openDiffFromChat?${encodedArgs})`;
+                        const encodedFileArgs = encodeURIComponent(JSON.stringify([filePath]));
+
+                        // Use unicode icons or text if codicons fail, but $(icon) is standard in VS Code Markdown
+                        // Colors: Diff (Blue/Cyan), File (Green/Yellow)
+                        const diffIcon = `<span>$(diff)</span>`;
+                        const fileIcon = `<span>$(file)</span>`;
+                        return `${filePath} [&nbsp;${diffIcon}&nbsp;](command:onedev-browser.openDiffFromChat?${encodedArgs} "Open Diff") [&nbsp;${fileIcon}&nbsp;](command:onedev-browser.openLocalFile?${encodedFileArgs} "Open Local File")`;
                     }
                     return `\`${filePath}\``;
                 });
 
                 const md = new vscode.MarkdownString(processedLine);
-                md.isTrusted = { enabledCommands: ['onedev-browser.openDiffFromChat'] };
+                md.isTrusted = { enabledCommands: ['onedev-browser.openDiffFromChat', 'onedev-browser.openLocalFile'] };
+                md.supportThemeIcons = true;
                 md.supportHtml = true; // Just in case
                 response.markdown(md);
             }
@@ -416,12 +423,16 @@ async function handleReview(creds: OneDevCredentials, prompt: string, response: 
                         "0"
                     ];
                     const encodedArgs = encodeURIComponent(JSON.stringify(args));
-                    return `[${filePath}](command:onedev-browser.openDiffFromChat?${encodedArgs})`;
+                    const encodedFileArgs = encodeURIComponent(JSON.stringify([filePath]));
+                    const diffIcon = `<span style="color:#3794ff;">$(diff)</span>`;
+                    const fileIcon = `<span style="color:#e6cd12;">$(file)</span>`;
+                    return `${filePath} [&nbsp;${diffIcon}&nbsp;](command:onedev-browser.openDiffFromChat?${encodedArgs} "Open Diff") [&nbsp;${fileIcon}&nbsp;](command:onedev-browser.openLocalFile?${encodedFileArgs} "Open Local File")`;
                 }
                 return `\`${filePath}\``;
             });
             const md = new vscode.MarkdownString(processedLine);
-            md.isTrusted = { enabledCommands: ['onedev-browser.openDiffFromChat'] };
+            md.isTrusted = { enabledCommands: ['onedev-browser.openDiffFromChat', 'onedev-browser.openLocalFile'] };
+            md.supportThemeIcons = true;
             md.supportHtml = true;
             response.markdown(md);
         }

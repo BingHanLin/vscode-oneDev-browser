@@ -131,6 +131,10 @@
       {
         "command": "onedev-browser.triggerChatReview",
         "title": "OneDev: Trigger Chat Review"
+      },
+      {
+        "command": "onedev-browser.openLocalFile",
+        "title": "OneDev: Open Local File"
       }
     ],
     "chatParticipants": [
