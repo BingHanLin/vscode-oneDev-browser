@@ -429,4 +429,10 @@ async function handleReview(creds: OneDevCredentials, prompt: string, response: 
     } catch (err: any) {
         response.markdown(`Failed to generate review: ${err.message}`);
     }
+
+    response.button({
+        command: 'onedev-browser.triggerChatReview',
+        title: 'Review Again',
+        arguments: [prNumber]
+    });
 }

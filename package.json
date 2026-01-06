@@ -127,6 +127,10 @@
       {
         "command": "onedev-browser.refreshAllViews",
         "title": "Refresh"
+      },
+      {
+        "command": "onedev-browser.triggerChatReview",
+        "title": "OneDev: Trigger Chat Review"
       }
     ],
     "chatParticipants": [

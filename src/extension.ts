@@ -209,6 +209,14 @@ export function activate(context: vscode.ExtensionContext) {
     })
   );
 
+  context.subscriptions.push(
+    vscode.commands.registerCommand('onedev-browser.triggerChatReview', async (prNumber: number) => {
+      if (prNumber) {
+        await vscode.commands.executeCommand('workbench.action.chat.open', { query: `@onedev /review #${prNumber}` });
+      }
+    })
+  );
+
   // Register Content Provider for readonly file access
   const myScheme = 'onedev';
   const myProvider = new OneDevContentProvider();
