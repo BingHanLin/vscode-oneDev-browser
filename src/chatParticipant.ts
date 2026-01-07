@@ -442,6 +442,12 @@ async function handleReview(creds: OneDevCredentials, prompt: string, response: 
     }
 
     response.button({
+        command: 'onedev-browser.checkoutBranch',
+        title: 'Checkout Branch',
+        arguments: [pr.number, pr.sourceBranch]
+    });
+
+    response.button({
         command: 'onedev-browser.triggerChatReview',
         title: 'Review Again',
         arguments: [prNumber]

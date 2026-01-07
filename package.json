@@ -133,6 +133,10 @@
         "title": "OneDev: Trigger Chat Review"
       },
       {
+        "command": "onedev-browser.checkoutBranch",
+        "title": "OneDev: Checkout Branch"
+      },
+      {
         "command": "onedev-browser.openLocalFile",
         "title": "OneDev: Open Local File"
       }

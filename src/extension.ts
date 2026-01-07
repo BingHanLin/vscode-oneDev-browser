@@ -216,8 +216,39 @@ export function activate(context: vscode.ExtensionContext) {
       if (prNumber) {
         await vscode.commands.executeCommand('workbench.action.chat.open', { query: `@onedev /review #${prNumber}` });
       }
+    })
+  );
+
+  context.subscriptions.push(
+    vscode.commands.registerCommand('onedev-browser.checkoutBranch', async (prNumber?: number, sourceBranch?: string) => {
+      if (!sourceBranch) {
+        vscode.window.showErrorMessage('Source branch is required to checkout.');
+        return;
+      }
+
+      const workspaceFolders = vscode.workspace.workspaceFolders;
+      if (!workspaceFolders || workspaceFolders.length === 0) {
+        vscode.window.showWarningMessage('No workspace open to checkout commit.');
+        return;
+      }
+      const rootPath = workspaceFolders[0].uri.fsPath;
 
 
+      try {
+        await vscode.window.withProgress({
+          location: vscode.ProgressLocation.Notification,
+          title: `Checking out...`,
+          cancellable: false
+        }, async (progress) => {
+          const { checkoutBranch } = require('./git');
+          await checkoutBranch(rootPath, prNumber, sourceBranch, (message: string) => {
+            progress.report({ message });
+          });
+        });
+        vscode.window.showInformationMessage(`Successfully checked out ${sourceBranch}.`);
+      } catch (e: any) {
+        vscode.window.showErrorMessage(`Failed to checkout: ${e.message || e}`);
+      }
     })
   );
 
