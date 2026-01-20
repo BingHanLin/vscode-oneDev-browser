@@ -2,7 +2,7 @@
   "name": "onedev-browser",
   "displayName": "oneDev Browser",
   "description": "Browse issues, PRs, and builds on oneDev repositories",
-  "version": "0.0.11",
+  "version": "0.1.0",
   "repository": "https://github.com/BingHanLin/vscode-oneDev-browser",
   "icon": "images/icon.png",
   "main": "./dist/extension.js",
@@ -10,7 +10,17 @@
   "engines": {
     "vscode": "^1.93.0"
   },
+  "keywords": [
+    "onedev",
+    "pull request",
+    "issue tracker",
+    "code review",
+    "ai",
+    "git",
+    "scm"
+  ],
   "categories": [
+    "SCM Providers",
     "Other"
   ],
   "activationEvents": [

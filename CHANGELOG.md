@@ -4,6 +4,19 @@ All notable changes to the "onedev-browser" extension will be documented in this
 
 Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how to structure this file.
 
+## [0.1.0] - 2026-01-20
+
+### Changed
+
+-   **PR/Issue Filtering**: Improved default filter behavior to show "Open" items by default in both tree view and webview.
+-   **State Detection**: Enhanced state filter detection to handle case variations dynamically.
+-   **UI Synchronization**: Fixed dropdown filter synchronization across tab switches.
+
+### Fixed
+
+-   **PR Query Filter**: Corrected PR query to use `"State" is "Open"` instead of `"Status" is "Open"`.
+-   **Server-side Filtering**: Implemented proper server-side filtering for webview components.
+
 ## [0.0.11]
 
 ### Added

@@ -1,5 +1,8 @@
 # oneDev Browser
 
+[![Version](https://img.shields.io/visual-studio-marketplace/v/binghanlin.onedev-browser)](https://marketplace.visualstudio.com/items?itemName=binghanlin.onedev-browser)
+[![License](https://img.shields.io/github/license/BingHanLin/vscode-oneDev-browser)](https://github.com/BingHanLin/vscode-oneDev-browser/blob/main/LICENSE.md)
+
 A Visual Studio Code extension to browse pull requests, issues, and builds from your [oneDev](https://onedev.io/) instance, with a modern React + Tailwind UI.
 
 > **Notice: This extension is a personal side project and is not an official plugin from oneDev or its maintainers.**

@@ -13,6 +13,9 @@ vsc-extension-quickstart.md
 **/*.ts
 **/.vscode-test.*
 
+project_decision.md
+onedev-browser-*.vsix
+
 web/out/**
 web/node_modules/**
 web/src/**
