@@ -21,6 +21,8 @@ interface IssuesTabProps {
     loadMoreIssues: () => void;
     hasMoreIssues: boolean;
     selectedIssue?: number | null;
+    stateFilter: string;
+    onStateFilterChange: (filter: string) => void;
 }
 
 const IssuesTab: React.FC<IssuesTabProps> = ({
@@ -35,6 +37,8 @@ const IssuesTab: React.FC<IssuesTabProps> = ({
     loadMoreIssues,
     hasMoreIssues,
     selectedIssue,
+    stateFilter,
+    onStateFilterChange,
 }) => {
     // Use shared ExternalLinkIcon
     const [keyword, setKeyword] = useState("");
@@ -42,7 +46,6 @@ const IssuesTab: React.FC<IssuesTabProps> = ({
     const [selectedIssueLocal, setSelectedIssueLocal] = useState<number | null>(
         selectedIssue ?? null
     );
-    const [stateFilter, setStateFilter] = useState<string>("all");
     // Ref for the Load More button wrapper
     const loadMoreWrapperRef = useRef<HTMLDivElement | null>(null);
     // Track if we just triggered load more (for scroll restoration)
@@ -60,6 +63,12 @@ const IssuesTab: React.FC<IssuesTabProps> = ({
     const allStates = Array.from(
         new Set(issues.map((issue) => issue.state))
     ).sort();
+
+    // Helper function to capitalize first letter and lowercase the rest
+    const capitalizeFirst = (str: string) => {
+        if (!str) return str;
+        return str.charAt(0).toUpperCase() + str.slice(1).toLowerCase();
+    };
 
     // Table columns config
     const columns: TableColumn<Issue>[] = [
@@ -137,22 +146,25 @@ const IssuesTab: React.FC<IssuesTabProps> = ({
                             border: "1px solid #ccc",
                         }}
                     />
-                    <VSCodeDropdown
+                    <select
                         value={stateFilter}
-                        onChange={(e) =>
-                            setStateFilter(
-                                (e.target as HTMLSelectElement).value
-                            )
-                        }
-                        style={{ minWidth: 120 }}
+                        onChange={(e) => onStateFilterChange(e.target.value)}
+                        style={{ 
+                            minWidth: 120,
+                            padding: '4px 8px',
+                            borderRadius: '2px',
+                            backgroundColor: 'var(--vscode-dropdown-background)',
+                            color: 'var(--vscode-dropdown-foreground)',
+                            border: '1px solid var(--vscode-dropdown-border)',
+                        }}
                     >
-                        <VSCodeOption value="all">All States</VSCodeOption>
+                        <option value="all">All States</option>
                         {allStates.map((state) => (
-                            <VSCodeOption key={state} value={state}>
-                                {state}
-                            </VSCodeOption>
+                            <option key={state} value={state}>
+                                {capitalizeFirst(state)}
+                            </option>
                         ))}
-                    </VSCodeDropdown>
+                    </select>
                     <VSCodeDropdown
                         value={issueSort}
                         onChange={(e) =>
