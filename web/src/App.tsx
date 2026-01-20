@@ -371,6 +371,12 @@ function App() {
             );
             if (openState) {
                 setPrStateFilter(openState);
+            } else if (allStates.length > 0) {
+                // If no Open state exists, use the first available state
+                setPrStateFilter(allStates[0]);
+            } else {
+                // If no states at all, default to "all"
+                setPrStateFilter("all");
             }
             setPrFilterInitialized(true);
         }
@@ -387,6 +393,12 @@ function App() {
             );
             if (openState) {
                 setIssueStateFilter(openState);
+            } else if (allStates.length > 0) {
+                // If no Open state exists, use the first available state
+                setIssueStateFilter(allStates[0]);
+            } else {
+                // If no states at all, default to "all"
+                setIssueStateFilter("all");
             }
             setIssueFilterInitialized(true);
         }
