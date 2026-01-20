@@ -127,6 +127,18 @@
       {
         "command": "onedev-browser.refreshAllViews",
         "title": "Refresh"
+      },
+      {
+        "command": "onedev-browser.triggerChatReview",
+        "title": "OneDev: Trigger Chat Review"
+      },
+      {
+        "command": "onedev-browser.checkoutBranch",
+        "title": "OneDev: Checkout Branch"
+      },
+      {
+        "command": "onedev-browser.openLocalFile",
+        "title": "OneDev: Open Local File"
       }
     ],
     "chatParticipants": [

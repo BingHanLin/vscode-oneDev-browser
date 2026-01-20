@@ -107,3 +107,59 @@ function getGitRevParse(rootPath: string, ref: string, filePath: string): Promis
         });
     });
 }
+
+export async function checkoutBranch(
+    rootPath: string,
+    prNumber?: number,
+    sourceBranch?: string,
+    onProgress?: (message: string) => void
+): Promise<string> {
+    const runCommand = (cmd: string) => {
+        return new Promise<string>((resolve, reject) => {
+            cp.exec(cmd, { cwd: rootPath }, (err, stdout, stderr) => {
+                if (err) reject(stderr || err.message);
+                else resolve(stdout.trim());
+            });
+        });
+    };
+
+    if (!sourceBranch) {
+        throw new Error("Source branch is required.");
+    }
+
+    let message = `Checking out branch ${sourceBranch}...`;
+    if (onProgress) onProgress(message);
+
+    // Try to checkout directly first (covers existing local branch)
+    try {
+        await runCommand(`git checkout ${sourceBranch}`);
+    } catch (err) {
+        // If failed, likely because branch doesn't exist locally.
+        // Try to fetch from PR and create the branch
+        if (prNumber) {
+            if (onProgress) onProgress("Fetching PR head...");
+            // Try fetch ref and checkout -b
+            try {
+                // Fetch into remote tracking style or just fetch head?
+                // Standard flow: fetch origin pull/ID/head:localBranch
+                // Let's try to fetch specifically to create the local branch
+                const fetchRef = `refs/pulls/${prNumber}/head`;
+                try {
+                    await runCommand(`git fetch origin ${fetchRef}:${sourceBranch}`);
+                } catch (e) {
+                    // Fallback for different refspec
+                    await runCommand(`git fetch origin refs/pull/${prNumber}/head:${sourceBranch}`);
+                }
+
+                if (onProgress) onProgress("Checking out...");
+                await runCommand(`git checkout ${sourceBranch}`);
+            } catch (fetchErr: any) {
+                throw new Error(`Failed to checkout branch ${sourceBranch}: ${fetchErr.message || fetchErr}`);
+            }
+        } else {
+            // If no PR number, we can only fail if local checkout failed
+            throw new Error(`Failed to checkout branch ${sourceBranch}: ${(err as any).message || err}`);
+        }
+    }
+    return sourceBranch!;
+}

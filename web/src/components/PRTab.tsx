@@ -33,6 +33,8 @@ interface PRTabProps {
     currentBuilds: Build[] | null;
     loadingBuilds: boolean;
     onFetchCurrentBuilds: (prID: number) => void;
+    stateFilter: string;
+    onStateFilterChange: (filter: string) => void;
 }
 
 const PRTab: React.FC<PRTabProps> = ({
@@ -53,6 +55,8 @@ const PRTab: React.FC<PRTabProps> = ({
     currentBuilds,
     loadingBuilds,
     onFetchCurrentBuilds,
+    stateFilter,
+    onStateFilterChange,
 }) => {
     // Local state for selected PR (for detail panel)
     const [selectedPRLocal, setSelectedPRLocal] = useState<number | null>(
@@ -132,8 +136,11 @@ const PRTab: React.FC<PRTabProps> = ({
     };
     const [keyword, setKeyword] = useState("");
 
-    // State for PR status filter
-    const [stateFilter, setStateFilter] = useState<string>("all");
+    // Helper function to capitalize first letter and lowercase the rest
+    const capitalizeFirst = (str: string) => {
+        if (!str) return str;
+        return str.charAt(0).toUpperCase() + str.slice(1).toLowerCase();
+    };
 
     // Get all unique statuses from PRs (e.g., open, closed, merged)
     const allStates = Array.from(
@@ -306,22 +313,25 @@ const PRTab: React.FC<PRTabProps> = ({
                         }}
                     />
                     {/* Status filter dropdown */}
-                    <VSCodeDropdown
+                    <select
                         value={stateFilter}
-                        onChange={(e) =>
-                            setStateFilter(
-                                (e.target as HTMLSelectElement).value
-                            )
-                        }
-                        style={{ minWidth: 120 }}
+                        onChange={(e) => onStateFilterChange(e.target.value)}
+                        style={{ 
+                            minWidth: 120,
+                            padding: '4px 8px',
+                            borderRadius: '2px',
+                            backgroundColor: 'var(--vscode-dropdown-background)',
+                            color: 'var(--vscode-dropdown-foreground)',
+                            border: '1px solid var(--vscode-dropdown-border)',
+                        }}
                     >
-                        <VSCodeOption value="all">All States</VSCodeOption>
+                        <option value="all">All States</option>
                         {allStates.map((state) => (
-                            <VSCodeOption key={state} value={state}>
-                                {state}
-                            </VSCodeOption>
+                            <option key={state} value={state}>
+                                {capitalizeFirst(state)}
+                            </option>
                         ))}
-                    </VSCodeDropdown>
+                    </select>
                     <VSCodeDropdown
                         value={prSort}
                         onChange={(e) =>

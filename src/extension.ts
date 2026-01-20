@@ -173,24 +173,26 @@ export function activate(context: vscode.ExtensionContext) {
       try {
         let oldUri: vscode.Uri | undefined;
         let newUri: vscode.Uri | undefined;
+        let title = `${path} (OneDev Diff)`;
 
         if (oldBlobId) {
           oldUri = vscode.Uri.parse(`onedev:${path}?projectId=${projectId}&blobId=${oldBlobId}`);
-        }
-        if (newBlobId) {
-          newUri = vscode.Uri.parse(`onedev:${path}?projectId=${projectId}&blobId=${newBlobId}`);
+        } else {
+          // Added file
+          oldUri = vscode.Uri.parse(`onedev:${path}?projectId=${projectId}&blobId=EMPTY`);
+          title = `${path} (Created)`;
         }
 
-        if (oldUri && newUri) {
-          const title = `${path} (OneDev Diff)`;
-          await vscode.commands.executeCommand('vscode.diff', oldUri, newUri, title);
-        } else if (newUri) {
-          await vscode.window.showTextDocument(newUri);
-        } else if (oldUri) {
-          await vscode.window.showTextDocument(oldUri);
+        if (newBlobId) {
+          newUri = vscode.Uri.parse(`onedev:${path}?projectId=${projectId}&blobId=${newBlobId}`);
         } else {
-          vscode.window.showErrorMessage('Invalid file information for diff.');
+          // Deleted file
+          newUri = vscode.Uri.parse(`onedev:${path}?projectId=${projectId}&blobId=EMPTY`);
+          title = `${path} (Deleted)`;
         }
+
+        await vscode.commands.executeCommand('vscode.diff', oldUri, newUri, title);
+
       } catch (e: any) {
         vscode.window.showErrorMessage(`Failed to open diff: ${e.message}`);
       }
@@ -209,6 +211,66 @@ export function activate(context: vscode.ExtensionContext) {
     })
   );
 
+  context.subscriptions.push(
+    vscode.commands.registerCommand('onedev-browser.triggerChatReview', async (prNumber: number) => {
+      if (prNumber) {
+        await vscode.commands.executeCommand('workbench.action.chat.open', { query: `@onedev /review #${prNumber}` });
+      }
+    })
+  );
+
+  context.subscriptions.push(
+    vscode.commands.registerCommand('onedev-browser.checkoutBranch', async (prNumber?: number, sourceBranch?: string) => {
+      if (!sourceBranch) {
+        vscode.window.showErrorMessage('Source branch is required to checkout.');
+        return;
+      }
+
+      const workspaceFolders = vscode.workspace.workspaceFolders;
+      if (!workspaceFolders || workspaceFolders.length === 0) {
+        vscode.window.showWarningMessage('No workspace open to checkout commit.');
+        return;
+      }
+      const rootPath = workspaceFolders[0].uri.fsPath;
+
+
+      try {
+        await vscode.window.withProgress({
+          location: vscode.ProgressLocation.Notification,
+          title: `Checking out...`,
+          cancellable: false
+        }, async (progress) => {
+          const { checkoutBranch } = require('./git');
+          await checkoutBranch(rootPath, prNumber, sourceBranch, (message: string) => {
+            progress.report({ message });
+          });
+        });
+        vscode.window.showInformationMessage(`Successfully checked out ${sourceBranch}.`);
+      } catch (e: any) {
+        vscode.window.showErrorMessage(`Failed to checkout: ${e.message || e}`);
+      }
+    })
+  );
+
+  context.subscriptions.push(
+    vscode.commands.registerCommand('onedev-browser.openLocalFile', async (filePath: string) => {
+      const workspaceFolders = vscode.workspace.workspaceFolders;
+      if (!workspaceFolders || workspaceFolders.length === 0) {
+        vscode.window.showWarningMessage('No workspace open to find local file.');
+        return;
+      }
+      const rootPath = workspaceFolders[0].uri.fsPath;
+      const uri = vscode.Uri.file(require('path').join(rootPath, filePath));
+
+      try {
+        await vscode.workspace.fs.stat(uri);
+        await vscode.window.showTextDocument(uri);
+      } catch (e) {
+        vscode.window.showWarningMessage(`File not found locally: ${filePath}`);
+      }
+    })
+  );
+
   // Register Content Provider for readonly file access
   const myScheme = 'onedev';
   const myProvider = new OneDevContentProvider();
@@ -220,6 +282,10 @@ class OneDevContentProvider implements vscode.TextDocumentContentProvider {
     const query = new URLSearchParams(uri.query);
     const projectId = query.get('projectId');
     const blobId = query.get('blobId');
+
+    if (blobId === 'EMPTY') {
+      return "";
+    }
 
     if (!projectId || !blobId) {
       return "Error: Missing projectId or blobId";

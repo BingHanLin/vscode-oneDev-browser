@@ -106,6 +106,15 @@ function App() {
     const ISSUES_PAGE_SIZE = 20;
     const [hasMoreIssues, setHasMoreIssues] = useState(true);
     const [issueSort, setIssueSort] = useState("newest");
+    const [prStateFilter, setPrStateFilter] = useState("Open");
+    const [issueStateFilter, setIssueStateFilter] = useState("Open");
+    const [prFilterInitialized, setPrFilterInitialized] = useState(false);
+    const [issueFilterInitialized, setIssueFilterInitialized] = useState(false);
+    
+    // Track whether data has been loaded for each tab
+    const [prDataLoaded, setPrDataLoaded] = useState(false);
+    const [issuesDataLoaded, setIssuesDataLoaded] = useState(false);
+    const [buildsDataLoaded, setBuildsDataLoaded] = useState(false);
 
     // PRTab current builds state
     const [currentBuilds, setCurrentBuilds] = useState<Build[] | null>(null);
@@ -324,19 +333,22 @@ function App() {
 
     useEffect(() => {
         if (url && email && token && projectPath) {
-            if (activeTab === "pr") {
+            if (activeTab === "pr" && !prDataLoaded) {
                 setPrOffset(0);
                 fetchPullRequests(0, PR_PAGE_SIZE, true);
-            } else if (activeTab === "issues") {
+                setPrDataLoaded(true);
+            } else if (activeTab === "issues" && !issuesDataLoaded) {
                 setIssuesOffset(0);
                 fetchIssues(0, ISSUES_PAGE_SIZE, true);
-            } else if (activeTab === "builds") {
+                setIssuesDataLoaded(true);
+            } else if (activeTab === "builds" && !buildsDataLoaded) {
                 setBuildOffset(0);
                 fetchBuilds(0, BUILD_PAGE_SIZE, true);
+                setBuildsDataLoaded(true);
             }
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [activeTab, url, email, token, projectPath]);
+    }, [activeTab, url, email, token, projectPath, prDataLoaded, issuesDataLoaded, buildsDataLoaded]);
 
     useEffect(() => {
         if (message) {
@@ -347,6 +359,50 @@ function App() {
             return () => clearTimeout(timer);
         }
     }, [message]);
+
+    // Auto-detect and set correct "Open" state for PRs
+    useEffect(() => {
+        if (!prFilterInitialized && pullRequests.length > 0) {
+            const allStates = Array.from(
+                new Set(pullRequests.map((pr) => pr.status))
+            );
+            const openState = allStates.find(state => 
+                state && state.toLowerCase() === "open"
+            );
+            if (openState) {
+                setPrStateFilter(openState);
+            } else if (allStates.length > 0) {
+                // If no Open state exists, use the first available state
+                setPrStateFilter(allStates[0]);
+            } else {
+                // If no states at all, default to "all"
+                setPrStateFilter("all");
+            }
+            setPrFilterInitialized(true);
+        }
+    }, [pullRequests, prFilterInitialized]);
+
+    // Auto-detect and set correct "Open" state for Issues
+    useEffect(() => {
+        if (!issueFilterInitialized && issues.length > 0) {
+            const allStates = Array.from(
+                new Set(issues.map((issue) => issue.state))
+            );
+            const openState = allStates.find(state => 
+                state && state.toLowerCase() === "open"
+            );
+            if (openState) {
+                setIssueStateFilter(openState);
+            } else if (allStates.length > 0) {
+                // If no Open state exists, use the first available state
+                setIssueStateFilter(allStates[0]);
+            } else {
+                // If no states at all, default to "all"
+                setIssueStateFilter("all");
+            }
+            setIssueFilterInitialized(true);
+        }
+    }, [issues, issueFilterInitialized]);
 
     return (
         <div className="container mx-auto p-4">
@@ -411,7 +467,7 @@ function App() {
                 </button>
             </div>
             <div className="tab-content">
-                {activeTab === "pr" && (
+                <div style={{ display: activeTab === "pr" ? "block" : "none" }}>
                     <PRTab
                         pullRequests={pullRequests}
                         prSort={prSort}
@@ -430,9 +486,11 @@ function App() {
                         currentBuilds={currentBuilds}
                         loadingBuilds={loadingBuilds}
                         onFetchCurrentBuilds={handleFetchCurrentBuilds}
+                        stateFilter={prStateFilter}
+                        onStateFilterChange={setPrStateFilter}
                     />
-                )}
-                {activeTab === "issues" && (
+                </div>
+                <div style={{ display: activeTab === "issues" ? "block" : "none" }}>
                     <IssuesTab
                         issues={issues}
                         issueSort={issueSort}
@@ -445,9 +503,11 @@ function App() {
                         loadMoreIssues={loadMoreIssues}
                         hasMoreIssues={hasMoreIssues}
                         selectedIssue={selectedIssue}
+                        stateFilter={issueStateFilter}
+                        onStateFilterChange={setIssueStateFilter}
                     />
-                )}
-                {activeTab === "builds" && (
+                </div>
+                <div style={{ display: activeTab === "builds" ? "block" : "none" }}>
                     <BuildTab
                         builds={builds}
                         buildSort={buildSort}
@@ -462,7 +522,7 @@ function App() {
                         vscode={vscode}
                         selectedBuild={selectedBuild}
                     />
-                )}
+                </div>
             </div>
         </div>
     );
