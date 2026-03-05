@@ -68,12 +68,7 @@
           "default": "",
           "description": "Your oneDev account email"
         },
-        "onedev-browser.token": {
-          "type": "string",
-          "default": "",
-          "description": "Your oneDev API token"
-        },
-        "onedev-browser.projectPath": {
+"onedev-browser.projectPath": {
           "type": "string",
           "default": "",
           "description": "Your oneDev project path"
@@ -103,6 +98,11 @@
           "default": "",
           "description": "Custom instruction prompt for Code Reviews. If empty, uses the default system prompt.",
           "editPresentation": "multiline"
+        },
+        "onedev-browser.requestTimeout": {
+          "type": "number",
+          "default": 30000,
+          "description": "Timeout in milliseconds for OneDev API requests (default: 30000)"
         }
       }
     },
@@ -149,6 +149,10 @@
       {
         "command": "onedev-browser.openLocalFile",
         "title": "OneDev: Open Local File"
+      },
+      {
+        "command": "onedev-browser.setToken",
+        "title": "OneDev: Set API Token"
       }
     ],
     "chatParticipants": [
@@ -181,12 +185,14 @@
     "@types/mocha": "^10.0.7",
     "@types/node": "20.x",
     "@types/node-fetch": "^2.6.11",
+    "@types/sinon": "^21.0.0",
     "@types/vscode": "^1.93.0",
     "@typescript-eslint/eslint-plugin": "^7.14.1",
     "@typescript-eslint/parser": "^7.11.0",
     "@vscode/test-cli": "^0.0.9",
     "@vscode/test-electron": "^2.4.0",
     "eslint": "^8.57.0",
+    "sinon": "^21.0.2",
     "ts-loader": "^9.5.1",
     "typescript": "^5.4.5",
     "webpack": "^5.92.1",

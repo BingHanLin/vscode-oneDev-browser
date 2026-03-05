@@ -4,12 +4,30 @@ import { PRsTreeDataProvider } from "./prsTreeDataProvider";
 import { IssuesTreeDataProvider } from "./issuesTreeDataProvider";
 import { BuildsTreeDataProvider } from "./buildsTreeDataProvider";
 import { registerStatusBarCommand } from "./statusbar";
-import { getConfigValue, getConfigNumber } from "./utils/config";
-
+import { getConfigValue, getConfigNumber, getCredentials, initSecretStorage, setToken } from "./utils/config";
+import { isValidSha, assertValidGitRef } from "./utils/validation";
 
 import { registerChatParticipant } from './chatParticipant';
 
 export function activate(context: vscode.ExtensionContext) {
+
+  // Initialize SecretStorage for secure token storage
+  initSecretStorage(context.secrets);
+
+  // Register "Set API Token" command
+  context.subscriptions.push(
+    vscode.commands.registerCommand('onedev-browser.setToken', async () => {
+      const token = await vscode.window.showInputBox({
+        prompt: 'Enter your OneDev API token',
+        password: true,
+        placeHolder: 'Paste your API token here'
+      });
+      if (token !== undefined) {
+        await setToken(token);
+        vscode.window.showInformationMessage('OneDev API token saved securely.');
+      }
+    })
+  );
 
   // Register Chat Participant
   registerChatParticipant(context);
@@ -297,10 +315,12 @@ class OneDevContentProvider implements vscode.TextDocumentContentProvider {
     if (workspaceFolders && workspaceFolders.length > 0) {
       const rootPath = workspaceFolders[0].uri.fsPath;
       const cp = require('child_process');
+      if (!isValidSha(blobId)) {
+        return `Error: Invalid blob ID`;
+      }
       try {
         return await new Promise<string>((resolve, reject) => {
-          // -p pretty print, but simple git show blobId works for blobs
-          cp.exec(`git show ${blobId}`, { cwd: rootPath }, (err: any, stdout: string, stderr: string) => {
+          cp.execFile('git', ['show', blobId], { cwd: rootPath }, (err: any, stdout: string, _stderr: string) => {
             if (err) {
               reject(err);
             } else {
@@ -313,13 +333,7 @@ class OneDevContentProvider implements vscode.TextDocumentContentProvider {
       }
     }
 
-    const config = vscode.workspace.getConfiguration("onedev-browser");
-    const creds = {
-      url: getConfigValue(config, "url"),
-      email: getConfigValue(config, "email"),
-      token: getConfigValue(config, "token"),
-      projectPath: getConfigValue(config, "projectPath")
-    };
+    const creds = await getCredentials();
 
     try {
       const { fetchFileContent } = require('./api');
@@ -367,22 +381,26 @@ function openReactWebview(context: vscode.ExtensionContext) {
   panel.webview.onDidReceiveMessage(async (message) => {
     try {
       if (message.command === 'getCredentials') {
-        const config = vscode.workspace.getConfiguration('onedev-browser');
-
-        const url = getConfigValue(config, 'url');
-        const email = getConfigValue(config, 'email');
-        const token = getConfigValue(config, 'token');
-        const projectPath = getConfigValue(config, 'projectPath');
+        const creds = await getCredentials();
         panel.webview.postMessage({
           command: 'setCredentials',
-          url,
-          email,
-          token,
-          projectPath
+          url: creds.url,
+          email: creds.email,
+          token: creds.token,
+          projectPath: creds.projectPath
         });
       } else if (message.command === 'checkoutBranch') {
         try {
           const branch = message.branch;
+          try {
+            assertValidGitRef(branch, "branch");
+          } catch (e: any) {
+            panel.webview.postMessage({
+              command: 'checkoutBranchError',
+              message: e.message
+            });
+            return;
+          }
           const terminal = vscode.window.createTerminal({ name: 'oneDev: git checkout' });
           terminal.show();
           // First fetch, then checkout (auto-create local branch if needed)
