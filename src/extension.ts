@@ -8,6 +8,7 @@ import { getConfigValue, getConfigNumber, getCredentials, initSecretStorage, set
 import { isValidSha, assertValidGitRef } from "./utils/validation";
 
 import { registerChatParticipant } from './chatParticipant';
+import { PRTreeItem, IssueTreeItem, BuildTreeItem } from './treeItems';
 
 async function updateSetupContext(): Promise<void> {
   const creds = await getCredentials();
@@ -98,16 +99,52 @@ export function activate(context: vscode.ExtensionContext) {
       buildsInterval = undefined;
     }
   });
-  // Register command for tree view navigation to PR in webview
+  // Register command for tree view navigation to PR in webview (legacy, kept for webview compatibility)
   context.subscriptions.push(
     vscode.commands.registerCommand('onedev-browser.openWebviewToPR', (prNumber: number, pr: any, url?: string, projectPath?: string) => {
-      // Open the PR in the user's default browser
       if (url && projectPath && prNumber) {
         const prUrl = `${url}/${projectPath}/~pulls/${prNumber}`;
         vscode.env.openExternal(vscode.Uri.parse(prUrl));
       } else {
         vscode.window.showErrorMessage('Missing oneDev URL, project path, or PR number.');
       }
+    })
+  );
+
+  // --- Tree view context menu commands ---
+  context.subscriptions.push(
+    vscode.commands.registerCommand('onedev-browser.pr.openInBrowser', (item: PRTreeItem) => {
+      const url = `${item.serverUrl}/${item.projectPath}/~pulls/${item.pr.number}`;
+      vscode.env.openExternal(vscode.Uri.parse(url));
+    }),
+    vscode.commands.registerCommand('onedev-browser.pr.copyUrl', (item: PRTreeItem) => {
+      const url = `${item.serverUrl}/${item.projectPath}/~pulls/${item.pr.number}`;
+      vscode.env.clipboard.writeText(url);
+      vscode.window.showInformationMessage('PR URL copied to clipboard.');
+    }),
+    vscode.commands.registerCommand('onedev-browser.pr.checkoutBranch', (item: PRTreeItem) => {
+      vscode.commands.executeCommand('onedev-browser.checkoutBranch', item.pr.number, item.pr.sourceBranch);
+    }),
+    vscode.commands.registerCommand('onedev-browser.pr.aiReview', (item: PRTreeItem) => {
+      vscode.commands.executeCommand('onedev-browser.triggerChatReview', item.pr.number);
+    }),
+    vscode.commands.registerCommand('onedev-browser.issue.openInBrowser', (item: IssueTreeItem) => {
+      const url = `${item.serverUrl}/${item.projectPath}/~issues/${item.issue.number}`;
+      vscode.env.openExternal(vscode.Uri.parse(url));
+    }),
+    vscode.commands.registerCommand('onedev-browser.issue.copyUrl', (item: IssueTreeItem) => {
+      const url = `${item.serverUrl}/${item.projectPath}/~issues/${item.issue.number}`;
+      vscode.env.clipboard.writeText(url);
+      vscode.window.showInformationMessage('Issue URL copied to clipboard.');
+    }),
+    vscode.commands.registerCommand('onedev-browser.build.openInBrowser', (item: BuildTreeItem) => {
+      const url = `${item.serverUrl}/${item.projectPath}/~builds/${item.build.number}`;
+      vscode.env.openExternal(vscode.Uri.parse(url));
+    }),
+    vscode.commands.registerCommand('onedev-browser.build.copyUrl', (item: BuildTreeItem) => {
+      const url = `${item.serverUrl}/${item.projectPath}/~builds/${item.build.number}`;
+      vscode.env.clipboard.writeText(url);
+      vscode.window.showInformationMessage('Build URL copied to clipboard.');
     })
   );
 

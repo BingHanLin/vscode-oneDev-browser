@@ -132,6 +132,63 @@
           "icon": "$(refresh)",
           "tooltip": "Refresh"
         }
+      ],
+      "view/item/context": [
+        {
+          "command": "onedev-browser.pr.openInBrowser",
+          "when": "viewItem == prItem",
+          "group": "inline"
+        },
+        {
+          "command": "onedev-browser.issue.openInBrowser",
+          "when": "viewItem == issueItem",
+          "group": "inline"
+        },
+        {
+          "command": "onedev-browser.build.openInBrowser",
+          "when": "viewItem == buildItem",
+          "group": "inline"
+        },
+        {
+          "command": "onedev-browser.pr.openInBrowser",
+          "when": "viewItem == prItem",
+          "group": "navigation@1"
+        },
+        {
+          "command": "onedev-browser.pr.checkoutBranch",
+          "when": "viewItem == prItem",
+          "group": "navigation@2"
+        },
+        {
+          "command": "onedev-browser.pr.aiReview",
+          "when": "viewItem == prItem",
+          "group": "navigation@3"
+        },
+        {
+          "command": "onedev-browser.pr.copyUrl",
+          "when": "viewItem == prItem",
+          "group": "cutcopypaste@1"
+        },
+        {
+          "command": "onedev-browser.issue.openInBrowser",
+          "when": "viewItem == issueItem",
+          "group": "navigation@1"
+        },
+        {
+          "command": "onedev-browser.issue.copyUrl",
+          "when": "viewItem == issueItem",
+          "group": "cutcopypaste@1"
+        },
+        {
+          "command": "onedev-browser.build.openInBrowser",
+          "when": "viewItem == buildItem",
+          "group": "navigation@1"
+        },
+        {
+          "command": "onedev-browser.build.copyUrl",
+          "when": "viewItem == buildItem",
+          "group": "cutcopypaste@1"
+        }
       ]
     },
     "commands": [
@@ -174,6 +231,46 @@
       {
         "command": "onedev-browser.setupWizard",
         "title": "OneDev: Set Up Connection"
+      },
+      {
+        "command": "onedev-browser.pr.openInBrowser",
+        "title": "Open in Browser",
+        "icon": "$(globe)"
+      },
+      {
+        "command": "onedev-browser.pr.checkoutBranch",
+        "title": "Checkout Branch",
+        "icon": "$(source-control)"
+      },
+      {
+        "command": "onedev-browser.pr.aiReview",
+        "title": "AI Code Review",
+        "icon": "$(comment-discussion)"
+      },
+      {
+        "command": "onedev-browser.pr.copyUrl",
+        "title": "Copy URL",
+        "icon": "$(link)"
+      },
+      {
+        "command": "onedev-browser.issue.openInBrowser",
+        "title": "Open in Browser",
+        "icon": "$(globe)"
+      },
+      {
+        "command": "onedev-browser.issue.copyUrl",
+        "title": "Copy URL",
+        "icon": "$(link)"
+      },
+      {
+        "command": "onedev-browser.build.openInBrowser",
+        "title": "Open in Browser",
+        "icon": "$(globe)"
+      },
+      {
+        "command": "onedev-browser.build.copyUrl",
+        "title": "Copy URL",
+        "icon": "$(link)"
       }
     ],
     "chatParticipants": [
