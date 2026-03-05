@@ -8,6 +8,7 @@ import GenericTable, { TableColumn } from "./GenericTable";
 import { ExternalLinkIcon } from "./Icons";
 import { Issue } from "../types";
 import { highlightKeyword } from "../utils/highlightKeyword";
+import { StatusBadge, timeAgo, LoadingState, EmptyState } from "../utils/formatters";
 
 interface IssuesTabProps {
     issues: Issue[];
@@ -98,7 +99,16 @@ const IssuesTab: React.FC<IssuesTabProps> = ({
         {
             title: "State",
             dataIndex: "state",
+            width: 100,
+            render: (value) => <StatusBadge status={value as string} />,
+        },
+        {
+            title: "Comments",
+            dataIndex: "commentCount",
             width: 90,
+            render: (value) => (
+                <span title={`${value} comments`}>{value as number}</span>
+            ),
         },
         {
             title: "Submitter",
@@ -184,11 +194,12 @@ const IssuesTab: React.FC<IssuesTabProps> = ({
                 {/* Table area: scrollable, controls above will not move when scrolling horizontally */}
                 <div style={{ flex: 1, minHeight: 0, overflow: "auto" }}>
                     {isLoading && issues.length === 0 ? (
-                        <div className="flex justify-center items-center h-64">
-                            Loading...
-                        </div>
+                        <LoadingState message="Loading issues..." />
                     ) : filteredIssues.length === 0 ? (
-                        <p>No issues found.</p>
+                        <EmptyState
+                            title="No issues found"
+                            subtitle={keyword ? "Try adjusting your search or filters" : undefined}
+                        />
                     ) : (
                         <>
                             <GenericTable
@@ -207,6 +218,7 @@ const IssuesTab: React.FC<IssuesTabProps> = ({
                                     ref={loadMoreWrapperRef}
                                 >
                                     <VSCodeButton
+                                        disabled={isLoading}
                                         onClick={() => {
                                             setPendingScroll(true);
                                             loadMoreIssues();
@@ -216,7 +228,7 @@ const IssuesTab: React.FC<IssuesTabProps> = ({
                                             alignItems: "center",
                                         }}
                                     >
-                                        Load More
+                                        {isLoading ? "Loading..." : "Load More"}
                                     </VSCodeButton>
                                 </div>
                             )}
@@ -225,18 +237,8 @@ const IssuesTab: React.FC<IssuesTabProps> = ({
                 </div>
             </div>
             {/* Right: Detail panel */}
-            <div
-                style={{
-                    width: 340,
-                    minWidth: 240,
-                    maxWidth: 400,
-                    display: "flex",
-                    flexDirection: "column",
-                    gap: 0,
-                    padding: "28px 24px 20px 24px",
-                    boxSizing: "border-box",
-                }}
-            >
+            <div className="detail-panel">
+
                 {(() => {
                     const issue = issues.find(
                         (i) => i.number === selectedIssueLocal
@@ -281,7 +283,7 @@ const IssuesTab: React.FC<IssuesTabProps> = ({
                                 >
                                     State:
                                 </span>
-                                {issue.state}
+                                <StatusBadge status={issue.state} />
                             </div>
                             <div>
                                 <span
@@ -305,7 +307,9 @@ const IssuesTab: React.FC<IssuesTabProps> = ({
                                 >
                                     Created:
                                 </span>
-                                {new Date(issue.submitDate).toLocaleString()}
+                                <span title={new Date(issue.submitDate).toLocaleString()}>
+                                    {timeAgo(issue.submitDate)}
+                                </span>
                             </div>
                             <div>
                                 <span
@@ -317,9 +321,21 @@ const IssuesTab: React.FC<IssuesTabProps> = ({
                                 >
                                     Last Activity:
                                 </span>
-                                {new Date(
-                                    issue.lastActivity.date
-                                ).toLocaleString()}
+                                <span title={new Date(issue.lastActivity.date).toLocaleString()}>
+                                    {timeAgo(issue.lastActivity.date)}
+                                </span>
+                            </div>
+                            <div>
+                                <span
+                                    style={{
+                                        fontWeight: 500,
+                                        color: "#666",
+                                        marginRight: 6,
+                                    }}
+                                >
+                                    Comments:
+                                </span>
+                                {issue.commentCount}
                             </div>
                             {issue.description && (
                                 <div

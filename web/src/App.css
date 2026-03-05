@@ -71,3 +71,20 @@
   padding: 16px;
   background-color: var(--vscode-editor-background);
 }
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.detail-panel {
+  width: 340px;
+  min-width: 240px;
+  max-width: 400px;
+  display: flex;
+  flex-direction: column;
+  padding: 28px 24px 20px 24px;
+  box-sizing: border-box;
+  overflow-y: auto;
+  border-left: 1px solid var(--vscode-panel-border, #333);
+}
