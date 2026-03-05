@@ -642,13 +642,12 @@ const PRTab: React.FC<PRTabProps> = ({
                                 style={{
                                     color: "var(--vscode-foreground)",
                                     fontSize: 15,
-                                    whiteSpace: "pre-wrap",
                                     wordBreak: "break-word",
                                 }}
                             >
                                 {pr.description &&
                                 pr.description.trim() !== "" ? (
-                                    pr.description
+                                    <ReactMarkdown>{pr.description}</ReactMarkdown>
                                 ) : (
                                     <span style={{ color: "#888" }}>
                                         No description provided.
