@@ -111,6 +111,22 @@ export function activate(context: vscode.ExtensionContext) {
     })
   );
 
+  // --- Show in Webview (tree item click) ---
+  context.subscriptions.push(
+    vscode.commands.registerCommand('onedev-browser.showInWebview', (tab: string, itemNumber: number) => {
+      const wasOpen = !!oneDevPanel;
+      const panel = openReactWebview(context);
+      const msg = { command: 'scrollToItem', tab, number: itemNumber };
+      if (wasOpen) {
+        // Panel already running — post immediately
+        panel.webview.postMessage(msg);
+      } else {
+        // Panel freshly created — defer until webview signals ready
+        pendingScrollToItem = { tab, number: itemNumber };
+      }
+    })
+  );
+
   // --- Tree view context menu commands ---
   context.subscriptions.push(
     vscode.commands.registerCommand('onedev-browser.pr.openInBrowser', (item: PRTreeItem) => {
@@ -486,6 +502,7 @@ class OneDevContentProvider implements vscode.TextDocumentContentProvider {
 }
 
 let oneDevPanel: vscode.WebviewPanel | undefined;
+let pendingScrollToItem: { tab: string; number: number } | undefined;
 
 function openReactWebview(context: vscode.ExtensionContext) {
   if (oneDevPanel) {
@@ -530,6 +547,15 @@ function openReactWebview(context: vscode.ExtensionContext) {
           token: creds.token,
           projectPath: creds.projectPath
         });
+        // Flush any pending scroll-to-item from tree view click
+        if (pendingScrollToItem) {
+          panel.webview.postMessage({
+            command: 'scrollToItem',
+            tab: pendingScrollToItem.tab,
+            number: pendingScrollToItem.number
+          });
+          pendingScrollToItem = undefined;
+        }
       } else if (message.command === 'checkoutBranch') {
         try {
           const branch = message.branch;

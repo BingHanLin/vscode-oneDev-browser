@@ -301,6 +301,22 @@ function App() {
                 );
                 setIsLoading(false);
                 break;
+            case "scrollToItem":
+                if (message.tab) {
+                    setActiveTab(message.tab);
+                }
+                if (message.tab === "pr" && message.number) {
+                    setPrStateFilter("all");
+                    setPrFilterInitialized(true);
+                    setSelectedPR(message.number);
+                } else if (message.tab === "issues" && message.number) {
+                    setIssueStateFilter("all");
+                    setIssueFilterInitialized(true);
+                    setSelectedIssue(message.number);
+                } else if (message.tab === "builds" && message.number) {
+                    setSelectedBuild(message.number);
+                }
+                break;
             default:
                 break;
         }
@@ -405,7 +421,7 @@ function App() {
     }, [issues, issueFilterInitialized]);
 
     return (
-        <div className="container mx-auto p-4">
+        <div style={{ padding: "16px 8px" }}>
             <h1 className="text-2xl font-bold mb-4">oneDev Browser</h1>
             {/* Summary Bar - VSCodeTextField style */}
             <div className="mb-4 flex flex-wrap items-center gap-4">

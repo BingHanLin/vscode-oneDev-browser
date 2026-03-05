@@ -137,21 +137,6 @@
         {
           "command": "onedev-browser.pr.openInBrowser",
           "when": "viewItem == prItem",
-          "group": "inline"
-        },
-        {
-          "command": "onedev-browser.issue.openInBrowser",
-          "when": "viewItem == issueItem",
-          "group": "inline"
-        },
-        {
-          "command": "onedev-browser.build.openInBrowser",
-          "when": "viewItem == buildItem",
-          "group": "inline"
-        },
-        {
-          "command": "onedev-browser.pr.openInBrowser",
-          "when": "viewItem == prItem",
           "group": "navigation@1"
         },
         {

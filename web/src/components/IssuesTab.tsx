@@ -47,6 +47,10 @@ const IssuesTab: React.FC<IssuesTabProps> = ({
     const [selectedIssueLocal, setSelectedIssueLocal] = useState<number | null>(
         selectedIssue ?? null
     );
+    // Sync with prop if it changes
+    useEffect(() => {
+        setSelectedIssueLocal(selectedIssue ?? null);
+    }, [selectedIssue]);
     // Ref for the Load More button wrapper
     const loadMoreWrapperRef = useRef<HTMLDivElement | null>(null);
     // Track if we just triggered load more (for scroll restoration)

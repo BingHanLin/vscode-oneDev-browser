@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useRef } from "react";
 import {
     VSCodeDataGrid,
     VSCodeDataGridRow,
@@ -29,7 +29,22 @@ function GenericTable<T>({
     selectedRowKey,
     ariaLabel,
 }: GenericTableProps<T>) {
+    const gridRef = useRef<HTMLDivElement>(null);
+
+    // Scroll selected row into view when selectedRowKey changes
+    useEffect(() => {
+        if (selectedRowKey != null && gridRef.current) {
+            const row = gridRef.current.querySelector(
+                `[data-row-key="${selectedRowKey}"]`
+            );
+            if (row) {
+                row.scrollIntoView({ behavior: "smooth", block: "nearest" });
+            }
+        }
+    }, [selectedRowKey, data]);
+
     return (
+        <div ref={gridRef}>
         <VSCodeDataGrid aria-label={ariaLabel || "Table"}>
             <VSCodeDataGridRow row-type="header">
                 {columns.map((col, idx) => (
@@ -44,7 +59,8 @@ function GenericTable<T>({
                 ))}
             </VSCodeDataGridRow>
             {data.map((record, rowIdx) => {
-                const selected = selectedRowKey === rowKey(record);
+                const key = rowKey(record);
+                const selected = selectedRowKey === key;
                 const rowStyle = Object.assign(
                     {},
                     selected
@@ -63,7 +79,8 @@ function GenericTable<T>({
                 );
                 return (
                     <VSCodeDataGridRow
-                        key={rowKey(record)}
+                        key={key}
+                        data-row-key={key}
                         className={selected ? "vscode-selected-row" : ""}
                         style={rowStyle}
                         onClick={
@@ -94,6 +111,7 @@ function GenericTable<T>({
                 );
             })}
         </VSCodeDataGrid>
+        </div>
     );
 }
 

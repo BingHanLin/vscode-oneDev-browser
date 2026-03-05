@@ -69,11 +69,11 @@ export class PRTreeItem extends vscode.TreeItem {
         }
         this.tooltip = md;
 
-        // Click command
+        // Click command — open in webview and scroll to this PR
         this.command = {
-            command: "onedev-browser.pr.openInBrowser",
-            title: "Open in Browser",
-            arguments: [this]
+            command: "onedev-browser.showInWebview",
+            title: "Show in Webview",
+            arguments: ["pr", pr.number]
         };
     }
 }
@@ -119,11 +119,11 @@ export class IssueTreeItem extends vscode.TreeItem {
         }
         this.tooltip = md;
 
-        // Click command
+        // Click command — open in webview and scroll to this issue
         this.command = {
-            command: "onedev-browser.issue.openInBrowser",
-            title: "Open in Browser",
-            arguments: [this]
+            command: "onedev-browser.showInWebview",
+            title: "Show in Webview",
+            arguments: ["issues", issue.number]
         };
     }
 }
@@ -184,11 +184,11 @@ export class BuildTreeItem extends vscode.TreeItem {
         }
         this.tooltip = md;
 
-        // Click command
+        // Click command — open in webview and scroll to this build
         this.command = {
-            command: "onedev-browser.build.openInBrowser",
-            title: "Open in Browser",
-            arguments: [this]
+            command: "onedev-browser.showInWebview",
+            title: "Show in Webview",
+            arguments: ["builds", build.number]
         };
     }
 }
