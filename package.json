@@ -55,6 +55,23 @@
         }
       ]
     },
+    "viewsWelcome": [
+      {
+        "view": "onedevPRsView",
+        "contents": "No OneDev connection configured.\n\nSet up your OneDev server URL, credentials, and project to get started.\n\n[Set Up OneDev Connection](command:onedev-browser.setupWizard)\n\nOr configure manually in [Settings](command:workbench.action.openSettings?%5B%22onedev-browser%22%5D).",
+        "when": "onedev-browser.needsSetup"
+      },
+      {
+        "view": "onedevIssuesView",
+        "contents": "No OneDev connection configured.\n\n[Set Up OneDev Connection](command:onedev-browser.setupWizard)",
+        "when": "onedev-browser.needsSetup"
+      },
+      {
+        "view": "onedevBuildsView",
+        "contents": "No OneDev connection configured.\n\n[Set Up OneDev Connection](command:onedev-browser.setupWizard)",
+        "when": "onedev-browser.needsSetup"
+      }
+    ],
     "configuration": {
       "title": "oneDev Browser",
       "properties": {
@@ -153,6 +170,10 @@
       {
         "command": "onedev-browser.setToken",
         "title": "OneDev: Set API Token"
+      },
+      {
+        "command": "onedev-browser.setupWizard",
+        "title": "OneDev: Set Up Connection"
       }
     ],
     "chatParticipants": [

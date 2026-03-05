@@ -9,6 +9,12 @@ import { isValidSha, assertValidGitRef } from "./utils/validation";
 
 import { registerChatParticipant } from './chatParticipant';
 
+async function updateSetupContext(): Promise<void> {
+  const creds = await getCredentials();
+  const needsSetup = !creds.url || !creds.token || !creds.projectPath;
+  vscode.commands.executeCommand('setContext', 'onedev-browser.needsSetup', needsSetup);
+}
+
 export function activate(context: vscode.ExtensionContext) {
 
   // Initialize SecretStorage for secure token storage
@@ -25,6 +31,7 @@ export function activate(context: vscode.ExtensionContext) {
       if (token !== undefined) {
         await setToken(token);
         vscode.window.showInformationMessage('OneDev API token saved securely.');
+        updateSetupContext();
       }
     })
   );
@@ -289,6 +296,102 @@ export function activate(context: vscode.ExtensionContext) {
     })
   );
 
+  // Register setup wizard command
+  context.subscriptions.push(
+    vscode.commands.registerCommand('onedev-browser.setupWizard', async () => {
+      const urlInput = await vscode.window.showInputBox({
+        prompt: 'OneDev Server URL',
+        placeHolder: 'https://onedev.example.com',
+        ignoreFocusOut: true,
+        validateInput: (value) => {
+          if (!value) { return 'URL is required'; }
+          try { new URL(value); } catch { return 'Enter a valid URL'; }
+          if (value.endsWith('/')) { return 'URL should not end with a trailing slash'; }
+          return undefined;
+        }
+      });
+      if (urlInput === undefined) { return; }
+
+      const emailInput = await vscode.window.showInputBox({
+        prompt: 'OneDev Account Email',
+        placeHolder: 'you@example.com',
+        ignoreFocusOut: true,
+        validateInput: (value) => value ? undefined : 'Email is required'
+      });
+      if (emailInput === undefined) { return; }
+
+      const projectPathInput = await vscode.window.showInputBox({
+        prompt: 'OneDev Project Path',
+        placeHolder: 'my-project',
+        ignoreFocusOut: true,
+        validateInput: (value) => value ? undefined : 'Project path is required'
+      });
+      if (projectPathInput === undefined) { return; }
+
+      const tokenInput = await vscode.window.showInputBox({
+        prompt: 'OneDev API Token',
+        password: true,
+        ignoreFocusOut: true,
+        validateInput: (value) => value ? undefined : 'API token is required'
+      });
+      if (tokenInput === undefined) { return; }
+
+      // Validate credentials with a test API call
+      const testCreds = { url: urlInput, email: emailInput, token: tokenInput, projectPath: projectPathInput };
+      try {
+        const { fetchProjectId } = require('./api');
+        await vscode.window.withProgress(
+          { location: vscode.ProgressLocation.Notification, title: 'Verifying OneDev connection...' },
+          () => fetchProjectId(testCreds)
+        );
+      } catch (e: any) {
+        const retry = await vscode.window.showErrorMessage(
+          `Connection failed: ${e.message || 'Unknown error'}. Save settings anyway?`,
+          'Save Anyway', 'Cancel'
+        );
+        if (retry !== 'Save Anyway') { return; }
+      }
+
+      // Write all settings at once
+      const target = vscode.workspace.workspaceFolders?.length
+        ? vscode.ConfigurationTarget.Workspace
+        : vscode.ConfigurationTarget.Global;
+      const config = vscode.workspace.getConfiguration('onedev-browser');
+      await config.update('url', urlInput, target);
+      await config.update('email', emailInput, target);
+      await config.update('projectPath', projectPathInput, target);
+      await setToken(tokenInput);
+
+      vscode.commands.executeCommand('onedev-browser.refreshAllViews');
+      updateSetupContext();
+      vscode.window.showInformationMessage('OneDev connection configured successfully.');
+    })
+  );
+
+  // Update setup context when config changes
+  context.subscriptions.push(
+    vscode.workspace.onDidChangeConfiguration(e => {
+      if (e.affectsConfiguration('onedev-browser')) {
+        updateSetupContext();
+      }
+    })
+  );
+
+  // Set initial setup context and prompt if unconfigured
+  updateSetupContext();
+  (async () => {
+    const creds = await getCredentials();
+    if (!creds.url) {
+      const action = await vscode.window.showInformationMessage(
+        'OneDev Browser: No connection configured.',
+        'Set Up Now'
+      );
+      if (action === 'Set Up Now') {
+        vscode.commands.executeCommand('onedev-browser.setupWizard');
+      }
+    }
+  })();
+
   // Register Content Provider for readonly file access
   const myScheme = 'onedev';
   const myProvider = new OneDevContentProvider();
@@ -354,7 +457,8 @@ function openReactWebview(context: vscode.ExtensionContext) {
   }
   let panel = vscode.window.createWebviewPanel("webview", "oneDev Browser", vscode.ViewColumn.One, {
     enableScripts: true,
-    retainContextWhenHidden: true
+    retainContextWhenHidden: true,
+    localResourceRoots: [vscode.Uri.joinPath(context.extensionUri, "web", "dist")]
   });
   oneDevPanel = panel;
 

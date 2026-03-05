@@ -9,25 +9,31 @@ export class IssuesTreeDataProvider implements vscode.TreeDataProvider<vscode.Tr
     async getChildren(): Promise<vscode.TreeItem[]> {
         const creds = await getCredentials();
         if (!creds.url || !creds.token || !creds.projectPath) {
-            return [new vscode.TreeItem("Please set oneDev config in settings.")];
+            return [];
         }
-        const config = vscode.workspace.getConfiguration("onedev-browser");
-        const maxItems = getConfigNumber(config, "maxIssueItems");
-        const issues = await fetchIssues(creds);
-        return issues.slice(0, maxItems).map((issue: any) => {
-            const item = new vscode.TreeItem(`#${issue.number} ${issue.title}`);
-            item.description = `${issue.state || ''} | ${issue.submitterId || ''}`;
-            if (issue.submitDate) {
-                const date = new Date(issue.submitDate);
-                item.tooltip = `State: ${issue.state}\nAuthor: ${issue.submitterId}\nCreated: ${date.toLocaleString()}`;
-            }
-            item.command = {
-                command: 'onedev-browser.openWebviewToIssue',
-                title: 'Open Issue in Webview',
-                arguments: [issue.number, issue, creds.url, creds.projectPath]
-            };
-            return item;
-        });
+        try {
+            const config = vscode.workspace.getConfiguration("onedev-browser");
+            const maxItems = getConfigNumber(config, "maxIssueItems");
+            const issues = await fetchIssues(creds);
+            return issues.slice(0, maxItems).map((issue: any) => {
+                const item = new vscode.TreeItem(`#${issue.number} ${issue.title}`);
+                item.description = `${issue.state || ''} | ${issue.submitterId || ''}`;
+                if (issue.submitDate) {
+                    const date = new Date(issue.submitDate);
+                    item.tooltip = `State: ${issue.state}\nAuthor: ${issue.submitterId}\nCreated: ${date.toLocaleString()}`;
+                }
+                item.command = {
+                    command: 'onedev-browser.openWebviewToIssue',
+                    title: 'Open Issue in Webview',
+                    arguments: [issue.number, issue, creds.url, creds.projectPath]
+                };
+                return item;
+            });
+        } catch (e: any) {
+            const item = new vscode.TreeItem(`Error: ${e.message || 'Failed to load issues'}`);
+            item.iconPath = new vscode.ThemeIcon('error');
+            return [item];
+        }
     }
     refresh(): void { this._onDidChangeTreeData.fire(); }
 }
