@@ -81,6 +81,7 @@ const PRTab: React.FC<PRTabProps> = ({
     // Changes state
     const [prChanges, setPrChanges] = useState<PullRequestChange[]>([]);
     const [loadingChanges, setLoadingChanges] = useState(false);
+    const [changesError, setChangesError] = useState<string | null>(null);
 
     useEffect(() => {
         if (selectedPRLocal && vscode) {
@@ -88,6 +89,7 @@ const PRTab: React.FC<PRTabProps> = ({
             if (pr && pr.id) {
                 setLoadingChanges(true);
                 setPrChanges([]);
+                setChangesError(null);
                 vscode.postMessage({
                     command: "getPrChanges",
                     url,
@@ -103,9 +105,10 @@ const PRTab: React.FC<PRTabProps> = ({
 
     useEffect(() => {
         const handleMessage = (event: MessageEvent) => {
-            const { command, changes } = event.data;
+            const { command, changes, error } = event.data;
             if (command === "setPrChanges") {
                 setPrChanges(changes || []);
+                setChangesError(error || null);
                 setLoadingChanges(false);
             }
         };
@@ -688,6 +691,10 @@ const PRTab: React.FC<PRTabProps> = ({
                                 </div>
                                 {loadingChanges ? (
                                     <div>Loading changes...</div>
+                                ) : changesError ? (
+                                    <div style={{ color: "var(--vscode-errorForeground, #f85149)", fontSize: 13 }}>
+                                        {changesError}
+                                    </div>
                                 ) : (
                                     <div
                                         style={{

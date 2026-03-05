@@ -641,8 +641,8 @@ function openReactWebview(context: vscode.ExtensionContext) {
 
           const changes = await getPullRequestChanges(
             rootPath,
-            prDetails.number, // Pass PR number
-            prDetails.baseCommitHash // Pass baseCommitHash
+            prDetails.number,
+            prDetails.baseCommitHash
           );
 
           panel.webview.postMessage({
@@ -651,8 +651,9 @@ function openReactWebview(context: vscode.ExtensionContext) {
           });
         } catch (err: any) {
           panel.webview.postMessage({
-            command: 'showErrorMessage',
-            message: `Failed to fetch PR changes (Git): ${err.message}`
+            command: 'setPrChanges',
+            changes: [],
+            error: 'Unable to load PR changes. Changes are computed using local git — please open the OneDev project repository as your workspace folder.'
           });
         }
       } else if (message.command === 'openDiff') {
