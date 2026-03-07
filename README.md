@@ -11,6 +11,9 @@ A Visual Studio Code extension to browse pull requests, issues, and builds from 
 
 ## Features
 
+-   **Sidebar Tree Views**: Browse Pull Requests, Issues, and Builds with status icons, rich tooltips, and context menus. Click any item to open the webview and jump to its details.
+-   **Webview Dashboard**: View and filter PRs, issues, and builds in a rich panel with status badges, markdown PR descriptions, and scrollable detail panels.
+-   **Onboarding Wizard**: Guided setup for first-time users to configure OneDev server URL, credentials, and project.
 -   **AI Chat Participant**: Interact with OneDev via `@onedev` in GitHub Copilot Chat.
     -   **AI Code Review**: Generate reviews for Pull Requests using your preferred model.
     -   **Clickable Diffs**: Open file diffs directly from the AI's review comments.

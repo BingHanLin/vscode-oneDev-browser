@@ -4,6 +4,21 @@ All notable changes to the "onedev-browser" extension will be documented in this
 
 Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how to structure this file.
 
+## [0.2.0] - 2026-03-07
+
+### Added
+
+-   **Tree View Navigation**: Clicking a tree view item opens the webview and scrolls to the selected item.
+-   **Tree View Enhancements**: Status icons, rich tooltips, and context menus for pull requests, issues, and builds.
+-   **Markdown PR Descriptions**: PR descriptions are now rendered as markdown in the detail panel.
+-   **Webview Dashboard Improvements**: Status badges, loading states, and scrollable detail panels.
+-   **Onboarding Wizard**: Setup wizard, welcome views, and tree view error handling for first-time users.
+
+### Fixed
+
+-   **PR Changes Error**: Clear error message when PR changes fail to load.
+-   **Security Hardening**: Centralized credential handling and improved security.
+
 ## [0.1.0] - 2026-01-20
 
 ### Changed
