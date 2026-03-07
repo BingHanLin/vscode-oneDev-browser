@@ -55,6 +55,23 @@
         }
       ]
     },
+    "viewsWelcome": [
+      {
+        "view": "onedevPRsView",
+        "contents": "No OneDev connection configured.\n\nSet up your OneDev server URL, credentials, and project to get started.\n\n[Set Up OneDev Connection](command:onedev-browser.setupWizard)\n\nOr configure manually in [Settings](command:workbench.action.openSettings?%5B%22onedev-browser%22%5D).",
+        "when": "onedev-browser.needsSetup"
+      },
+      {
+        "view": "onedevIssuesView",
+        "contents": "No OneDev connection configured.\n\n[Set Up OneDev Connection](command:onedev-browser.setupWizard)",
+        "when": "onedev-browser.needsSetup"
+      },
+      {
+        "view": "onedevBuildsView",
+        "contents": "No OneDev connection configured.\n\n[Set Up OneDev Connection](command:onedev-browser.setupWizard)",
+        "when": "onedev-browser.needsSetup"
+      }
+    ],
     "configuration": {
       "title": "oneDev Browser",
       "properties": {
@@ -68,12 +85,7 @@
           "default": "",
           "description": "Your oneDev account email"
         },
-        "onedev-browser.token": {
-          "type": "string",
-          "default": "",
-          "description": "Your oneDev API token"
-        },
-        "onedev-browser.projectPath": {
+"onedev-browser.projectPath": {
           "type": "string",
           "default": "",
           "description": "Your oneDev project path"
@@ -103,6 +115,11 @@
           "default": "",
           "description": "Custom instruction prompt for Code Reviews. If empty, uses the default system prompt.",
           "editPresentation": "multiline"
+        },
+        "onedev-browser.requestTimeout": {
+          "type": "number",
+          "default": 30000,
+          "description": "Timeout in milliseconds for OneDev API requests (default: 30000)"
         }
       }
     },
@@ -114,6 +131,48 @@
           "group": "navigation@1",
           "icon": "$(refresh)",
           "tooltip": "Refresh"
+        }
+      ],
+      "view/item/context": [
+        {
+          "command": "onedev-browser.pr.openInBrowser",
+          "when": "viewItem == prItem",
+          "group": "navigation@1"
+        },
+        {
+          "command": "onedev-browser.pr.checkoutBranch",
+          "when": "viewItem == prItem",
+          "group": "navigation@2"
+        },
+        {
+          "command": "onedev-browser.pr.aiReview",
+          "when": "viewItem == prItem",
+          "group": "navigation@3"
+        },
+        {
+          "command": "onedev-browser.pr.copyUrl",
+          "when": "viewItem == prItem",
+          "group": "cutcopypaste@1"
+        },
+        {
+          "command": "onedev-browser.issue.openInBrowser",
+          "when": "viewItem == issueItem",
+          "group": "navigation@1"
+        },
+        {
+          "command": "onedev-browser.issue.copyUrl",
+          "when": "viewItem == issueItem",
+          "group": "cutcopypaste@1"
+        },
+        {
+          "command": "onedev-browser.build.openInBrowser",
+          "when": "viewItem == buildItem",
+          "group": "navigation@1"
+        },
+        {
+          "command": "onedev-browser.build.copyUrl",
+          "when": "viewItem == buildItem",
+          "group": "cutcopypaste@1"
         }
       ]
     },
@@ -149,6 +208,54 @@
       {
         "command": "onedev-browser.openLocalFile",
         "title": "OneDev: Open Local File"
+      },
+      {
+        "command": "onedev-browser.setToken",
+        "title": "OneDev: Set API Token"
+      },
+      {
+        "command": "onedev-browser.setupWizard",
+        "title": "OneDev: Set Up Connection"
+      },
+      {
+        "command": "onedev-browser.pr.openInBrowser",
+        "title": "Open in Browser",
+        "icon": "$(globe)"
+      },
+      {
+        "command": "onedev-browser.pr.checkoutBranch",
+        "title": "Checkout Branch",
+        "icon": "$(source-control)"
+      },
+      {
+        "command": "onedev-browser.pr.aiReview",
+        "title": "AI Code Review",
+        "icon": "$(comment-discussion)"
+      },
+      {
+        "command": "onedev-browser.pr.copyUrl",
+        "title": "Copy URL",
+        "icon": "$(link)"
+      },
+      {
+        "command": "onedev-browser.issue.openInBrowser",
+        "title": "Open in Browser",
+        "icon": "$(globe)"
+      },
+      {
+        "command": "onedev-browser.issue.copyUrl",
+        "title": "Copy URL",
+        "icon": "$(link)"
+      },
+      {
+        "command": "onedev-browser.build.openInBrowser",
+        "title": "Open in Browser",
+        "icon": "$(globe)"
+      },
+      {
+        "command": "onedev-browser.build.copyUrl",
+        "title": "Copy URL",
+        "icon": "$(link)"
       }
     ],
     "chatParticipants": [
@@ -181,12 +288,14 @@
     "@types/mocha": "^10.0.7",
     "@types/node": "20.x",
     "@types/node-fetch": "^2.6.11",
+    "@types/sinon": "^21.0.0",
     "@types/vscode": "^1.93.0",
     "@typescript-eslint/eslint-plugin": "^7.14.1",
     "@typescript-eslint/parser": "^7.11.0",
     "@vscode/test-cli": "^0.0.9",
     "@vscode/test-electron": "^2.4.0",
     "eslint": "^8.57.0",
+    "sinon": "^21.0.2",
     "ts-loader": "^9.5.1",
     "typescript": "^5.4.5",
     "webpack": "^5.92.1",

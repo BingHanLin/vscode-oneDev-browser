@@ -1,6 +1,6 @@
 import * as cp from 'child_process';
-import * as path from 'path';
 import { PullRequestChange } from '../shared/types';
+import { assertValidSha, assertValidGitRef } from './utils/validation';
 
 export async function getPullRequestChanges(
     rootPath: string,
@@ -8,22 +8,21 @@ export async function getPullRequestChanges(
     baseCommitHash: string
 ): Promise<PullRequestChange[]> {
     return new Promise((resolve, reject) => {
-        if (!prNumber) {
-            return reject("PR Number is required for fetching changes.");
+        if (!prNumber || !Number.isInteger(prNumber) || prNumber <= 0) {
+            return reject("PR Number must be a positive integer.");
         }
         if (!baseCommitHash) {
             return reject("Base Commit Hash is required for fetching changes.");
         }
+        assertValidSha(baseCommitHash, "baseCommitHash");
 
-        // ONE: git fetch origin refs/pulls/<PR Number>/head
-        // We fetch into FETCH_HEAD.
-        const fetchCmd = `git fetch origin refs/pulls/${prNumber}/head`;
+        const prRef = `refs/pulls/${prNumber}/head`;
+        const prRefFallback = `refs/pull/${prNumber}/head`;
 
-        cp.exec(fetchCmd, { cwd: rootPath }, (err, stdout, stderr) => {
+        cp.execFile('git', ['fetch', 'origin', prRef], { cwd: rootPath }, (err, _stdout, stderr) => {
             if (err) {
                 console.warn(`Fetch with refs/pulls failed, trying refs/pull just in case...`);
-                const fetchCmdFallback = `git fetch origin refs/pull/${prNumber}/head`;
-                cp.exec(fetchCmdFallback, { cwd: rootPath }, (err2) => {
+                cp.execFile('git', ['fetch', 'origin', prRefFallback], { cwd: rootPath }, (err2) => {
                     if (err2) {
                         return reject(`Git fetch failed: ${stderr || err?.message}`);
                     }
@@ -37,16 +36,8 @@ export async function getPullRequestChanges(
 }
 
 function proceedToDiff(rootPath: string, baseCommitHash: string, resolve: Function, reject: Function) {
-    // TWO: git diff baseCommitHash FETCH_HEAD
-    const diffCmd = `git diff --name-status ${baseCommitHash} FETCH_HEAD`;
-
-    cp.exec(diffCmd, { cwd: rootPath }, async (error, stdout, stderr) => {
+    cp.execFile('git', ['diff', '--name-status', baseCommitHash, 'FETCH_HEAD'], { cwd: rootPath }, async (error, stdout, stderr) => {
         if (error) {
-            // If baseCommitHash is not found, we might need to fetch it?
-            // But usually it should be in the repo if it's the base of the PR. 
-            // Error message usually says "bad revision" if missing.
-            // We can try to fetch it specifically if it fails? 
-            // For now, let's just fail and report.
             return reject(`Git diff failed: ${stderr || error.message}`);
         }
 
@@ -54,7 +45,7 @@ function proceedToDiff(rootPath: string, baseCommitHash: string, resolve: Functi
         const changes: PullRequestChange[] = [];
 
         for (const line of lines) {
-            if (!line.trim()) continue;
+            if (!line.trim()) { continue; }
 
             const parts = line.split('\t');
             const statusChar = parts[0][0]; // 'M', 'A', 'D', 'R'
@@ -62,12 +53,9 @@ function proceedToDiff(rootPath: string, baseCommitHash: string, resolve: Functi
             const originalPath = parts.length === 3 ? parts[1] : undefined;
 
             let type: "ADD" | "MODIFY" | "DELETE" | "RENAME" = "MODIFY";
-            if (statusChar === 'A') type = "ADD";
-            else if (statusChar === 'D') type = "DELETE";
-            else if (statusChar === 'R') type = "RENAME";
-
-            // Head is FETCH_HEAD
-            // Base is baseCommitHash
+            if (statusChar === 'A') { type = "ADD"; }
+            else if (statusChar === 'D') { type = "DELETE"; }
+            else if (statusChar === 'R') { type = "RENAME"; }
 
             let blobId: string | undefined;
             let oldBlobId: string | undefined;
@@ -76,7 +64,6 @@ function proceedToDiff(rootPath: string, baseCommitHash: string, resolve: Functi
                 blobId = await getGitRevParse(rootPath, "FETCH_HEAD", filePath);
             }
             if (type !== 'ADD') {
-                // Determine old path (if rename, use original, else use current)
                 const oldPathToUse = originalPath || filePath;
                 oldBlobId = await getGitRevParse(rootPath, baseCommitHash, oldPathToUse);
             }
@@ -95,11 +82,8 @@ function proceedToDiff(rootPath: string, baseCommitHash: string, resolve: Functi
 
 function getGitRevParse(rootPath: string, ref: string, filePath: string): Promise<string | undefined> {
     return new Promise((resolve) => {
-        // git rev-parse ref:path
-        const cmd = `git rev-parse ${ref}:${filePath}`;
-        cp.exec(cmd, { cwd: rootPath }, (err, stdout) => {
+        cp.execFile('git', ['rev-parse', `${ref}:${filePath}`], { cwd: rootPath }, (err, stdout) => {
             if (err) {
-                // File might not exist in that ref
                 resolve(undefined);
             } else {
                 resolve(stdout.trim());
@@ -114,11 +98,11 @@ export async function checkoutBranch(
     sourceBranch?: string,
     onProgress?: (message: string) => void
 ): Promise<string> {
-    const runCommand = (cmd: string) => {
+    const runCommand = (args: string[]) => {
         return new Promise<string>((resolve, reject) => {
-            cp.exec(cmd, { cwd: rootPath }, (err, stdout, stderr) => {
-                if (err) reject(stderr || err.message);
-                else resolve(stdout.trim());
+            cp.execFile('git', args, { cwd: rootPath }, (err, stdout, stderr) => {
+                if (err) { reject(stderr || err.message); }
+                else { resolve(stdout.trim()); }
             });
         });
     };
@@ -126,38 +110,33 @@ export async function checkoutBranch(
     if (!sourceBranch) {
         throw new Error("Source branch is required.");
     }
+    assertValidGitRef(sourceBranch, "sourceBranch");
 
     let message = `Checking out branch ${sourceBranch}...`;
-    if (onProgress) onProgress(message);
+    if (onProgress) { onProgress(message); }
 
-    // Try to checkout directly first (covers existing local branch)
     try {
-        await runCommand(`git checkout ${sourceBranch}`);
+        await runCommand(['checkout', sourceBranch]);
     } catch (err) {
-        // If failed, likely because branch doesn't exist locally.
-        // Try to fetch from PR and create the branch
         if (prNumber) {
-            if (onProgress) onProgress("Fetching PR head...");
-            // Try fetch ref and checkout -b
+            if (!Number.isInteger(prNumber) || prNumber <= 0) {
+                throw new Error("PR number must be a positive integer.");
+            }
+            if (onProgress) { onProgress("Fetching PR head..."); }
             try {
-                // Fetch into remote tracking style or just fetch head?
-                // Standard flow: fetch origin pull/ID/head:localBranch
-                // Let's try to fetch specifically to create the local branch
                 const fetchRef = `refs/pulls/${prNumber}/head`;
                 try {
-                    await runCommand(`git fetch origin ${fetchRef}:${sourceBranch}`);
+                    await runCommand(['fetch', 'origin', `${fetchRef}:${sourceBranch}`]);
                 } catch (e) {
-                    // Fallback for different refspec
-                    await runCommand(`git fetch origin refs/pull/${prNumber}/head:${sourceBranch}`);
+                    await runCommand(['fetch', 'origin', `refs/pull/${prNumber}/head:${sourceBranch}`]);
                 }
 
-                if (onProgress) onProgress("Checking out...");
-                await runCommand(`git checkout ${sourceBranch}`);
+                if (onProgress) { onProgress("Checking out..."); }
+                await runCommand(['checkout', sourceBranch]);
             } catch (fetchErr: any) {
                 throw new Error(`Failed to checkout branch ${sourceBranch}: ${fetchErr.message || fetchErr}`);
             }
         } else {
-            // If no PR number, we can only fail if local checkout failed
             throw new Error(`Failed to checkout branch ${sourceBranch}: ${(err as any).message || err}`);
         }
     }

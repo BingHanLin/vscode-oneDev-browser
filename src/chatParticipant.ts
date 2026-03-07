@@ -1,26 +1,10 @@
 import * as vscode from 'vscode';
+import * as cp from 'child_process';
 import { fetchIssues, fetchPullRequests, fetchBuilds } from './api';
 import { ExtensionContext } from 'vscode';
-import { getConfigValue } from './utils/config';
-
-interface OneDevCredentials {
-    url: string;
-    email: string;
-    token: string;
-    projectPath: string;
-}
-
-function getCredentials(): OneDevCredentials {
-    // Scope config to the first workspace folder to ensure we pick up .vscode/settings.json
-    const resource = vscode.workspace.workspaceFolders?.[0]?.uri;
-    const config = vscode.workspace.getConfiguration("onedev-browser", resource);
-    return {
-        url: getConfigValue(config, "url"),
-        email: getConfigValue(config, "email"),
-        token: getConfigValue(config, "token"),
-        projectPath: getConfigValue(config, "projectPath")
-    };
-}
+import { getConfigValue, getCredentials } from './utils/config';
+import { isValidSha } from './utils/validation';
+import { Credentials } from './types';
 
 export function registerChatParticipant(context: ExtensionContext) {
     if (!vscode.chat) {
@@ -32,7 +16,7 @@ export function registerChatParticipant(context: ExtensionContext) {
     const participant = vscode.chat.createChatParticipant('onedev-browser.chatParticipant', async (request, context, response, token) => {
         const cmd = request.command;
         const prompt = request.prompt;
-        const creds = getCredentials();
+        const creds = await getCredentials();
 
         if (!creds.url || !creds.token || !creds.projectPath) {
             response.markdown('Please configure OneDev settings (URL, Token, Project Path) first.');
@@ -62,7 +46,7 @@ export function registerChatParticipant(context: ExtensionContext) {
     context.subscriptions.push(participant);
 }
 
-async function handleIssues(creds: OneDevCredentials, prompt: string, response: vscode.ChatResponseStream) {
+async function handleIssues(creds: Credentials, prompt: string, response: vscode.ChatResponseStream) {
     // Parse natural language "to me" -> "me" for OneDev query
     // Example: "assigned to me" -> "Assignee" is "me"
     // OneDev supports "me" keyword if authenticated user is known, or let's assume user email or specific query syntax.
@@ -109,7 +93,7 @@ async function handleIssues(creds: OneDevCredentials, prompt: string, response: 
     }
 }
 
-async function handlePRs(creds: OneDevCredentials, prompt: string, response: vscode.ChatResponseStream) {
+async function handlePRs(creds: Credentials, prompt: string, response: vscode.ChatResponseStream) {
     // Check for "summarize #123" intent
     const summarizeMatch = prompt.match(/summarize\s+(?:pr\s+)?#?(\d+)/i);
 
@@ -161,7 +145,7 @@ async function handlePRs(creds: OneDevCredentials, prompt: string, response: vsc
     }
 }
 
-async function summarizePR(creds: OneDevCredentials, prNumber: number, response: vscode.ChatResponseStream) {
+async function summarizePR(creds: Credentials, prNumber: number, response: vscode.ChatResponseStream) {
     // 1. Fetch PR details to get branches (Wait, fetchPullRequests returns list, we need specific PR details?)
     // fetchPullRequests supports query. query by number.
     const prs = await fetchPullRequests(creds, 0, 1, `"Number" is "${creds.projectPath}#${prNumber}"`);
@@ -181,7 +165,6 @@ async function summarizePR(creds: OneDevCredentials, prNumber: number, response:
 
     try {
         const { getPullRequestChanges } = require('./git');
-        var cp = require('child_process'); // Access cp for git show
 
         const changes = await getPullRequestChanges(
             rootPath,
@@ -194,8 +177,9 @@ async function summarizePR(creds: OneDevCredentials, prNumber: number, response:
 
         const getBlobContent = (sha: string) => {
             return new Promise<string>((resolve) => {
+                if (!isValidSha(sha)) { resolve(""); return; }
                 try {
-                    cp.exec(`git show ${sha}`, { cwd: rootPath }, (err: any, stdout: string) => {
+                    cp.execFile('git', ['show', sha], { cwd: rootPath }, (err: any, stdout: string) => {
                         resolve(stdout || "");
                     });
                 } catch (e) { resolve(""); }
@@ -230,7 +214,7 @@ async function summarizePR(creds: OneDevCredentials, prNumber: number, response:
     }
 }
 
-async function handleBuilds(creds: OneDevCredentials, prompt: string, response: vscode.ChatResponseStream) {
+async function handleBuilds(creds: Credentials, prompt: string, response: vscode.ChatResponseStream) {
     // Sort by Date desc default? API usually does.
     // Query? status?
 
@@ -258,7 +242,7 @@ async function handleBuilds(creds: OneDevCredentials, prompt: string, response: 
     }
 }
 
-async function handleReview(creds: OneDevCredentials, prompt: string, response: vscode.ChatResponseStream) {
+async function handleReview(creds: Credentials, prompt: string, response: vscode.ChatResponseStream) {
     // Expect prompt to contain PR number like "#123" or just numbers "123"
     const match = prompt.match(/#?(\d+)/);
     if (!match) {
@@ -286,7 +270,6 @@ async function handleReview(creds: OneDevCredentials, prompt: string, response: 
 
     try {
         const { getPullRequestChanges } = require('./git');
-        var cp = require('child_process');
 
         response.progress('Fetching changes from Git...');
         const changes = await getPullRequestChanges(
@@ -315,8 +298,9 @@ async function handleReview(creds: OneDevCredentials, prompt: string, response: 
 
         const getBlobContent = (sha: string) => {
             return new Promise<string>((resolve) => {
+                if (!isValidSha(sha)) { resolve(""); return; }
                 try {
-                    cp.exec(`git show ${sha}`, { cwd: rootPath }, (err: any, stdout: string) => {
+                    cp.execFile('git', ['show', sha], { cwd: rootPath }, (err: any, stdout: string) => {
                         resolve(stdout || "");
                     });
                 } catch (e) { resolve(""); }

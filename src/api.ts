@@ -1,5 +1,7 @@
-import fetch from "node-fetch";
+import fetch, { RequestInit, Response } from "node-fetch";
+import * as vscode from "vscode";
 import { Credentials, PullRequest, Issue, Build, PullRequestChange } from "./types";
+import { getConfigNumber } from "./utils/config";
 
 
 export async function fetchCurrentBuilds(
@@ -118,25 +120,36 @@ export async function fetchFileContent(
     return text;
 }
 
-async function makeApiRequest(
+export async function makeApiRequest(
     apiUrl: string,
     queryParams: URLSearchParams,
-    credentials: Credentials
+    credentials: Credentials,
+    fetchFn: (url: string, init: RequestInit) => Promise<Response> = fetch as any
 ) {
-    const response = await fetch(`${apiUrl}?${queryParams}`, {
-        method: "GET",
-        headers: {
-            Authorization:
-                "Basic " +
-                Buffer.from(
-                    `${credentials.email}:${credentials.token}`
-                ).toString("base64"),
-        },
-    });
-    if (!response.ok) {
-        const text = await response.text();
-        console.error(`[api] HTTP error! status: ${response.status}, body:`, text);
-        throw new Error(`HTTP error! status: ${response.status}`);
+    const config = vscode.workspace.getConfiguration("onedev-browser");
+    const timeout = getConfigNumber(config, "requestTimeout") || 30000;
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), timeout);
+
+    try {
+        const response = await fetchFn(`${apiUrl}?${queryParams}`, {
+            method: "GET",
+            headers: {
+                Authorization:
+                    "Basic " +
+                    Buffer.from(
+                        `${credentials.email}:${credentials.token}`
+                    ).toString("base64"),
+            },
+            signal: controller.signal as any,
+        });
+        if (!response.ok) {
+            const text = await response.text();
+            console.error(`[api] HTTP error! status: ${response.status}, body:`, text);
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        return response;
+    } finally {
+        clearTimeout(timer);
     }
-    return response;
 }

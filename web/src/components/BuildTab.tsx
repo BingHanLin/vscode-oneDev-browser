@@ -9,6 +9,7 @@ import { ExternalLinkIcon } from "./Icons";
 // TODO: Replace with actual Build type definition
 import { Build } from "../types";
 import { highlightKeyword } from "../utils/highlightKeyword";
+import { StatusBadge, LoadingState, EmptyState } from "../utils/formatters";
 
 interface BuildTabProps {
     builds: Build[];
@@ -121,7 +122,8 @@ const BuildTab: React.FC<BuildTabProps> = ({
         {
             title: "Status",
             dataIndex: "status",
-            width: 90,
+            width: 110,
+            render: (value) => <StatusBadge status={value as string} />,
         },
     ];
     return (
@@ -189,11 +191,12 @@ const BuildTab: React.FC<BuildTabProps> = ({
                 {/* Table area: scrollable, controls above will not move when scrolling horizontally */}
                 <div style={{ flex: 1, minHeight: 0, overflow: "auto" }}>
                     {isLoading && builds.length === 0 ? (
-                        <div className="flex justify-center items-center h-64">
-                            Loading...
-                        </div>
+                        <LoadingState message="Loading builds..." />
                     ) : filteredBuilds.length === 0 ? (
-                        <p>No builds found.</p>
+                        <EmptyState
+                            title="No builds found"
+                            subtitle={keyword ? "Try adjusting your search or filters" : undefined}
+                        />
                     ) : (
                         <>
                             <GenericTable
@@ -212,6 +215,7 @@ const BuildTab: React.FC<BuildTabProps> = ({
                                     ref={loadMoreWrapperRef}
                                 >
                                     <VSCodeButton
+                                        disabled={isLoading}
                                         onClick={() => {
                                             setPendingScroll(true);
                                             loadMoreBuilds();
@@ -221,7 +225,7 @@ const BuildTab: React.FC<BuildTabProps> = ({
                                             alignItems: "center",
                                         }}
                                     >
-                                        Load More
+                                        {isLoading ? "Loading..." : "Load More"}
                                     </VSCodeButton>
                                 </div>
                             )}
@@ -230,18 +234,8 @@ const BuildTab: React.FC<BuildTabProps> = ({
                 </div>
             </div>
             {/* Right: Detail panel */}
-            <div
-                style={{
-                    width: 340,
-                    minWidth: 240,
-                    maxWidth: 400,
-                    display: "flex",
-                    flexDirection: "column",
-                    gap: 0,
-                    padding: "28px 24px 20px 24px",
-                    boxSizing: "border-box",
-                }}
-            >
+            <div className="detail-panel">
+
                 {(() => {
                     const b = builds.find(
                         (x) => x.number === selectedBuildLocal
@@ -340,7 +334,7 @@ const BuildTab: React.FC<BuildTabProps> = ({
                                 >
                                     Status:
                                 </span>
-                                {b.status}
+                                <StatusBadge status={b.status} />
                             </div>
                             <div>
                                 <span

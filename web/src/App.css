@@ -71,3 +71,58 @@
   padding: 16px;
   background-color: var(--vscode-editor-background);
 }
+
+.detail-panel code {
+  background: var(--vscode-textCodeBlock-background, #1e1e1e);
+  padding: 2px 5px;
+  border-radius: 3px;
+  font-size: 13px;
+}
+
+.detail-panel pre {
+  background: var(--vscode-textCodeBlock-background, #1e1e1e);
+  padding: 10px;
+  border-radius: 4px;
+  overflow-x: auto;
+}
+
+.detail-panel pre code {
+  padding: 0;
+  background: none;
+}
+
+.detail-panel a {
+  color: var(--vscode-textLink-foreground, #3794ff);
+}
+
+.detail-panel blockquote {
+  border-left: 3px solid var(--vscode-textBlockQuote-border, #555);
+  margin: 8px 0;
+  padding: 4px 12px;
+  color: var(--vscode-descriptionForeground, #888);
+}
+
+.detail-panel img {
+  max-width: 100%;
+}
+
+.detail-panel ul, .detail-panel ol {
+  padding-left: 20px;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.detail-panel {
+  width: 340px;
+  min-width: 240px;
+  max-width: 400px;
+  display: flex;
+  flex-direction: column;
+  padding: 28px 24px 20px 24px;
+  box-sizing: border-box;
+  overflow-y: auto;
+  border-left: 1px solid var(--vscode-panel-border, #333);
+}

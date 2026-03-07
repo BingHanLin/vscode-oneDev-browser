@@ -8,6 +8,7 @@ import {
 import GenericTable, { TableColumn } from "./GenericTable";
 import { ExternalLinkIcon, CheckoutBranchIcon } from "./Icons";
 import { PullRequest, Build, PullRequestChange } from "../types";
+import { StatusBadge, timeAgo, LoadingState, EmptyState } from "../utils/formatters";
 import ReactMarkdown from "react-markdown";
 
 interface VSCodeMessagePayload {
@@ -80,6 +81,7 @@ const PRTab: React.FC<PRTabProps> = ({
     // Changes state
     const [prChanges, setPrChanges] = useState<PullRequestChange[]>([]);
     const [loadingChanges, setLoadingChanges] = useState(false);
+    const [changesError, setChangesError] = useState<string | null>(null);
 
     useEffect(() => {
         if (selectedPRLocal && vscode) {
@@ -87,6 +89,7 @@ const PRTab: React.FC<PRTabProps> = ({
             if (pr && pr.id) {
                 setLoadingChanges(true);
                 setPrChanges([]);
+                setChangesError(null);
                 vscode.postMessage({
                     command: "getPrChanges",
                     url,
@@ -102,9 +105,10 @@ const PRTab: React.FC<PRTabProps> = ({
 
     useEffect(() => {
         const handleMessage = (event: MessageEvent) => {
-            const { command, changes } = event.data;
+            const { command, changes, error } = event.data;
             if (command === "setPrChanges") {
                 setPrChanges(changes || []);
+                setChangesError(error || null);
                 setLoadingChanges(false);
             }
         };
@@ -231,7 +235,16 @@ const PRTab: React.FC<PRTabProps> = ({
         {
             title: "Status",
             dataIndex: "status",
+            width: 100,
+            render: (value) => <StatusBadge status={value as string} />,
+        },
+        {
+            title: "Comments",
+            dataIndex: "commentCount",
             width: 90,
+            render: (value) => (
+                <span title={`${value} comments`}>{value as number}</span>
+            ),
         },
         {
             title: "Source",
@@ -351,11 +364,12 @@ const PRTab: React.FC<PRTabProps> = ({
                 {/* Table area: scrollable, controls above will not move when scrolling horizontally */}
                 <div style={{ flex: 1, minHeight: 0, overflow: "auto" }}>
                     {isLoading && pullRequests.length === 0 ? (
-                        <div className="flex justify-center items-center h-64">
-                            Loading...
-                        </div>
+                        <LoadingState message="Loading pull requests..." />
                     ) : filteredPRs.length === 0 ? (
-                        <p>No pull requests found.</p>
+                        <EmptyState
+                            title="No pull requests found"
+                            subtitle={keyword ? "Try adjusting your search or filters" : undefined}
+                        />
                     ) : (
                         <>
                             <GenericTable
@@ -374,6 +388,7 @@ const PRTab: React.FC<PRTabProps> = ({
                                     ref={loadMoreWrapperRef}
                                 >
                                     <VSCodeButton
+                                        disabled={isLoading}
                                         onClick={() => {
                                             setPendingScroll(true);
                                             loadMorePRs();
@@ -383,7 +398,7 @@ const PRTab: React.FC<PRTabProps> = ({
                                             alignItems: "center",
                                         }}
                                     >
-                                        Load More
+                                        {isLoading ? "Loading..." : "Load More"}
                                     </VSCodeButton>
                                 </div>
                             )}
@@ -392,18 +407,8 @@ const PRTab: React.FC<PRTabProps> = ({
                 </div>
             </div>
             {/* Right: Detail panel */}
-            <div
-                style={{
-                    width: 340,
-                    minWidth: 240,
-                    maxWidth: 400,
-                    display: "flex",
-                    flexDirection: "column",
-                    gap: 0,
-                    padding: "28px 24px 20px 24px",
-                    boxSizing: "border-box",
-                }}
-            >
+            <div className="detail-panel">
+
                 {(() => {
                     const pr = pullRequests.find(
                         (p) => p.number === selectedPRLocal
@@ -448,7 +453,7 @@ const PRTab: React.FC<PRTabProps> = ({
                                 >
                                     State:
                                 </span>
-                                {pr.status}
+                                <StatusBadge status={pr.status || ""} />
                             </div>
                             <div>
                                 <span
@@ -496,7 +501,21 @@ const PRTab: React.FC<PRTabProps> = ({
                                 >
                                     Created:
                                 </span>
-                                {new Date(pr.submitDate).toLocaleString()}
+                                <span title={new Date(pr.submitDate).toLocaleString()}>
+                                    {timeAgo(pr.submitDate)}
+                                </span>
+                            </div>
+                            <div>
+                                <span
+                                    style={{
+                                        fontWeight: 500,
+                                        color: "#666",
+                                        marginRight: 6,
+                                    }}
+                                >
+                                    Comments:
+                                </span>
+                                {pr.commentCount}
                             </div>
                             {/* <div>
                                 <span
@@ -623,13 +642,12 @@ const PRTab: React.FC<PRTabProps> = ({
                                 style={{
                                     color: "var(--vscode-foreground)",
                                     fontSize: 15,
-                                    whiteSpace: "pre-wrap",
                                     wordBreak: "break-word",
                                 }}
                             >
                                 {pr.description &&
                                 pr.description.trim() !== "" ? (
-                                    pr.description
+                                    <ReactMarkdown>{pr.description}</ReactMarkdown>
                                 ) : (
                                     <span style={{ color: "#888" }}>
                                         No description provided.
@@ -672,6 +690,10 @@ const PRTab: React.FC<PRTabProps> = ({
                                 </div>
                                 {loadingChanges ? (
                                     <div>Loading changes...</div>
+                                ) : changesError ? (
+                                    <div style={{ color: "var(--vscode-errorForeground, #f85149)", fontSize: 13 }}>
+                                        {changesError}
+                                    </div>
                                 ) : (
                                     <div
                                         style={{

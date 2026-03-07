@@ -4,12 +4,38 @@ import { PRsTreeDataProvider } from "./prsTreeDataProvider";
 import { IssuesTreeDataProvider } from "./issuesTreeDataProvider";
 import { BuildsTreeDataProvider } from "./buildsTreeDataProvider";
 import { registerStatusBarCommand } from "./statusbar";
-import { getConfigValue, getConfigNumber } from "./utils/config";
-
+import { getConfigValue, getConfigNumber, getCredentials, initSecretStorage, setToken } from "./utils/config";
+import { isValidSha, assertValidGitRef } from "./utils/validation";
 
 import { registerChatParticipant } from './chatParticipant';
+import { PRTreeItem, IssueTreeItem, BuildTreeItem } from './treeItems';
+
+async function updateSetupContext(): Promise<void> {
+  const creds = await getCredentials();
+  const needsSetup = !creds.url || !creds.token || !creds.projectPath;
+  vscode.commands.executeCommand('setContext', 'onedev-browser.needsSetup', needsSetup);
+}
 
 export function activate(context: vscode.ExtensionContext) {
+
+  // Initialize SecretStorage for secure token storage
+  initSecretStorage(context.secrets);
+
+  // Register "Set API Token" command
+  context.subscriptions.push(
+    vscode.commands.registerCommand('onedev-browser.setToken', async () => {
+      const token = await vscode.window.showInputBox({
+        prompt: 'Enter your OneDev API token',
+        password: true,
+        placeHolder: 'Paste your API token here'
+      });
+      if (token !== undefined) {
+        await setToken(token);
+        vscode.window.showInformationMessage('OneDev API token saved securely.');
+        updateSetupContext();
+      }
+    })
+  );
 
   // Register Chat Participant
   registerChatParticipant(context);
@@ -73,16 +99,68 @@ export function activate(context: vscode.ExtensionContext) {
       buildsInterval = undefined;
     }
   });
-  // Register command for tree view navigation to PR in webview
+  // Register command for tree view navigation to PR in webview (legacy, kept for webview compatibility)
   context.subscriptions.push(
     vscode.commands.registerCommand('onedev-browser.openWebviewToPR', (prNumber: number, pr: any, url?: string, projectPath?: string) => {
-      // Open the PR in the user's default browser
       if (url && projectPath && prNumber) {
         const prUrl = `${url}/${projectPath}/~pulls/${prNumber}`;
         vscode.env.openExternal(vscode.Uri.parse(prUrl));
       } else {
         vscode.window.showErrorMessage('Missing oneDev URL, project path, or PR number.');
       }
+    })
+  );
+
+  // --- Show in Webview (tree item click) ---
+  context.subscriptions.push(
+    vscode.commands.registerCommand('onedev-browser.showInWebview', (tab: string, itemNumber: number) => {
+      const wasOpen = !!oneDevPanel;
+      const panel = openReactWebview(context);
+      const msg = { command: 'scrollToItem', tab, number: itemNumber };
+      if (wasOpen) {
+        // Panel already running — post immediately
+        panel.webview.postMessage(msg);
+      } else {
+        // Panel freshly created — defer until webview signals ready
+        pendingScrollToItem = { tab, number: itemNumber };
+      }
+    })
+  );
+
+  // --- Tree view context menu commands ---
+  context.subscriptions.push(
+    vscode.commands.registerCommand('onedev-browser.pr.openInBrowser', (item: PRTreeItem) => {
+      const url = `${item.serverUrl}/${item.projectPath}/~pulls/${item.pr.number}`;
+      vscode.env.openExternal(vscode.Uri.parse(url));
+    }),
+    vscode.commands.registerCommand('onedev-browser.pr.copyUrl', (item: PRTreeItem) => {
+      const url = `${item.serverUrl}/${item.projectPath}/~pulls/${item.pr.number}`;
+      vscode.env.clipboard.writeText(url);
+      vscode.window.showInformationMessage('PR URL copied to clipboard.');
+    }),
+    vscode.commands.registerCommand('onedev-browser.pr.checkoutBranch', (item: PRTreeItem) => {
+      vscode.commands.executeCommand('onedev-browser.checkoutBranch', item.pr.number, item.pr.sourceBranch);
+    }),
+    vscode.commands.registerCommand('onedev-browser.pr.aiReview', (item: PRTreeItem) => {
+      vscode.commands.executeCommand('onedev-browser.triggerChatReview', item.pr.number);
+    }),
+    vscode.commands.registerCommand('onedev-browser.issue.openInBrowser', (item: IssueTreeItem) => {
+      const url = `${item.serverUrl}/${item.projectPath}/~issues/${item.issue.number}`;
+      vscode.env.openExternal(vscode.Uri.parse(url));
+    }),
+    vscode.commands.registerCommand('onedev-browser.issue.copyUrl', (item: IssueTreeItem) => {
+      const url = `${item.serverUrl}/${item.projectPath}/~issues/${item.issue.number}`;
+      vscode.env.clipboard.writeText(url);
+      vscode.window.showInformationMessage('Issue URL copied to clipboard.');
+    }),
+    vscode.commands.registerCommand('onedev-browser.build.openInBrowser', (item: BuildTreeItem) => {
+      const url = `${item.serverUrl}/${item.projectPath}/~builds/${item.build.number}`;
+      vscode.env.openExternal(vscode.Uri.parse(url));
+    }),
+    vscode.commands.registerCommand('onedev-browser.build.copyUrl', (item: BuildTreeItem) => {
+      const url = `${item.serverUrl}/${item.projectPath}/~builds/${item.build.number}`;
+      vscode.env.clipboard.writeText(url);
+      vscode.window.showInformationMessage('Build URL copied to clipboard.');
     })
   );
 
@@ -271,6 +349,102 @@ export function activate(context: vscode.ExtensionContext) {
     })
   );
 
+  // Register setup wizard command
+  context.subscriptions.push(
+    vscode.commands.registerCommand('onedev-browser.setupWizard', async () => {
+      const urlInput = await vscode.window.showInputBox({
+        prompt: 'OneDev Server URL',
+        placeHolder: 'https://onedev.example.com',
+        ignoreFocusOut: true,
+        validateInput: (value) => {
+          if (!value) { return 'URL is required'; }
+          try { new URL(value); } catch { return 'Enter a valid URL'; }
+          if (value.endsWith('/')) { return 'URL should not end with a trailing slash'; }
+          return undefined;
+        }
+      });
+      if (urlInput === undefined) { return; }
+
+      const emailInput = await vscode.window.showInputBox({
+        prompt: 'OneDev Account Email',
+        placeHolder: 'you@example.com',
+        ignoreFocusOut: true,
+        validateInput: (value) => value ? undefined : 'Email is required'
+      });
+      if (emailInput === undefined) { return; }
+
+      const projectPathInput = await vscode.window.showInputBox({
+        prompt: 'OneDev Project Path',
+        placeHolder: 'my-project',
+        ignoreFocusOut: true,
+        validateInput: (value) => value ? undefined : 'Project path is required'
+      });
+      if (projectPathInput === undefined) { return; }
+
+      const tokenInput = await vscode.window.showInputBox({
+        prompt: 'OneDev API Token',
+        password: true,
+        ignoreFocusOut: true,
+        validateInput: (value) => value ? undefined : 'API token is required'
+      });
+      if (tokenInput === undefined) { return; }
+
+      // Validate credentials with a test API call
+      const testCreds = { url: urlInput, email: emailInput, token: tokenInput, projectPath: projectPathInput };
+      try {
+        const { fetchProjectId } = require('./api');
+        await vscode.window.withProgress(
+          { location: vscode.ProgressLocation.Notification, title: 'Verifying OneDev connection...' },
+          () => fetchProjectId(testCreds)
+        );
+      } catch (e: any) {
+        const retry = await vscode.window.showErrorMessage(
+          `Connection failed: ${e.message || 'Unknown error'}. Save settings anyway?`,
+          'Save Anyway', 'Cancel'
+        );
+        if (retry !== 'Save Anyway') { return; }
+      }
+
+      // Write all settings at once
+      const target = vscode.workspace.workspaceFolders?.length
+        ? vscode.ConfigurationTarget.Workspace
+        : vscode.ConfigurationTarget.Global;
+      const config = vscode.workspace.getConfiguration('onedev-browser');
+      await config.update('url', urlInput, target);
+      await config.update('email', emailInput, target);
+      await config.update('projectPath', projectPathInput, target);
+      await setToken(tokenInput);
+
+      vscode.commands.executeCommand('onedev-browser.refreshAllViews');
+      updateSetupContext();
+      vscode.window.showInformationMessage('OneDev connection configured successfully.');
+    })
+  );
+
+  // Update setup context when config changes
+  context.subscriptions.push(
+    vscode.workspace.onDidChangeConfiguration(e => {
+      if (e.affectsConfiguration('onedev-browser')) {
+        updateSetupContext();
+      }
+    })
+  );
+
+  // Set initial setup context and prompt if unconfigured
+  updateSetupContext();
+  (async () => {
+    const creds = await getCredentials();
+    if (!creds.url) {
+      const action = await vscode.window.showInformationMessage(
+        'OneDev Browser: No connection configured.',
+        'Set Up Now'
+      );
+      if (action === 'Set Up Now') {
+        vscode.commands.executeCommand('onedev-browser.setupWizard');
+      }
+    }
+  })();
+
   // Register Content Provider for readonly file access
   const myScheme = 'onedev';
   const myProvider = new OneDevContentProvider();
@@ -297,10 +471,12 @@ class OneDevContentProvider implements vscode.TextDocumentContentProvider {
     if (workspaceFolders && workspaceFolders.length > 0) {
       const rootPath = workspaceFolders[0].uri.fsPath;
       const cp = require('child_process');
+      if (!isValidSha(blobId)) {
+        return `Error: Invalid blob ID`;
+      }
       try {
         return await new Promise<string>((resolve, reject) => {
-          // -p pretty print, but simple git show blobId works for blobs
-          cp.exec(`git show ${blobId}`, { cwd: rootPath }, (err: any, stdout: string, stderr: string) => {
+          cp.execFile('git', ['show', blobId], { cwd: rootPath }, (err: any, stdout: string, _stderr: string) => {
             if (err) {
               reject(err);
             } else {
@@ -313,13 +489,7 @@ class OneDevContentProvider implements vscode.TextDocumentContentProvider {
       }
     }
 
-    const config = vscode.workspace.getConfiguration("onedev-browser");
-    const creds = {
-      url: getConfigValue(config, "url"),
-      email: getConfigValue(config, "email"),
-      token: getConfigValue(config, "token"),
-      projectPath: getConfigValue(config, "projectPath")
-    };
+    const creds = await getCredentials();
 
     try {
       const { fetchFileContent } = require('./api');
@@ -332,6 +502,7 @@ class OneDevContentProvider implements vscode.TextDocumentContentProvider {
 }
 
 let oneDevPanel: vscode.WebviewPanel | undefined;
+let pendingScrollToItem: { tab: string; number: number } | undefined;
 
 function openReactWebview(context: vscode.ExtensionContext) {
   if (oneDevPanel) {
@@ -340,7 +511,8 @@ function openReactWebview(context: vscode.ExtensionContext) {
   }
   let panel = vscode.window.createWebviewPanel("webview", "oneDev Browser", vscode.ViewColumn.One, {
     enableScripts: true,
-    retainContextWhenHidden: true
+    retainContextWhenHidden: true,
+    localResourceRoots: [vscode.Uri.joinPath(context.extensionUri, "web", "dist")]
   });
   oneDevPanel = panel;
 
@@ -367,22 +539,35 @@ function openReactWebview(context: vscode.ExtensionContext) {
   panel.webview.onDidReceiveMessage(async (message) => {
     try {
       if (message.command === 'getCredentials') {
-        const config = vscode.workspace.getConfiguration('onedev-browser');
-
-        const url = getConfigValue(config, 'url');
-        const email = getConfigValue(config, 'email');
-        const token = getConfigValue(config, 'token');
-        const projectPath = getConfigValue(config, 'projectPath');
+        const creds = await getCredentials();
         panel.webview.postMessage({
           command: 'setCredentials',
-          url,
-          email,
-          token,
-          projectPath
+          url: creds.url,
+          email: creds.email,
+          token: creds.token,
+          projectPath: creds.projectPath
         });
+        // Flush any pending scroll-to-item from tree view click
+        if (pendingScrollToItem) {
+          panel.webview.postMessage({
+            command: 'scrollToItem',
+            tab: pendingScrollToItem.tab,
+            number: pendingScrollToItem.number
+          });
+          pendingScrollToItem = undefined;
+        }
       } else if (message.command === 'checkoutBranch') {
         try {
           const branch = message.branch;
+          try {
+            assertValidGitRef(branch, "branch");
+          } catch (e: any) {
+            panel.webview.postMessage({
+              command: 'checkoutBranchError',
+              message: e.message
+            });
+            return;
+          }
           const terminal = vscode.window.createTerminal({ name: 'oneDev: git checkout' });
           terminal.show();
           // First fetch, then checkout (auto-create local branch if needed)
@@ -519,8 +704,8 @@ function openReactWebview(context: vscode.ExtensionContext) {
 
           const changes = await getPullRequestChanges(
             rootPath,
-            prDetails.number, // Pass PR number
-            prDetails.baseCommitHash // Pass baseCommitHash
+            prDetails.number,
+            prDetails.baseCommitHash
           );
 
           panel.webview.postMessage({
@@ -529,8 +714,9 @@ function openReactWebview(context: vscode.ExtensionContext) {
           });
         } catch (err: any) {
           panel.webview.postMessage({
-            command: 'showErrorMessage',
-            message: `Failed to fetch PR changes (Git): ${err.message}`
+            command: 'setPrChanges',
+            changes: [],
+            error: 'Unable to load PR changes. Changes are computed using local git — please open the OneDev project repository as your workspace folder.'
           });
         }
       } else if (message.command === 'openDiff') {
