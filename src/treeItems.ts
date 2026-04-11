@@ -154,7 +154,7 @@ export class BuildTreeItem extends vscode.TreeItem {
                 this.iconPath = new vscode.ThemeIcon("error", new vscode.ThemeColor("charts.red"));
                 break;
             case "RUNNING":
-                this.iconPath = new vscode.ThemeIcon("sync~spin");
+                this.iconPath = new vscode.ThemeIcon("sync~spin", new vscode.ThemeColor("charts.blue"));
                 break;
             case "WAITING":
             case "PENDING":

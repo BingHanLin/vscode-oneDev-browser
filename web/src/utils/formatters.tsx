@@ -30,9 +30,9 @@ const statusColors: Record<string, { bg: string; fg: string }> = {
     // Build statuses
     successful: { bg: "#2ea04370", fg: "#3fb950" },
     failed: { bg: "#da363470", fg: "#f85149" },
-    running: { bg: "#d29922", fg: "#e3b341" },
-    pending: { bg: "#848d9770", fg: "#8b949e" },
-    waiting: { bg: "#848d9770", fg: "#8b949e" },
+    running: { bg: "#388bfd70", fg: "#58a6ff" },
+    pending: { bg: "#d2992270", fg: "#e3b341" },
+    waiting: { bg: "#d2992270", fg: "#e3b341" },
     cancelled: { bg: "#848d9770", fg: "#8b949e" },
     timed_out: { bg: "#da363470", fg: "#f85149" },
 };

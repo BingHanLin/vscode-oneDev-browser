@@ -578,10 +578,13 @@ const PRTab: React.FC<PRTabProps> = ({
                                                         color:
                                                             b.status ===
                                                             "SUCCESSFUL"
-                                                                ? "#2ecc40"
+                                                                ? "#3fb950"
                                                                 : b.status ===
                                                                   "FAILED"
-                                                                ? "#e74c3c"
+                                                                ? "#f85149"
+                                                                : b.status ===
+                                                                  "RUNNING"
+                                                                ? "#58a6ff"
                                                                 : "#666",
                                                         fontWeight:
                                                             b.status ===
